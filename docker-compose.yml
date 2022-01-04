@@ -12,6 +12,14 @@ services:
       - "5432:5432"
     volumes:
       - postgresql-data:/var/lib/postgresql/data
+  pgweb:
+    image: sosedoff/pgweb
+    ports: 
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgres://root:password@db:5432/connefut_db?sslmode=disable
+    depends_on:
+      - db
   web:
     build: .
     ports:
