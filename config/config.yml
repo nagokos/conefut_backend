@@ -1,0 +1,6 @@
+db:
+  name: connefut_db
+  driver: postgres
+web:
+  port: 8080
+  log: connefut.log
