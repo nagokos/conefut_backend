@@ -2,17 +2,27 @@ DC = docker-compose
 DC_WEB = $(DC) exec web
 DC_DB = $(DC) exec db
 
-package_name:
+package_add:
 	@$(eval PACKAGE_NAME := $(shell read -p "add packages: " NAME; echo $$NAME))
 
-go_get: package_name
+package_name:
+	@$(eval PACKAGE_NAME := $(shell read -p "packages name: " NAME; echo $$NAME))
+
+go_run: package_name
+	${DC_WEB} go run ${PACKAGE_NAME}
+
+go_get: package_add
 	${DC_WEB} go get ${PACKAGE_NAME}
 
-go_install: package_name
+go_install: package_add
 	${DC_WEB} go install ${PACKAGE_NAME}
 
 mod_tidy:
 	${DC_WEB} go mod tidy
 
+generate:
+	${DC_WEB} go generate ./...
+
 db_attach:
 	${DC_DB} bash
+
