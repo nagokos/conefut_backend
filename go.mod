@@ -8,7 +8,7 @@ require (
 	github.com/99designs/gqlgen v0.14.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/lib/pq v1.10.2
+	github.com/lib/pq v1.10.4
 	github.com/vektah/gqlparser/v2 v2.2.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	gopkg.in/yaml.v2 v2.4.0
