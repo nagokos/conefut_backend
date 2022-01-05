@@ -12,10 +12,13 @@ go_run: package_name
 	${DC_WEB} go run ${PACKAGE_NAME}
 
 go_get: package_add
-	${DC_WEB} go get ${PACKAGE_NAME}
+	${DC_WEB} go get -d ${PACKAGE_NAME}
 
 go_install: package_add
 	${DC_WEB} go install ${PACKAGE_NAME}
+
+start_server:
+	${DC_WEB} go run graph/server/server.go
 
 mod_tidy:
 	${DC_WEB} go mod tidy
