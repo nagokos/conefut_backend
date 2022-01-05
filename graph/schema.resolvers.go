@@ -12,7 +12,22 @@ import (
 )
 
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented"))
+	todo := model.Todo{
+		ID:   "1",
+		Text: "おはようございます",
+		Done: true,
+		User: &model.User{
+			Name: "kosuda",
+		},
+	}
+	return &todo, nil
+}
+
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	user := model.User{
+		Name: input.Name,
+	}
+	return &user, nil
 }
 
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
