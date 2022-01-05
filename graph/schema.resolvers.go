@@ -12,11 +12,12 @@ import (
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	res, err := r.client.User.Create().SetName(input.Name).SetEmail(input.Email).Save(ctx)
 	user := model.User{
-		Name:  input.Name,
-		Email: input.Email,
+		Name:  res.Name,
+		Email: res.Email,
 	}
-	return &user, nil
+	return &user, err
 }
 
 func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
