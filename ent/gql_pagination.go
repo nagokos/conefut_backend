@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
-	"github.com/google/uuid"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/vmihailenco/msgpack/v5"
@@ -145,8 +144,8 @@ type PageInfo struct {
 
 // Cursor of an edge type.
 type Cursor struct {
-	ID    uuid.UUID `msgpack:"i"`
-	Value Value     `msgpack:"v,omitempty"`
+	ID    string `msgpack:"i"`
+	Value Value  `msgpack:"v,omitempty"`
 }
 
 // MarshalGQL implements graphql.Marshaler interface.
