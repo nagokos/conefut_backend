@@ -6,9 +6,9 @@ require (
 	entgo.io/contrib v0.2.0
 	entgo.io/ent v0.9.2-0.20210821141344-368a8f7a2e9a
 	github.com/99designs/gqlgen v0.14.0
-	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/lib/pq v1.10.2
+	github.com/rs/xid v1.3.0
 	github.com/vektah/gqlparser/v2 v2.2.0
 	github.com/vmihailenco/msgpack/v5 v5.0.0-beta.9
 	gopkg.in/yaml.v2 v2.4.0
@@ -18,6 +18,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/graphql-go/graphql v0.7.10-0.20210411022516-8a92e977c10b // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
