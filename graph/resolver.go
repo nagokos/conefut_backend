@@ -1,12 +1,23 @@
 package graph
 
-import "github.com/nagokos/connefut_backend/ent"
+import (
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/graph/generated"
+)
 
 // This file will not be regenerated automatically.
+//go:generate go get github.com/99designs/gqlgen/cmd@v0.14.0
 //go:generate go run github.com/99designs/gqlgen
 
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Client *ent.Client
+	client *ent.Client
+}
+
+func NewSchema(client *ent.Client) graphql.ExecutableSchema {
+	return generated.NewExecutableSchema(generated.Config{
+		Resolvers: &Resolver{client},
+	})
 }
