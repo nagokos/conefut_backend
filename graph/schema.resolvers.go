@@ -11,26 +11,15 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	todo := model.Todo{
-		ID:   "1",
-		Text: "おはようございます",
-		Done: true,
-		User: &model.User{
-			Name: "kosuda",
-		},
-	}
-	return &todo, nil
-}
-
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	user := model.User{
-		Name: input.Name,
+		Name:  input.Name,
+		Email: input.Email,
 	}
 	return &user, nil
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
