@@ -4,7 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 // User holds the schema definition for the User entity.
@@ -21,8 +21,11 @@ func (User) Mixin() []ent.Mixin {
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New).
+		field.String("id").
+			DefaultFunc(func() string {
+				return xid.New().String()
+			}).
+			NotEmpty().
 			Immutable().
 			Unique(),
 		field.String("name").
