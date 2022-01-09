@@ -3,4 +3,4 @@ db:
   driver: postgres
 web:
   port: 8080
-  log: connefut.log
+  log: log/connefut.log
