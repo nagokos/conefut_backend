@@ -8,8 +8,16 @@ type NewUser struct {
 	Password string `json:"password"`
 }
 
+type Prefecture struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	Email        string  `json:"email"`
+	Role         string  `json:"role"`
+	Avatar       string  `json:"avatar"`
+	Introduction *string `json:"introduction"`
 }
