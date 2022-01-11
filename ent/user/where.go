@@ -120,6 +120,41 @@ func Email(v string) predicate.User {
 	})
 }
 
+// Avatar applies equality check predicate on the "avatar" field. It's identical to AvatarEQ.
+func Avatar(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldAvatar), v))
+	})
+}
+
+// Introduction applies equality check predicate on the "introduction" field. It's identical to IntroductionEQ.
+func Introduction(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIntroduction), v))
+	})
+}
+
+// EmailVerificationStatus applies equality check predicate on the "email_verification_status" field. It's identical to EmailVerificationStatusEQ.
+func EmailVerificationStatus(v bool) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationStatus), v))
+	})
+}
+
+// EmailVerificationToken applies equality check predicate on the "email_verification_token" field. It's identical to EmailVerificationTokenEQ.
+func EmailVerificationToken(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAt applies equality check predicate on the "email_verification_token_expires_at" field. It's identical to EmailVerificationTokenExpiresAtEQ.
+func EmailVerificationTokenExpiresAt(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
 // PasswordDigest applies equality check predicate on the "password_digest" field. It's identical to PasswordDigestEQ.
 func PasswordDigest(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -498,6 +533,519 @@ func EmailEqualFold(v string) predicate.User {
 func EmailContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldEmail), v))
+	})
+}
+
+// RoleEQ applies the EQ predicate on the "role" field.
+func RoleEQ(v Role) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldRole), v))
+	})
+}
+
+// RoleNEQ applies the NEQ predicate on the "role" field.
+func RoleNEQ(v Role) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldRole), v))
+	})
+}
+
+// RoleIn applies the In predicate on the "role" field.
+func RoleIn(vs ...Role) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldRole), v...))
+	})
+}
+
+// RoleNotIn applies the NotIn predicate on the "role" field.
+func RoleNotIn(vs ...Role) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldRole), v...))
+	})
+}
+
+// AvatarEQ applies the EQ predicate on the "avatar" field.
+func AvatarEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarNEQ applies the NEQ predicate on the "avatar" field.
+func AvatarNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarIn applies the In predicate on the "avatar" field.
+func AvatarIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldAvatar), v...))
+	})
+}
+
+// AvatarNotIn applies the NotIn predicate on the "avatar" field.
+func AvatarNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldAvatar), v...))
+	})
+}
+
+// AvatarGT applies the GT predicate on the "avatar" field.
+func AvatarGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarGTE applies the GTE predicate on the "avatar" field.
+func AvatarGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarLT applies the LT predicate on the "avatar" field.
+func AvatarLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarLTE applies the LTE predicate on the "avatar" field.
+func AvatarLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarContains applies the Contains predicate on the "avatar" field.
+func AvatarContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarHasPrefix applies the HasPrefix predicate on the "avatar" field.
+func AvatarHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarHasSuffix applies the HasSuffix predicate on the "avatar" field.
+func AvatarHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarEqualFold applies the EqualFold predicate on the "avatar" field.
+func AvatarEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldAvatar), v))
+	})
+}
+
+// AvatarContainsFold applies the ContainsFold predicate on the "avatar" field.
+func AvatarContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldAvatar), v))
+	})
+}
+
+// IntroductionEQ applies the EQ predicate on the "introduction" field.
+func IntroductionEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionNEQ applies the NEQ predicate on the "introduction" field.
+func IntroductionNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionIn applies the In predicate on the "introduction" field.
+func IntroductionIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldIntroduction), v...))
+	})
+}
+
+// IntroductionNotIn applies the NotIn predicate on the "introduction" field.
+func IntroductionNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldIntroduction), v...))
+	})
+}
+
+// IntroductionGT applies the GT predicate on the "introduction" field.
+func IntroductionGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionGTE applies the GTE predicate on the "introduction" field.
+func IntroductionGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionLT applies the LT predicate on the "introduction" field.
+func IntroductionLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionLTE applies the LTE predicate on the "introduction" field.
+func IntroductionLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionContains applies the Contains predicate on the "introduction" field.
+func IntroductionContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionHasPrefix applies the HasPrefix predicate on the "introduction" field.
+func IntroductionHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionHasSuffix applies the HasSuffix predicate on the "introduction" field.
+func IntroductionHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionIsNil applies the IsNil predicate on the "introduction" field.
+func IntroductionIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldIntroduction)))
+	})
+}
+
+// IntroductionNotNil applies the NotNil predicate on the "introduction" field.
+func IntroductionNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldIntroduction)))
+	})
+}
+
+// IntroductionEqualFold applies the EqualFold predicate on the "introduction" field.
+func IntroductionEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldIntroduction), v))
+	})
+}
+
+// IntroductionContainsFold applies the ContainsFold predicate on the "introduction" field.
+func IntroductionContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldIntroduction), v))
+	})
+}
+
+// EmailVerificationStatusEQ applies the EQ predicate on the "email_verification_status" field.
+func EmailVerificationStatusEQ(v bool) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationStatus), v))
+	})
+}
+
+// EmailVerificationStatusNEQ applies the NEQ predicate on the "email_verification_status" field.
+func EmailVerificationStatusNEQ(v bool) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldEmailVerificationStatus), v))
+	})
+}
+
+// EmailVerificationTokenEQ applies the EQ predicate on the "email_verification_token" field.
+func EmailVerificationTokenEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenNEQ applies the NEQ predicate on the "email_verification_token" field.
+func EmailVerificationTokenNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenIn applies the In predicate on the "email_verification_token" field.
+func EmailVerificationTokenIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldEmailVerificationToken), v...))
+	})
+}
+
+// EmailVerificationTokenNotIn applies the NotIn predicate on the "email_verification_token" field.
+func EmailVerificationTokenNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldEmailVerificationToken), v...))
+	})
+}
+
+// EmailVerificationTokenGT applies the GT predicate on the "email_verification_token" field.
+func EmailVerificationTokenGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenGTE applies the GTE predicate on the "email_verification_token" field.
+func EmailVerificationTokenGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenLT applies the LT predicate on the "email_verification_token" field.
+func EmailVerificationTokenLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenLTE applies the LTE predicate on the "email_verification_token" field.
+func EmailVerificationTokenLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenContains applies the Contains predicate on the "email_verification_token" field.
+func EmailVerificationTokenContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenHasPrefix applies the HasPrefix predicate on the "email_verification_token" field.
+func EmailVerificationTokenHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenHasSuffix applies the HasSuffix predicate on the "email_verification_token" field.
+func EmailVerificationTokenHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenIsNil applies the IsNil predicate on the "email_verification_token" field.
+func EmailVerificationTokenIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldEmailVerificationToken)))
+	})
+}
+
+// EmailVerificationTokenNotNil applies the NotNil predicate on the "email_verification_token" field.
+func EmailVerificationTokenNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldEmailVerificationToken)))
+	})
+}
+
+// EmailVerificationTokenEqualFold applies the EqualFold predicate on the "email_verification_token" field.
+func EmailVerificationTokenEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenContainsFold applies the ContainsFold predicate on the "email_verification_token" field.
+func EmailVerificationTokenContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldEmailVerificationToken), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtEQ applies the EQ predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtNEQ applies the NEQ predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtNEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtIn applies the In predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldEmailVerificationTokenExpiresAt), v...))
+	})
+}
+
+// EmailVerificationTokenExpiresAtNotIn applies the NotIn predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtNotIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldEmailVerificationTokenExpiresAt), v...))
+	})
+}
+
+// EmailVerificationTokenExpiresAtGT applies the GT predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtGT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtGTE applies the GTE predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtGTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtLT applies the LT predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtLT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtLTE applies the LTE predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtLTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldEmailVerificationTokenExpiresAt), v))
+	})
+}
+
+// EmailVerificationTokenExpiresAtIsNil applies the IsNil predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldEmailVerificationTokenExpiresAt)))
+	})
+}
+
+// EmailVerificationTokenExpiresAtNotNil applies the NotNil predicate on the "email_verification_token_expires_at" field.
+func EmailVerificationTokenExpiresAtNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldEmailVerificationTokenExpiresAt)))
 	})
 }
 

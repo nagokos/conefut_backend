@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/vmihailenco/msgpack/v5"
@@ -231,6 +232,233 @@ const (
 	pageInfoField   = "pageInfo"
 	totalCountField = "totalCount"
 )
+
+// PrefectureEdge is the edge representation of Prefecture.
+type PrefectureEdge struct {
+	Node   *Prefecture `json:"node"`
+	Cursor Cursor      `json:"cursor"`
+}
+
+// PrefectureConnection is the connection containing edges to Prefecture.
+type PrefectureConnection struct {
+	Edges      []*PrefectureEdge `json:"edges"`
+	PageInfo   PageInfo          `json:"pageInfo"`
+	TotalCount int               `json:"totalCount"`
+}
+
+// PrefecturePaginateOption enables pagination customization.
+type PrefecturePaginateOption func(*prefecturePager) error
+
+// WithPrefectureOrder configures pagination ordering.
+func WithPrefectureOrder(order *PrefectureOrder) PrefecturePaginateOption {
+	if order == nil {
+		order = DefaultPrefectureOrder
+	}
+	o := *order
+	return func(pager *prefecturePager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultPrefectureOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithPrefectureFilter configures pagination filter.
+func WithPrefectureFilter(filter func(*PrefectureQuery) (*PrefectureQuery, error)) PrefecturePaginateOption {
+	return func(pager *prefecturePager) error {
+		if filter == nil {
+			return errors.New("PrefectureQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type prefecturePager struct {
+	order  *PrefectureOrder
+	filter func(*PrefectureQuery) (*PrefectureQuery, error)
+}
+
+func newPrefecturePager(opts []PrefecturePaginateOption) (*prefecturePager, error) {
+	pager := &prefecturePager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultPrefectureOrder
+	}
+	return pager, nil
+}
+
+func (p *prefecturePager) applyFilter(query *PrefectureQuery) (*PrefectureQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *prefecturePager) toCursor(pr *Prefecture) Cursor {
+	return p.order.Field.toCursor(pr)
+}
+
+func (p *prefecturePager) applyCursors(query *PrefectureQuery, after, before *Cursor) *PrefectureQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultPrefectureOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *prefecturePager) applyOrder(query *PrefectureQuery, reverse bool) *PrefectureQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultPrefectureOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultPrefectureOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Prefecture.
+func (pr *PrefectureQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...PrefecturePaginateOption,
+) (*PrefectureConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newPrefecturePager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if pr, err = pager.applyFilter(pr); err != nil {
+		return nil, err
+	}
+
+	conn := &PrefectureConnection{Edges: []*PrefectureEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := pr.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := pr.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	pr = pager.applyCursors(pr, after, before)
+	pr = pager.applyOrder(pr, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		pr = pr.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		pr = pr.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := pr.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Prefecture
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Prefecture {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Prefecture {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*PrefectureEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &PrefectureEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// PrefectureOrderField defines the ordering field of Prefecture.
+type PrefectureOrderField struct {
+	field    string
+	toCursor func(*Prefecture) Cursor
+}
+
+// PrefectureOrder defines the ordering of Prefecture.
+type PrefectureOrder struct {
+	Direction OrderDirection        `json:"direction"`
+	Field     *PrefectureOrderField `json:"field"`
+}
+
+// DefaultPrefectureOrder is the default ordering of Prefecture.
+var DefaultPrefectureOrder = &PrefectureOrder{
+	Direction: OrderDirectionAsc,
+	Field: &PrefectureOrderField{
+		field: prefecture.FieldID,
+		toCursor: func(pr *Prefecture) Cursor {
+			return Cursor{ID: pr.ID}
+		},
+	},
+}
+
+// ToEdge converts Prefecture into PrefectureEdge.
+func (pr *Prefecture) ToEdge(order *PrefectureOrder) *PrefectureEdge {
+	if order == nil {
+		order = DefaultPrefectureOrder
+	}
+	return &PrefectureEdge{
+		Node:   pr,
+		Cursor: order.Field.toCursor(pr),
+	}
+}
 
 // UserEdge is the edge representation of User.
 type UserEdge struct {

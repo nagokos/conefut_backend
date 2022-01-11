@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/schema"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
@@ -13,9 +14,34 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	prefectureMixin := schema.Prefecture{}.Mixin()
+	prefectureMixinFields0 := prefectureMixin[0].Fields()
+	_ = prefectureMixinFields0
+	prefectureMixinFields1 := prefectureMixin[1].Fields()
+	_ = prefectureMixinFields1
+	prefectureFields := schema.Prefecture{}.Fields()
+	_ = prefectureFields
+	// prefectureDescCreatedAt is the schema descriptor for created_at field.
+	prefectureDescCreatedAt := prefectureMixinFields0[0].Descriptor()
+	// prefecture.DefaultCreatedAt holds the default value on creation for the created_at field.
+	prefecture.DefaultCreatedAt = prefectureDescCreatedAt.Default.(func() time.Time)
+	// prefectureDescUpdatedAt is the schema descriptor for updated_at field.
+	prefectureDescUpdatedAt := prefectureMixinFields0[1].Descriptor()
+	// prefecture.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	prefecture.DefaultUpdatedAt = prefectureDescUpdatedAt.Default.(func() time.Time)
+	// prefecture.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	prefecture.UpdateDefaultUpdatedAt = prefectureDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// prefectureDescID is the schema descriptor for id field.
+	prefectureDescID := prefectureMixinFields1[0].Descriptor()
+	// prefecture.DefaultID holds the default value on creation for the id field.
+	prefecture.DefaultID = prefectureDescID.Default.(func() string)
+	// prefecture.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	prefecture.IDValidator = prefectureDescID.Validators[0].(func(string) error)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0
+	userMixinFields1 := userMixin[1].Fields()
+	_ = userMixinFields1
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
@@ -29,15 +55,27 @@ func init() {
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescName is the schema descriptor for name field.
-	userDescName := userFields[1].Descriptor()
+	userDescName := userFields[0].Descriptor()
 	// user.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	user.NameValidator = userDescName.Validators[0].(func(string) error)
 	// userDescEmail is the schema descriptor for email field.
-	userDescEmail := userFields[2].Descriptor()
+	userDescEmail := userFields[1].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
+	// userDescAvatar is the schema descriptor for avatar field.
+	userDescAvatar := userFields[3].Descriptor()
+	// user.DefaultAvatar holds the default value on creation for the avatar field.
+	user.DefaultAvatar = userDescAvatar.Default.(string)
+	// userDescIntroduction is the schema descriptor for introduction field.
+	userDescIntroduction := userFields[4].Descriptor()
+	// user.IntroductionValidator is a validator for the "introduction" field. It is called by the builders before save.
+	user.IntroductionValidator = userDescIntroduction.Validators[0].(func(string) error)
+	// userDescEmailVerificationStatus is the schema descriptor for email_verification_status field.
+	userDescEmailVerificationStatus := userFields[5].Descriptor()
+	// user.DefaultEmailVerificationStatus holds the default value on creation for the email_verification_status field.
+	user.DefaultEmailVerificationStatus = userDescEmailVerificationStatus.Default.(bool)
 	// userDescID is the schema descriptor for id field.
-	userDescID := userFields[0].Descriptor()
+	userDescID := userMixinFields1[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() string)
 	// user.IDValidator is a validator for the "id" field. It is called by the builders before save.

@@ -6,10 +6,18 @@ type User {
   id: String!
   name: String!
   email: String!
+  role: String!
+  avatar: String!
+  introduction: String
+}
+
+type Prefecture {
+  id: String!
+  name: String!
 }
 
 type Query {
-  user: User!
+  user(userId: String): User!
 }
 
 input NewUser {
@@ -20,4 +28,5 @@ input NewUser {
 
 type Mutation {
   createUser(input: NewUser!): User!
+  updateUser(input: NewUser!): User!
 }

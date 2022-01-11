@@ -45,6 +45,108 @@ func (uu *UserUpdate) SetEmail(s string) *UserUpdate {
 	return uu
 }
 
+// SetRole sets the "role" field.
+func (uu *UserUpdate) SetRole(u user.Role) *UserUpdate {
+	uu.mutation.SetRole(u)
+	return uu
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableRole(u *user.Role) *UserUpdate {
+	if u != nil {
+		uu.SetRole(*u)
+	}
+	return uu
+}
+
+// SetAvatar sets the "avatar" field.
+func (uu *UserUpdate) SetAvatar(s string) *UserUpdate {
+	uu.mutation.SetAvatar(s)
+	return uu
+}
+
+// SetNillableAvatar sets the "avatar" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableAvatar(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetAvatar(*s)
+	}
+	return uu
+}
+
+// SetIntroduction sets the "introduction" field.
+func (uu *UserUpdate) SetIntroduction(s string) *UserUpdate {
+	uu.mutation.SetIntroduction(s)
+	return uu
+}
+
+// SetNillableIntroduction sets the "introduction" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableIntroduction(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetIntroduction(*s)
+	}
+	return uu
+}
+
+// ClearIntroduction clears the value of the "introduction" field.
+func (uu *UserUpdate) ClearIntroduction() *UserUpdate {
+	uu.mutation.ClearIntroduction()
+	return uu
+}
+
+// SetEmailVerificationStatus sets the "email_verification_status" field.
+func (uu *UserUpdate) SetEmailVerificationStatus(b bool) *UserUpdate {
+	uu.mutation.SetEmailVerificationStatus(b)
+	return uu
+}
+
+// SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableEmailVerificationStatus(b *bool) *UserUpdate {
+	if b != nil {
+		uu.SetEmailVerificationStatus(*b)
+	}
+	return uu
+}
+
+// SetEmailVerificationToken sets the "email_verification_token" field.
+func (uu *UserUpdate) SetEmailVerificationToken(s string) *UserUpdate {
+	uu.mutation.SetEmailVerificationToken(s)
+	return uu
+}
+
+// SetNillableEmailVerificationToken sets the "email_verification_token" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableEmailVerificationToken(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetEmailVerificationToken(*s)
+	}
+	return uu
+}
+
+// ClearEmailVerificationToken clears the value of the "email_verification_token" field.
+func (uu *UserUpdate) ClearEmailVerificationToken() *UserUpdate {
+	uu.mutation.ClearEmailVerificationToken()
+	return uu
+}
+
+// SetEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field.
+func (uu *UserUpdate) SetEmailVerificationTokenExpiresAt(t time.Time) *UserUpdate {
+	uu.mutation.SetEmailVerificationTokenExpiresAt(t)
+	return uu
+}
+
+// SetNillableEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableEmailVerificationTokenExpiresAt(t *time.Time) *UserUpdate {
+	if t != nil {
+		uu.SetEmailVerificationTokenExpiresAt(*t)
+	}
+	return uu
+}
+
+// ClearEmailVerificationTokenExpiresAt clears the value of the "email_verification_token_expires_at" field.
+func (uu *UserUpdate) ClearEmailVerificationTokenExpiresAt() *UserUpdate {
+	uu.mutation.ClearEmailVerificationTokenExpiresAt()
+	return uu
+}
+
 // SetPasswordDigest sets the "password_digest" field.
 func (uu *UserUpdate) SetPasswordDigest(s string) *UserUpdate {
 	uu.mutation.SetPasswordDigest(s)
@@ -151,6 +253,16 @@ func (uu *UserUpdate) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
 		}
 	}
+	if v, ok := uu.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf("ent: validator failed for field \"role\": %w", err)}
+		}
+	}
+	if v, ok := uu.mutation.Introduction(); ok {
+		if err := user.IntroductionValidator(v); err != nil {
+			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -191,6 +303,66 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeString,
 			Value:  value,
 			Column: user.FieldEmail,
+		})
+	}
+	if value, ok := uu.mutation.Role(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: user.FieldRole,
+		})
+	}
+	if value, ok := uu.mutation.Avatar(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldAvatar,
+		})
+	}
+	if value, ok := uu.mutation.Introduction(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldIntroduction,
+		})
+	}
+	if uu.mutation.IntroductionCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldIntroduction,
+		})
+	}
+	if value, ok := uu.mutation.EmailVerificationStatus(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: user.FieldEmailVerificationStatus,
+		})
+	}
+	if value, ok := uu.mutation.EmailVerificationToken(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmailVerificationToken,
+		})
+	}
+	if uu.mutation.EmailVerificationTokenCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldEmailVerificationToken,
+		})
+	}
+	if value, ok := uu.mutation.EmailVerificationTokenExpiresAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldEmailVerificationTokenExpiresAt,
+		})
+	}
+	if uu.mutation.EmailVerificationTokenExpiresAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldEmailVerificationTokenExpiresAt,
 		})
 	}
 	if value, ok := uu.mutation.PasswordDigest(); ok {
@@ -240,6 +412,108 @@ func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
 // SetEmail sets the "email" field.
 func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
 	uuo.mutation.SetEmail(s)
+	return uuo
+}
+
+// SetRole sets the "role" field.
+func (uuo *UserUpdateOne) SetRole(u user.Role) *UserUpdateOne {
+	uuo.mutation.SetRole(u)
+	return uuo
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableRole(u *user.Role) *UserUpdateOne {
+	if u != nil {
+		uuo.SetRole(*u)
+	}
+	return uuo
+}
+
+// SetAvatar sets the "avatar" field.
+func (uuo *UserUpdateOne) SetAvatar(s string) *UserUpdateOne {
+	uuo.mutation.SetAvatar(s)
+	return uuo
+}
+
+// SetNillableAvatar sets the "avatar" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableAvatar(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetAvatar(*s)
+	}
+	return uuo
+}
+
+// SetIntroduction sets the "introduction" field.
+func (uuo *UserUpdateOne) SetIntroduction(s string) *UserUpdateOne {
+	uuo.mutation.SetIntroduction(s)
+	return uuo
+}
+
+// SetNillableIntroduction sets the "introduction" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableIntroduction(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetIntroduction(*s)
+	}
+	return uuo
+}
+
+// ClearIntroduction clears the value of the "introduction" field.
+func (uuo *UserUpdateOne) ClearIntroduction() *UserUpdateOne {
+	uuo.mutation.ClearIntroduction()
+	return uuo
+}
+
+// SetEmailVerificationStatus sets the "email_verification_status" field.
+func (uuo *UserUpdateOne) SetEmailVerificationStatus(b bool) *UserUpdateOne {
+	uuo.mutation.SetEmailVerificationStatus(b)
+	return uuo
+}
+
+// SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableEmailVerificationStatus(b *bool) *UserUpdateOne {
+	if b != nil {
+		uuo.SetEmailVerificationStatus(*b)
+	}
+	return uuo
+}
+
+// SetEmailVerificationToken sets the "email_verification_token" field.
+func (uuo *UserUpdateOne) SetEmailVerificationToken(s string) *UserUpdateOne {
+	uuo.mutation.SetEmailVerificationToken(s)
+	return uuo
+}
+
+// SetNillableEmailVerificationToken sets the "email_verification_token" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableEmailVerificationToken(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetEmailVerificationToken(*s)
+	}
+	return uuo
+}
+
+// ClearEmailVerificationToken clears the value of the "email_verification_token" field.
+func (uuo *UserUpdateOne) ClearEmailVerificationToken() *UserUpdateOne {
+	uuo.mutation.ClearEmailVerificationToken()
+	return uuo
+}
+
+// SetEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field.
+func (uuo *UserUpdateOne) SetEmailVerificationTokenExpiresAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetEmailVerificationTokenExpiresAt(t)
+	return uuo
+}
+
+// SetNillableEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableEmailVerificationTokenExpiresAt(t *time.Time) *UserUpdateOne {
+	if t != nil {
+		uuo.SetEmailVerificationTokenExpiresAt(*t)
+	}
+	return uuo
+}
+
+// ClearEmailVerificationTokenExpiresAt clears the value of the "email_verification_token_expires_at" field.
+func (uuo *UserUpdateOne) ClearEmailVerificationTokenExpiresAt() *UserUpdateOne {
+	uuo.mutation.ClearEmailVerificationTokenExpiresAt()
 	return uuo
 }
 
@@ -356,6 +630,16 @@ func (uuo *UserUpdateOne) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
 		}
 	}
+	if v, ok := uuo.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf("ent: validator failed for field \"role\": %w", err)}
+		}
+	}
+	if v, ok := uuo.mutation.Introduction(); ok {
+		if err := user.IntroductionValidator(v); err != nil {
+			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -413,6 +697,66 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Type:   field.TypeString,
 			Value:  value,
 			Column: user.FieldEmail,
+		})
+	}
+	if value, ok := uuo.mutation.Role(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: user.FieldRole,
+		})
+	}
+	if value, ok := uuo.mutation.Avatar(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldAvatar,
+		})
+	}
+	if value, ok := uuo.mutation.Introduction(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldIntroduction,
+		})
+	}
+	if uuo.mutation.IntroductionCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldIntroduction,
+		})
+	}
+	if value, ok := uuo.mutation.EmailVerificationStatus(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: user.FieldEmailVerificationStatus,
+		})
+	}
+	if value, ok := uuo.mutation.EmailVerificationToken(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmailVerificationToken,
+		})
+	}
+	if uuo.mutation.EmailVerificationTokenCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldEmailVerificationToken,
+		})
+	}
+	if value, ok := uuo.mutation.EmailVerificationTokenExpiresAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldEmailVerificationTokenExpiresAt,
+		})
+	}
+	if uuo.mutation.EmailVerificationTokenExpiresAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldEmailVerificationTokenExpiresAt,
 		})
 	}
 	if value, ok := uuo.mutation.PasswordDigest(); ok {

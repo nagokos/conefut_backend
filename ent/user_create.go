@@ -60,6 +60,90 @@ func (uc *UserCreate) SetEmail(s string) *UserCreate {
 	return uc
 }
 
+// SetRole sets the "role" field.
+func (uc *UserCreate) SetRole(u user.Role) *UserCreate {
+	uc.mutation.SetRole(u)
+	return uc
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uc *UserCreate) SetNillableRole(u *user.Role) *UserCreate {
+	if u != nil {
+		uc.SetRole(*u)
+	}
+	return uc
+}
+
+// SetAvatar sets the "avatar" field.
+func (uc *UserCreate) SetAvatar(s string) *UserCreate {
+	uc.mutation.SetAvatar(s)
+	return uc
+}
+
+// SetNillableAvatar sets the "avatar" field if the given value is not nil.
+func (uc *UserCreate) SetNillableAvatar(s *string) *UserCreate {
+	if s != nil {
+		uc.SetAvatar(*s)
+	}
+	return uc
+}
+
+// SetIntroduction sets the "introduction" field.
+func (uc *UserCreate) SetIntroduction(s string) *UserCreate {
+	uc.mutation.SetIntroduction(s)
+	return uc
+}
+
+// SetNillableIntroduction sets the "introduction" field if the given value is not nil.
+func (uc *UserCreate) SetNillableIntroduction(s *string) *UserCreate {
+	if s != nil {
+		uc.SetIntroduction(*s)
+	}
+	return uc
+}
+
+// SetEmailVerificationStatus sets the "email_verification_status" field.
+func (uc *UserCreate) SetEmailVerificationStatus(b bool) *UserCreate {
+	uc.mutation.SetEmailVerificationStatus(b)
+	return uc
+}
+
+// SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
+func (uc *UserCreate) SetNillableEmailVerificationStatus(b *bool) *UserCreate {
+	if b != nil {
+		uc.SetEmailVerificationStatus(*b)
+	}
+	return uc
+}
+
+// SetEmailVerificationToken sets the "email_verification_token" field.
+func (uc *UserCreate) SetEmailVerificationToken(s string) *UserCreate {
+	uc.mutation.SetEmailVerificationToken(s)
+	return uc
+}
+
+// SetNillableEmailVerificationToken sets the "email_verification_token" field if the given value is not nil.
+func (uc *UserCreate) SetNillableEmailVerificationToken(s *string) *UserCreate {
+	if s != nil {
+		uc.SetEmailVerificationToken(*s)
+	}
+	return uc
+}
+
+// SetEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field.
+func (uc *UserCreate) SetEmailVerificationTokenExpiresAt(t time.Time) *UserCreate {
+	uc.mutation.SetEmailVerificationTokenExpiresAt(t)
+	return uc
+}
+
+// SetNillableEmailVerificationTokenExpiresAt sets the "email_verification_token_expires_at" field if the given value is not nil.
+func (uc *UserCreate) SetNillableEmailVerificationTokenExpiresAt(t *time.Time) *UserCreate {
+	if t != nil {
+		uc.SetEmailVerificationTokenExpiresAt(*t)
+	}
+	return uc
+}
+
 // SetPasswordDigest sets the "password_digest" field.
 func (uc *UserCreate) SetPasswordDigest(s string) *UserCreate {
 	uc.mutation.SetPasswordDigest(s)
@@ -167,6 +251,18 @@ func (uc *UserCreate) defaults() {
 		v := user.DefaultUpdatedAt()
 		uc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := uc.mutation.Role(); !ok {
+		v := user.DefaultRole
+		uc.mutation.SetRole(v)
+	}
+	if _, ok := uc.mutation.Avatar(); !ok {
+		v := user.DefaultAvatar
+		uc.mutation.SetAvatar(v)
+	}
+	if _, ok := uc.mutation.EmailVerificationStatus(); !ok {
+		v := user.DefaultEmailVerificationStatus
+		uc.mutation.SetEmailVerificationStatus(v)
+	}
 	if _, ok := uc.mutation.ID(); !ok {
 		v := user.DefaultID()
 		uc.mutation.SetID(v)
@@ -196,6 +292,25 @@ func (uc *UserCreate) check() error {
 		if err := user.EmailValidator(v); err != nil {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "email": %w`, err)}
 		}
+	}
+	if _, ok := uc.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "role"`)}
+	}
+	if v, ok := uc.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "role": %w`, err)}
+		}
+	}
+	if _, ok := uc.mutation.Avatar(); !ok {
+		return &ValidationError{Name: "avatar", err: errors.New(`ent: missing required field "avatar"`)}
+	}
+	if v, ok := uc.mutation.Introduction(); ok {
+		if err := user.IntroductionValidator(v); err != nil {
+			return &ValidationError{Name: "introduction", err: fmt.Errorf(`ent: validator failed for field "introduction": %w`, err)}
+		}
+	}
+	if _, ok := uc.mutation.EmailVerificationStatus(); !ok {
+		return &ValidationError{Name: "email_verification_status", err: errors.New(`ent: missing required field "email_verification_status"`)}
 	}
 	if v, ok := uc.mutation.ID(); ok {
 		if err := user.IDValidator(v); err != nil {
@@ -265,6 +380,54 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldEmail,
 		})
 		_node.Email = value
+	}
+	if value, ok := uc.mutation.Role(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: user.FieldRole,
+		})
+		_node.Role = value
+	}
+	if value, ok := uc.mutation.Avatar(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldAvatar,
+		})
+		_node.Avatar = value
+	}
+	if value, ok := uc.mutation.Introduction(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldIntroduction,
+		})
+		_node.Introduction = value
+	}
+	if value, ok := uc.mutation.EmailVerificationStatus(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: user.FieldEmailVerificationStatus,
+		})
+		_node.EmailVerificationStatus = value
+	}
+	if value, ok := uc.mutation.EmailVerificationToken(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmailVerificationToken,
+		})
+		_node.EmailVerificationToken = value
+	}
+	if value, ok := uc.mutation.EmailVerificationTokenExpiresAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldEmailVerificationTokenExpiresAt,
+		})
+		_node.EmailVerificationTokenExpiresAt = value
 	}
 	if value, ok := uc.mutation.PasswordDigest(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

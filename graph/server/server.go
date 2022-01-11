@@ -2,27 +2,39 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	_ "github.com/99designs/gqlgen/cmd"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/nagokos/connefut_backend/config"
-	"github.com/nagokos/connefut_backend/ent/db"
+	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph"
+	"github.com/nagokos/connefut_backend/logger"
 )
-
-const defaultPort = "8080"
 
 func main() {
 	port := config.Config.Port
 
-	srv := handler.NewDefaultServer(graph.NewSchema(db.Client))
+	client := db.DatabaseConnection()
+	defer client.Close()
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+		AllowCredentials: true,
+	}))
 
-	log.Printf("connect to http://localhost:%d/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	srv := handler.NewDefaultServer(graph.NewSchema(client))
+
+	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	r.Handle("/query", srv)
+
+	logger.Log.Info().Msg(fmt.Sprintf("connect to http://localhost:%d/ for GraphQL playground", port))
+	err := http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	if err != nil {
+		logger.Log.Err(err)
+	}
 }

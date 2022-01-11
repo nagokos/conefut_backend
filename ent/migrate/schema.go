@@ -8,6 +8,19 @@ import (
 )
 
 var (
+	// PrefecturesColumns holds the columns for the "prefectures" table.
+	PrefecturesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString},
+	}
+	// PrefecturesTable holds the schema information for the "prefectures" table.
+	PrefecturesTable = &schema.Table{
+		Name:       "prefectures",
+		Columns:    PrefecturesColumns,
+		PrimaryKey: []*schema.Column{PrefecturesColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -15,6 +28,12 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString, Size: 50, SchemaType: map[string]string{"postgres": "varchar(50)"}},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 100, SchemaType: map[string]string{"postgres": "varchar(100)"}},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "general"}, Default: "general"},
+		{Name: "avatar", Type: field.TypeString, Default: "https://abs.twimg.com/sticky/default_profile_images/default_profile.png"},
+		{Name: "introduction", Type: field.TypeString, Nullable: true, Size: 4000, SchemaType: map[string]string{"postgres": "varchar(4000)"}},
+		{Name: "email_verification_status", Type: field.TypeBool, Default: false},
+		{Name: "email_verification_token", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "email_verification_token_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "password_digest", Type: field.TypeString, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -25,6 +44,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		PrefecturesTable,
 		UsersTable,
 	}
 )
