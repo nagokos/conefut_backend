@@ -9,6 +9,7 @@ import (
 
 	"github.com/nagokos/connefut_backend/ent/migrate"
 
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -20,6 +21,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Prefecture is the client for interacting with the Prefecture builders.
+	Prefecture *PrefectureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -35,6 +38,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Prefecture = NewPrefectureClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -67,9 +71,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		User:   NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Prefecture: NewPrefectureClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -87,15 +92,16 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		config: cfg,
-		User:   NewUserClient(cfg),
+		config:     cfg,
+		Prefecture: NewPrefectureClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		User.
+//		Prefecture.
 //		Query().
 //		Count(ctx)
 //
@@ -118,7 +124,98 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Prefecture.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// PrefectureClient is a client for the Prefecture schema.
+type PrefectureClient struct {
+	config
+}
+
+// NewPrefectureClient returns a client for the Prefecture from the given config.
+func NewPrefectureClient(c config) *PrefectureClient {
+	return &PrefectureClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `prefecture.Hooks(f(g(h())))`.
+func (c *PrefectureClient) Use(hooks ...Hook) {
+	c.hooks.Prefecture = append(c.hooks.Prefecture, hooks...)
+}
+
+// Create returns a create builder for Prefecture.
+func (c *PrefectureClient) Create() *PrefectureCreate {
+	mutation := newPrefectureMutation(c.config, OpCreate)
+	return &PrefectureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Prefecture entities.
+func (c *PrefectureClient) CreateBulk(builders ...*PrefectureCreate) *PrefectureCreateBulk {
+	return &PrefectureCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Prefecture.
+func (c *PrefectureClient) Update() *PrefectureUpdate {
+	mutation := newPrefectureMutation(c.config, OpUpdate)
+	return &PrefectureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PrefectureClient) UpdateOne(pr *Prefecture) *PrefectureUpdateOne {
+	mutation := newPrefectureMutation(c.config, OpUpdateOne, withPrefecture(pr))
+	return &PrefectureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PrefectureClient) UpdateOneID(id string) *PrefectureUpdateOne {
+	mutation := newPrefectureMutation(c.config, OpUpdateOne, withPrefectureID(id))
+	return &PrefectureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Prefecture.
+func (c *PrefectureClient) Delete() *PrefectureDelete {
+	mutation := newPrefectureMutation(c.config, OpDelete)
+	return &PrefectureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PrefectureClient) DeleteOne(pr *Prefecture) *PrefectureDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PrefectureClient) DeleteOneID(id string) *PrefectureDeleteOne {
+	builder := c.Delete().Where(prefecture.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PrefectureDeleteOne{builder}
+}
+
+// Query returns a query builder for Prefecture.
+func (c *PrefectureClient) Query() *PrefectureQuery {
+	return &PrefectureQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Prefecture entity by its id.
+func (c *PrefectureClient) Get(ctx context.Context, id string) (*Prefecture, error) {
+	return c.Query().Where(prefecture.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PrefectureClient) GetX(ctx context.Context, id string) *Prefecture {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PrefectureClient) Hooks() []Hook {
+	return c.hooks.Prefecture
 }
 
 // UserClient is a client for the User schema.

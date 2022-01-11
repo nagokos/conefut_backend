@@ -10,6 +10,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/go-multierror"
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -40,11 +41,46 @@ type Edge struct {
 	IDs  []string `json:"ids,omitempty"`  // node ids (where this edge point to).
 }
 
+func (pr *Prefecture) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     pr.ID,
+		Type:   "Prefecture",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 0),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(pr.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	return node, nil
+}
+
 func (u *User) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     u.ID,
 		Type:   "User",
-		Fields: make([]*Field, 5),
+		Fields: make([]*Field, 11),
 		Edges:  make([]*Edge, 0),
 	}
 	var buf []byte
@@ -80,10 +116,58 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "email",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(u.PasswordDigest); err != nil {
+	if buf, err = json.Marshal(u.Role); err != nil {
 		return nil, err
 	}
 	node.Fields[4] = &Field{
+		Type:  "user.Role",
+		Name:  "role",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Avatar); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
+		Type:  "string",
+		Name:  "avatar",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Introduction); err != nil {
+		return nil, err
+	}
+	node.Fields[6] = &Field{
+		Type:  "string",
+		Name:  "introduction",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.EmailVerificationStatus); err != nil {
+		return nil, err
+	}
+	node.Fields[7] = &Field{
+		Type:  "bool",
+		Name:  "email_verification_status",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.EmailVerificationToken); err != nil {
+		return nil, err
+	}
+	node.Fields[8] = &Field{
+		Type:  "string",
+		Name:  "email_verification_token",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.EmailVerificationTokenExpiresAt); err != nil {
+		return nil, err
+	}
+	node.Fields[9] = &Field{
+		Type:  "time.Time",
+		Name:  "email_verification_token_expires_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.PasswordDigest); err != nil {
+		return nil, err
+	}
+	node.Fields[10] = &Field{
 		Type:  "string",
 		Name:  "password_digest",
 		Value: string(buf),
@@ -158,6 +242,15 @@ func (c *Client) Noder(ctx context.Context, id string, opts ...NodeOption) (_ No
 
 func (c *Client) noder(ctx context.Context, table string, id string) (Noder, error) {
 	switch table {
+	case prefecture.Table:
+		n, err := c.Prefecture.Query().
+			Where(prefecture.ID(id)).
+			CollectFields(ctx, "Prefecture").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case user.Table:
 		n, err := c.User.Query().
 			Where(user.ID(id)).
@@ -240,6 +333,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []string) ([]Node
 		idmap[id] = append(idmap[id], &noders[i])
 	}
 	switch table {
+	case prefecture.Table:
+		nodes, err := c.Prefecture.Query().
+			Where(prefecture.IDIn(ids...)).
+			CollectFields(ctx, "Prefecture").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case user.Table:
 		nodes, err := c.User.Query().
 			Where(user.IDIn(ids...)).

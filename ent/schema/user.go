@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
-	"github.com/rs/xid"
 )
 
 // User holds the schema definition for the User entity.
@@ -15,19 +14,13 @@ type User struct {
 func (User) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		TimeMixin{},
+		UUIDMixin{},
 	}
 }
 
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("id").
-			DefaultFunc(func() string {
-				return xid.New().String()
-			}).
-			NotEmpty().
-			Immutable().
-			Unique(),
 		field.String("name").
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(50)",
@@ -39,6 +32,24 @@ func (User) Fields() []ent.Field {
 			}).
 			MaxLen(100).
 			Unique(),
+		field.Enum("role").
+			Values("admin", "general").
+			Default("general"),
+		field.String("avatar").
+			Default("https://abs.twimg.com/sticky/default_profile_images/default_profile.png"),
+		field.String("introduction").
+			Optional().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(4000)",
+			}).
+			MaxLen(4000),
+		field.Bool("email_verification_status").
+			Default(false),
+		field.String("email_verification_token").
+			Optional().
+			Unique(),
+		field.Time("email_verification_token_expires_at").
+			Optional(),
 		field.String("password_digest").
 			Optional(),
 	}
