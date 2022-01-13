@@ -41,12 +41,16 @@ init_schema: schema_name
 	${DC_WEB} go run entgo.io/ent/cmd/ent init ${SCHEMA_NAME}
 
 # マイグレーションファイル作成
+# SEQ_NAMEはcreate_users_tableの部分
 init_migration: seq_name
 	${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
 
+# SQLのみを発行
+# make generate後に使用
 sql_migration:
 	${DC_WEB} go run db/migrations/migrate.go
 
+# データベースに反映
 migrate_up:
 	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up 1
 
