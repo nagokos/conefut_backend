@@ -24,6 +24,7 @@ type Prefecture {
 
 type Query {
   user(userId: String): User!
+  GetPrefectures: [Prefecture!]!
 }
 
 input NewUser {
