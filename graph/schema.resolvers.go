@@ -65,6 +65,15 @@ func (r *queryResolver) User(ctx context.Context, userID *string) (*model.User, 
 	return &resUser, nil
 }
 
+func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
+	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
