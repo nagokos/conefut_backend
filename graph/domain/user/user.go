@@ -115,5 +115,57 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		Email: res.Email,
 	}
 
+	SendVerifyEmail(emailToken)
+
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintln("fail send email: ", err))
+		return &resUser, err
+	}
+
 	return &resUser, nil
+}
+
+// ** メール認証 **
+func EmailVerification(w http.ResponseWriter, r *http.Request) {
+	client := db.DatabaseConnection()
+	defer client.Close()
+
+	ctx := context.Background()
+
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		w.Write([]byte("無効なURLです"))
+		logger.Log.Error().Msg("Invalid URL")
+		return
+	}
+
+	res, err := client.User.
+		Query().
+		Where(user.EmailVerificationToken(token)).
+		Only(ctx)
+
+	if err != nil {
+		w.Write([]byte("ユーザーが見つかりませんでした"))
+		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
+		return
+	}
+
+	if time.Now().After(res.EmailVerificationTokenExpiresAt) {
+		w.Write([]byte("有効期限が切れています"))
+		logger.Log.Error().Msg("token expires at expired")
+		return
+	}
+
+	_, err = client.User.
+		UpdateOneID(res.ID).
+		SetEmailVerificationStatus(true).
+		SetEmailVerificationToken("").
+		Save(ctx)
+
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
+		return
+	}
+
+	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
 }
