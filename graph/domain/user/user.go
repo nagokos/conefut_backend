@@ -2,23 +2,43 @@ package user
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/smtp"
 	"regexp"
+	"strings"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
+var host = "mailhog:1025"
+
 type User struct {
-	Name     string
-	Email    string
-	Password string
+	ID                              string
+	Name                            string
+	Email                           string
+	Password                        string
+	PasswordDigest                  string
+	EmailVerificationStatus         bool
+	EmailVerificationToken          string
+	EmailVerificationTokenExpiresAt time.Time
 }
 
+// ** valdation **
 func (u User) Validate() error {
 	return validation.ValidateStruct(&u,
 		validation.Field(
