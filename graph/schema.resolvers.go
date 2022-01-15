@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/99designs/gqlgen/graphql"
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
@@ -30,29 +29,20 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		logger.Log.Error().Msg(fmt.Sprintln(err))
 		errs := err.(validation.Errors)
 
-		errors := make(map[string]interface{})
-
 		for k, errMessage := range errs {
-			errors[strings.ToLower(k)] = fmt.Sprint(errMessage)
+			NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
 		}
 
-		graphql.AddError(ctx, &gqlerror.Error{
-			Extensions: errors,
-		})
-		return &model.User{}, err
+		return &model.User{}, nil
 	}
 
 	res, err := u.CreateUser(r.client.User, ctx)
 
 	if err != nil {
-		graphql.AddError(ctx, &gqlerror.Error{
-			Extensions: map[string]interface{}{
-				"email": "このメールアドレスは既に存在します",
-			},
-		})
+		NewValidationError("email", "このメールアドレスは既に使用されています").AddGraphQLError(ctx)
 	}
 
-	return res, err
+	return res, nil
 }
 
 func (r *mutationResolver) UpdateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
@@ -73,6 +63,15 @@ func (r *queryResolver) User(ctx context.Context, userID *string) (*model.User, 
 		Email: res.Email,
 	}
 	return &resUser, nil
+}
+
+func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
+	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

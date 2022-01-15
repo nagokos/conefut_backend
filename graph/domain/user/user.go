@@ -2,23 +2,43 @@ package user
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/smtp"
 	"regexp"
+	"strings"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
+var host = "mailhog:1025"
+
 type User struct {
-	Name     string
-	Email    string
-	Password string
+	ID                              string
+	Name                            string
+	Email                           string
+	Password                        string
+	PasswordDigest                  string
+	EmailVerificationStatus         bool
+	EmailVerificationToken          string
+	EmailVerificationTokenExpiresAt time.Time
 }
 
+// ** valdation **
 func (u User) Validate() error {
 	return validation.ValidateStruct(&u,
 		validation.Field(
@@ -42,6 +62,7 @@ func (u User) Validate() error {
 	)
 }
 
+// ** utils **
 func (u *User) HashGenerate() string {
 	b := []byte(u.Password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
@@ -51,23 +72,40 @@ func (u *User) HashGenerate() string {
 	return string(hash)
 }
 
+func (u *User) GenerateEmailVerificationToken() string {
+	h := md5.New()
+	h.Write([]byte(strings.ToLower(u.Email)))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SendVerifyEmail(emailToken string) error {
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/email_verification/%s", emailToken)
+	message := strings.NewReader(verifyURL)
+	transformer := japanese.ISO2022JP.NewEncoder()
+	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
+	err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage)
+	return err
+}
+
+// ** データベース伴う処理 **
 func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *model.User, err error) {
 	var resUser model.User
-	var pwdHash string
 
-	if u.Password != "" {
-		pwdHash = u.HashGenerate()
-	}
+	pwdHash := u.HashGenerate()
+	emailToken := u.GenerateEmailVerificationToken()
+	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
 	res, err := client.
 		Create().
 		SetName(u.Name).
 		SetEmail(u.Email).
 		SetPasswordDigest(pwdHash).
+		SetEmailVerificationToken(emailToken).
+		SetEmailVerificationTokenExpiresAt(tokenExpiresAt).
 		Save(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln(err))
+		logger.Log.Error().Msg(err.Error())
 		return &resUser, err
 	}
 
@@ -77,5 +115,57 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		Email: res.Email,
 	}
 
+	SendVerifyEmail(emailToken)
+
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintln("fail send email: ", err))
+		return &resUser, err
+	}
+
 	return &resUser, nil
+}
+
+// ** メール認証 **
+func EmailVerification(w http.ResponseWriter, r *http.Request) {
+	client := db.DatabaseConnection()
+	defer client.Close()
+
+	ctx := context.Background()
+
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		w.Write([]byte("無効なURLです"))
+		logger.Log.Error().Msg("Invalid URL")
+		return
+	}
+
+	res, err := client.User.
+		Query().
+		Where(user.EmailVerificationToken(token)).
+		Only(ctx)
+
+	if err != nil {
+		w.Write([]byte("ユーザーが見つかりませんでした"))
+		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
+		return
+	}
+
+	if time.Now().After(res.EmailVerificationTokenExpiresAt) {
+		w.Write([]byte("有効期限が切れています"))
+		logger.Log.Error().Msg("token expires at expired")
+		return
+	}
+
+	_, err = client.User.
+		UpdateOneID(res.ID).
+		SetEmailVerificationStatus(true).
+		SetEmailVerificationToken("").
+		Save(ctx)
+
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
+		return
+	}
+
+	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
 }
