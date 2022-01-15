@@ -2,6 +2,12 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type NewUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -14,10 +20,52 @@ type Prefecture struct {
 }
 
 type User struct {
-	ID           string  `json:"id"`
-	Name         string  `json:"name"`
-	Email        string  `json:"email"`
-	Role         string  `json:"role"`
-	Avatar       string  `json:"avatar"`
-	Introduction *string `json:"introduction"`
+	ID                      string  `json:"id"`
+	Name                    string  `json:"name"`
+	Email                   string  `json:"email"`
+	Role                    Role    `json:"role"`
+	Avatar                  string  `json:"avatar"`
+	Introduction            *string `json:"introduction"`
+	EmailVerificationStatus bool    `json:"emailVerificationStatus"`
+}
+
+type Role string
+
+const (
+	RoleAdmin   Role = "ADMIN"
+	RoleGeneral Role = "GENERAL"
+)
+
+var AllRole = []Role{
+	RoleAdmin,
+	RoleGeneral,
+}
+
+func (e Role) IsValid() bool {
+	switch e {
+	case RoleAdmin, RoleGeneral:
+		return true
+	}
+	return false
+}
+
+func (e Role) String() string {
+	return string(e)
+}
+
+func (e *Role) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Role(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Role", str)
+	}
+	return nil
+}
+
+func (e Role) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
