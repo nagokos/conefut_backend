@@ -62,6 +62,7 @@ func (u User) Validate() error {
 	)
 }
 
+// ** utils **
 func (u *User) HashGenerate() string {
 	b := []byte(u.Password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
@@ -71,23 +72,40 @@ func (u *User) HashGenerate() string {
 	return string(hash)
 }
 
+func (u *User) GenerateEmailVerificationToken() string {
+	h := md5.New()
+	h.Write([]byte(strings.ToLower(u.Email)))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SendVerifyEmail(emailToken string) error {
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/email_verification/%s", emailToken)
+	message := strings.NewReader(verifyURL)
+	transformer := japanese.ISO2022JP.NewEncoder()
+	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
+	err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage)
+	return err
+}
+
+// ** データベース伴う処理 **
 func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *model.User, err error) {
 	var resUser model.User
-	var pwdHash string
 
-	if u.Password != "" {
-		pwdHash = u.HashGenerate()
-	}
+	pwdHash := u.HashGenerate()
+	emailToken := u.GenerateEmailVerificationToken()
+	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
 	res, err := client.
 		Create().
 		SetName(u.Name).
 		SetEmail(u.Email).
 		SetPasswordDigest(pwdHash).
+		SetEmailVerificationToken(emailToken).
+		SetEmailVerificationTokenExpiresAt(tokenExpiresAt).
 		Save(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln(err))
+		logger.Log.Error().Msg(err.Error())
 		return &resUser, err
 	}
 
