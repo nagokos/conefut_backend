@@ -2,13 +2,19 @@
 #
 # https://gqlgen.com/getting-started/
 
+enum Role {
+  ADMIN
+  GENERAL
+}
+
 type User {
   id: String!
   name: String!
   email: String!
-  role: String!
+  role: Role!
   avatar: String!
   introduction: String
+  emailVerificationStatus: Boolean!
 }
 
 type Prefecture {
