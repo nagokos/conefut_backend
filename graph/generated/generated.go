@@ -54,16 +54,18 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		User func(childComplexity int, userID *string) int
+		GetPrefectures func(childComplexity int) int
+		User           func(childComplexity int, userID *string) int
 	}
 
 	User struct {
-		Avatar       func(childComplexity int) int
-		Email        func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Introduction func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Role         func(childComplexity int) int
+		Avatar                  func(childComplexity int) int
+		Email                   func(childComplexity int) int
+		EmailVerificationStatus func(childComplexity int) int
+		ID                      func(childComplexity int) int
+		Introduction            func(childComplexity int) int
+		Name                    func(childComplexity int) int
+		Role                    func(childComplexity int) int
 	}
 }
 
@@ -73,6 +75,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	User(ctx context.Context, userID *string) (*model.User, error)
+	GetPrefectures(ctx context.Context) ([]*model.Prefecture, error)
 }
 
 type executableSchema struct {
@@ -128,6 +131,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Prefecture.Name(childComplexity), true
 
+	case "Query.GetPrefectures":
+		if e.complexity.Query.GetPrefectures == nil {
+			break
+		}
+
+		return e.complexity.Query.GetPrefectures(childComplexity), true
+
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -153,6 +163,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Email(childComplexity), true
+
+	case "User.emailVerificationStatus":
+		if e.complexity.User.EmailVerificationStatus == nil {
+			break
+		}
+
+		return e.complexity.User.EmailVerificationStatus(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -250,13 +267,19 @@ var sources = []*ast.Source{
 #
 # https://gqlgen.com/getting-started/
 
+enum Role {
+  ADMIN
+  GENERAL
+}
+
 type User {
   id: String!
   name: String!
   email: String!
-  role: String!
+  role: Role!
   avatar: String!
   introduction: String
+  emailVerificationStatus: Boolean!
 }
 
 type Prefecture {
@@ -266,6 +289,7 @@ type Prefecture {
 
 type Query {
   user(userId: String): User!
+  GetPrefectures: [Prefecture!]!
 }
 
 input NewUser {
@@ -580,6 +604,41 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_GetPrefectures(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPrefectures(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Prefecture)
+	fc.Result = res
+	return ec.marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -786,9 +845,9 @@ func (ec *executionContext) _User_role(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Role)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_avatar(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -856,6 +915,41 @@ func (ec *executionContext) _User_introduction(ctx context.Context, field graphq
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_emailVerificationStatus(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EmailVerificationStatus, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2124,6 +2218,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "GetPrefectures":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_GetPrefectures(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -2177,6 +2285,11 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "introduction":
 			out.Values[i] = ec._User_introduction(ctx, field, obj)
+		case "emailVerificationStatus":
+			out.Values[i] = ec._User_emailVerificationStatus(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2456,6 +2569,70 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 func (ec *executionContext) unmarshalNNewUser2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐNewUser(ctx context.Context, v interface{}) (model.NewUser, error) {
 	res, err := ec.unmarshalInputNewUser(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Prefecture) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx context.Context, sel ast.SelectionSet, v *model.Prefecture) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Prefecture(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
+	var res model.Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
