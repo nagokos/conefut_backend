@@ -35,6 +35,7 @@ var (
 		{Name: "email_verification_token", Type: field.TypeString, Nullable: true},
 		{Name: "email_verification_token_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "password_digest", Type: field.TypeString, Nullable: true},
+		{Name: "last_sign_in_at", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

@@ -167,6 +167,26 @@ func (uu *UserUpdate) ClearPasswordDigest() *UserUpdate {
 	return uu
 }
 
+// SetLastSignInAt sets the "last_sign_in_at" field.
+func (uu *UserUpdate) SetLastSignInAt(t time.Time) *UserUpdate {
+	uu.mutation.SetLastSignInAt(t)
+	return uu
+}
+
+// SetNillableLastSignInAt sets the "last_sign_in_at" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableLastSignInAt(t *time.Time) *UserUpdate {
+	if t != nil {
+		uu.SetLastSignInAt(*t)
+	}
+	return uu
+}
+
+// ClearLastSignInAt clears the value of the "last_sign_in_at" field.
+func (uu *UserUpdate) ClearLastSignInAt() *UserUpdate {
+	uu.mutation.ClearLastSignInAt()
+	return uu
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -378,6 +398,19 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldPasswordDigest,
 		})
 	}
+	if value, ok := uu.mutation.LastSignInAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldLastSignInAt,
+		})
+	}
+	if uu.mutation.LastSignInAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldLastSignInAt,
+		})
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -534,6 +567,26 @@ func (uuo *UserUpdateOne) SetNillablePasswordDigest(s *string) *UserUpdateOne {
 // ClearPasswordDigest clears the value of the "password_digest" field.
 func (uuo *UserUpdateOne) ClearPasswordDigest() *UserUpdateOne {
 	uuo.mutation.ClearPasswordDigest()
+	return uuo
+}
+
+// SetLastSignInAt sets the "last_sign_in_at" field.
+func (uuo *UserUpdateOne) SetLastSignInAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetLastSignInAt(t)
+	return uuo
+}
+
+// SetNillableLastSignInAt sets the "last_sign_in_at" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableLastSignInAt(t *time.Time) *UserUpdateOne {
+	if t != nil {
+		uuo.SetLastSignInAt(*t)
+	}
+	return uuo
+}
+
+// ClearLastSignInAt clears the value of the "last_sign_in_at" field.
+func (uuo *UserUpdateOne) ClearLastSignInAt() *UserUpdateOne {
+	uuo.mutation.ClearLastSignInAt()
 	return uuo
 }
 
@@ -770,6 +823,19 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Column: user.FieldPasswordDigest,
+		})
+	}
+	if value, ok := uuo.mutation.LastSignInAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldLastSignInAt,
+		})
+	}
+	if uuo.mutation.LastSignInAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldLastSignInAt,
 		})
 	}
 	_node = &User{config: uuo.config}

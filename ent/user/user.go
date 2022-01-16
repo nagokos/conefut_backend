@@ -36,6 +36,8 @@ const (
 	FieldEmailVerificationTokenExpiresAt = "email_verification_token_expires_at"
 	// FieldPasswordDigest holds the string denoting the password_digest field in the database.
 	FieldPasswordDigest = "password_digest"
+	// FieldLastSignInAt holds the string denoting the last_sign_in_at field in the database.
+	FieldLastSignInAt = "last_sign_in_at"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 )
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldEmailVerificationToken,
 	FieldEmailVerificationTokenExpiresAt,
 	FieldPasswordDigest,
+	FieldLastSignInAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

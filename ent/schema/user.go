@@ -52,6 +52,8 @@ func (User) Fields() []ent.Field {
 			Optional(),
 		field.String("password_digest").
 			Optional(),
+		field.Time("last_sign_in_at").
+			Optional(),
 	}
 }
 

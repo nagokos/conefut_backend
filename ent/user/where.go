@@ -162,6 +162,13 @@ func PasswordDigest(v string) predicate.User {
 	})
 }
 
+// LastSignInAt applies equality check predicate on the "last_sign_in_at" field. It's identical to LastSignInAtEQ.
+func LastSignInAt(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLastSignInAt), v))
+	})
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -1171,6 +1178,96 @@ func PasswordDigestEqualFold(v string) predicate.User {
 func PasswordDigestContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldPasswordDigest), v))
+	})
+}
+
+// LastSignInAtEQ applies the EQ predicate on the "last_sign_in_at" field.
+func LastSignInAtEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtNEQ applies the NEQ predicate on the "last_sign_in_at" field.
+func LastSignInAtNEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtIn applies the In predicate on the "last_sign_in_at" field.
+func LastSignInAtIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldLastSignInAt), v...))
+	})
+}
+
+// LastSignInAtNotIn applies the NotIn predicate on the "last_sign_in_at" field.
+func LastSignInAtNotIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldLastSignInAt), v...))
+	})
+}
+
+// LastSignInAtGT applies the GT predicate on the "last_sign_in_at" field.
+func LastSignInAtGT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtGTE applies the GTE predicate on the "last_sign_in_at" field.
+func LastSignInAtGTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtLT applies the LT predicate on the "last_sign_in_at" field.
+func LastSignInAtLT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtLTE applies the LTE predicate on the "last_sign_in_at" field.
+func LastSignInAtLTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldLastSignInAt), v))
+	})
+}
+
+// LastSignInAtIsNil applies the IsNil predicate on the "last_sign_in_at" field.
+func LastSignInAtIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldLastSignInAt)))
+	})
+}
+
+// LastSignInAtNotNil applies the NotNil predicate on the "last_sign_in_at" field.
+func LastSignInAtNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldLastSignInAt)))
 	})
 }
 
