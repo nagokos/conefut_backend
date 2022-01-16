@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 // User holds the schema definition for the User entity.
@@ -46,8 +47,7 @@ func (User) Fields() []ent.Field {
 		field.Bool("email_verification_status").
 			Default(false),
 		field.String("email_verification_token").
-			Optional().
-			Unique(),
+			Optional(),
 		field.Time("email_verification_token_expires_at").
 			Optional(),
 		field.String("password_digest").
@@ -58,4 +58,10 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return nil
+}
+
+func (User) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("email_verification_token"),
+	}
 }
