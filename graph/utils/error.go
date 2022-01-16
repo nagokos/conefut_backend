@@ -58,8 +58,8 @@ func NewAppError(httpStatusCode int, appErrorCode AppErrorCode, message string, 
 	return e
 }
 
-func NewValidationError(attribute, message string) *AppError {
-	options := []AppErrorOption{WithAttribute(attribute)}
+func NewValidationError(field, message string) *AppError {
+	options := []AppErrorOption{WithField(field)}
 	return NewAppError(http.StatusBadRequest, AppErrorCodeValidationFailure, message, options...)
 }
 
@@ -67,7 +67,7 @@ func NewAuthenticationErorr(message string, opts ...AppErrorOption) *AppError {
 	return NewAppError(http.StatusUnauthorized, AppErrorCodeAuthenticationFailure, message, opts...)
 }
 
-func WithAttribute(v string) AppErrorOption {
+func WithField(v string) AppErrorOption {
 	return func(a *AppError) {
 		a.attribute = v
 	}
