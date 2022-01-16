@@ -70,10 +70,13 @@ func InsertPrefecture(ctx context.Context, client *ent.Client) error {
 func main() {
 	client := db.DatabaseConnection()
 	defer client.Close()
+
 	ctx := context.Background()
+
 	err := InsertPrefecture(ctx, client)
 	if err != nil {
 		logger.Log.Fatal().Msg(fmt.Sprintln("error prefectures: ", err))
 	}
+
 	logger.Log.Info().Msg("create initial data!")
 }
