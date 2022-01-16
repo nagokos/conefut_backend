@@ -13,56 +13,66 @@ import (
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
+	fmt.Println(input.Name)
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: input.Password,
 	}
 
-	err := u.Validate()
+	err := u.CreateUserValidate()
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln(err))
+		logger.Log.Error().Msg(err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
-			NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
 		}
 
-		return &model.User{}, nil
+		return &model.User{}, err
 	}
 
 	res, err := u.CreateUser(r.client.User, ctx)
 
 	if err != nil {
-		NewValidationError("email", "このメールアドレスは既に使用されています").AddGraphQLError(ctx)
+		return res, err
 	}
 
 	return res, nil
 }
 
-func (r *mutationResolver) UpdateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
-}
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error) {
+	u := user.User{
+		Email:    input.Email,
+		Password: input.Password,
+	}
 
-func (r *queryResolver) User(ctx context.Context, userID *string) (*model.User, error) {
-	var resUser model.User
+	fmt.Println(u)
 
-	res, err := r.client.User.Get(ctx, *userID)
+	err := u.AuthenticateUserValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln(err))
-		return &resUser, fmt.Errorf("user not found")
+		logger.Log.Error().Msg(err.Error())
+		errs := err.(validation.Errors)
+
+		for k, errMessage := range errs {
+			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+		}
+
+		return &model.User{}, err
 	}
-	resUser = model.User{
-		ID:    res.ID,
-		Name:  res.Name,
-		Email: res.Email,
+
+	res, err := u.AuthenticateUser(r.client.User, ctx)
+	if err != nil {
+		return res, err
 	}
-	return &resUser, nil
+
+	return res, nil
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
