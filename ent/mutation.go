@@ -451,6 +451,7 @@ type UserMutation struct {
 	email_verification_token            *string
 	email_verification_token_expires_at *time.Time
 	password_digest                     *string
+	last_sign_in_at                     *time.Time
 	clearedFields                       map[string]struct{}
 	done                                bool
 	oldValue                            func(context.Context) (*User, error)
@@ -990,6 +991,55 @@ func (m *UserMutation) ResetPasswordDigest() {
 	delete(m.clearedFields, user.FieldPasswordDigest)
 }
 
+// SetLastSignInAt sets the "last_sign_in_at" field.
+func (m *UserMutation) SetLastSignInAt(t time.Time) {
+	m.last_sign_in_at = &t
+}
+
+// LastSignInAt returns the value of the "last_sign_in_at" field in the mutation.
+func (m *UserMutation) LastSignInAt() (r time.Time, exists bool) {
+	v := m.last_sign_in_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastSignInAt returns the old "last_sign_in_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldLastSignInAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLastSignInAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLastSignInAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastSignInAt: %w", err)
+	}
+	return oldValue.LastSignInAt, nil
+}
+
+// ClearLastSignInAt clears the value of the "last_sign_in_at" field.
+func (m *UserMutation) ClearLastSignInAt() {
+	m.last_sign_in_at = nil
+	m.clearedFields[user.FieldLastSignInAt] = struct{}{}
+}
+
+// LastSignInAtCleared returns if the "last_sign_in_at" field was cleared in this mutation.
+func (m *UserMutation) LastSignInAtCleared() bool {
+	_, ok := m.clearedFields[user.FieldLastSignInAt]
+	return ok
+}
+
+// ResetLastSignInAt resets all changes to the "last_sign_in_at" field.
+func (m *UserMutation) ResetLastSignInAt() {
+	m.last_sign_in_at = nil
+	delete(m.clearedFields, user.FieldLastSignInAt)
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -1009,7 +1059,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -1043,6 +1093,9 @@ func (m *UserMutation) Fields() []string {
 	if m.password_digest != nil {
 		fields = append(fields, user.FieldPasswordDigest)
 	}
+	if m.last_sign_in_at != nil {
+		fields = append(fields, user.FieldLastSignInAt)
+	}
 	return fields
 }
 
@@ -1073,6 +1126,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.EmailVerificationTokenExpiresAt()
 	case user.FieldPasswordDigest:
 		return m.PasswordDigest()
+	case user.FieldLastSignInAt:
+		return m.LastSignInAt()
 	}
 	return nil, false
 }
@@ -1104,6 +1159,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmailVerificationTokenExpiresAt(ctx)
 	case user.FieldPasswordDigest:
 		return m.OldPasswordDigest(ctx)
+	case user.FieldLastSignInAt:
+		return m.OldLastSignInAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -1190,6 +1247,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPasswordDigest(v)
 		return nil
+	case user.FieldLastSignInAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastSignInAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -1232,6 +1296,9 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldPasswordDigest) {
 		fields = append(fields, user.FieldPasswordDigest)
 	}
+	if m.FieldCleared(user.FieldLastSignInAt) {
+		fields = append(fields, user.FieldLastSignInAt)
+	}
 	return fields
 }
 
@@ -1257,6 +1324,9 @@ func (m *UserMutation) ClearField(name string) error {
 		return nil
 	case user.FieldPasswordDigest:
 		m.ClearPasswordDigest()
+		return nil
+	case user.FieldLastSignInAt:
+		m.ClearLastSignInAt()
 		return nil
 	}
 	return fmt.Errorf("unknown User nullable field %s", name)
@@ -1298,6 +1368,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldPasswordDigest:
 		m.ResetPasswordDigest()
+		return nil
+	case user.FieldLastSignInAt:
+		m.ResetLastSignInAt()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)

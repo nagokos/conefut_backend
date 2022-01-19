@@ -54,5 +54,11 @@ sql_migration:
 migrate_up:
 	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up 1
 
+migrate_down:
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down 1
+
+create_initial_data:
+	${DC_WEB} go run db/initial_data/data.go
+
 db_attach:
 	${DC_DB} bash

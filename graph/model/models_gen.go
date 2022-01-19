@@ -8,12 +8,6 @@ import (
 	"strconv"
 )
 
-type NewUser struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type Prefecture struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -27,6 +21,17 @@ type User struct {
 	Avatar                  string  `json:"avatar"`
 	Introduction            *string `json:"introduction"`
 	EmailVerificationStatus bool    `json:"emailVerificationStatus"`
+}
+
+type CreateUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginUserInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type Role string

@@ -6,10 +6,11 @@ CREATE TABLE IF NOT EXISTS "users"(
   "avatar" varchar NOT NULL DEFAULT 'https://abs.twimg.com/sticky/default_profile_images/default_profile.png', 
   "introduction" varchar(4000) NULL, 
   "email_verification_status" boolean NOT NULL DEFAULT false, 
-  "email_verification_token" varchar UNIQUE NULL, 
+  "email_verification_token" varchar NULL, 
   "email_verification_token_expires_at" timestamp with time zone NULL, 
   "password_digest" varchar NULL,
   "created_at" timestamp with time zone NOT NULL, 
   "updated_at" timestamp with time zone NOT NULL, 
   PRIMARY KEY("id")
 );
+CREATE INDEX IF NOT EXISTS "user_email_verification_token" ON "users"("email_verification_token");

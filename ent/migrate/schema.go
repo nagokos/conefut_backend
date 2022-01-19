@@ -32,15 +32,23 @@ var (
 		{Name: "avatar", Type: field.TypeString, Default: "https://abs.twimg.com/sticky/default_profile_images/default_profile.png"},
 		{Name: "introduction", Type: field.TypeString, Nullable: true, Size: 4000, SchemaType: map[string]string{"postgres": "varchar(4000)"}},
 		{Name: "email_verification_status", Type: field.TypeBool, Default: false},
-		{Name: "email_verification_token", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "email_verification_token", Type: field.TypeString, Nullable: true},
 		{Name: "email_verification_token_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "password_digest", Type: field.TypeString, Nullable: true},
+		{Name: "last_sign_in_at", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_email_verification_token",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[9]},
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{

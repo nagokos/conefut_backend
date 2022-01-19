@@ -158,6 +158,20 @@ func (uc *UserCreate) SetNillablePasswordDigest(s *string) *UserCreate {
 	return uc
 }
 
+// SetLastSignInAt sets the "last_sign_in_at" field.
+func (uc *UserCreate) SetLastSignInAt(t time.Time) *UserCreate {
+	uc.mutation.SetLastSignInAt(t)
+	return uc
+}
+
+// SetNillableLastSignInAt sets the "last_sign_in_at" field if the given value is not nil.
+func (uc *UserCreate) SetNillableLastSignInAt(t *time.Time) *UserCreate {
+	if t != nil {
+		uc.SetLastSignInAt(*t)
+	}
+	return uc
+}
+
 // SetID sets the "id" field.
 func (uc *UserCreate) SetID(s string) *UserCreate {
 	uc.mutation.SetID(s)
@@ -436,6 +450,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldPasswordDigest,
 		})
 		_node.PasswordDigest = value
+	}
+	if value, ok := uc.mutation.LastSignInAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldLastSignInAt,
+		})
+		_node.LastSignInAt = value
 	}
 	return _node, _spec
 }
