@@ -15,6 +15,9 @@ schema_name:
 seq_name:
 	@$(eval SEQ_NAME := $(shell read -p "seq name: " NAME; echo $$NAME))
 
+force_version:
+	@$(eval FORCE_VERSION := $(shell read -p "force version: " NAME; echo $$NAME))
+
 # ** Go Command **
 go_run: package_name
 	${DC_WEB} go run ${PACKAGE_NAME}
@@ -56,6 +59,9 @@ migrate_up:
 
 migrate_down:
 	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down 1
+
+migrate_force: force_version
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} force ${FORCE_VERSION}
 
 create_initial_data:
 	${DC_WEB} go run db/initial_data/data.go
