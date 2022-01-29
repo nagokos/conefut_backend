@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/user"
@@ -27,8 +28,9 @@ import (
 )
 
 var (
-	host    = "mailhog:1025"
-	resUser model.User
+	host      = "mailhog:1025"
+	resUser   model.User
+	SecretKey = []byte("secretKey")
 )
 
 type User struct {
