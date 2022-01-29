@@ -9,6 +9,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph"
@@ -23,10 +24,14 @@ func main() {
 	defer client.Close()
 
 	r := chi.NewRouter()
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
-		AllowCredentials: true,
-	}))
+	r.Use(
+		cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+			AllowCredentials: true,
+		}),
+		auth.Middleware(client),
+		auth.CookieMiddleWare(),
+	)
 
 	srv := handler.NewDefaultServer(graph.NewSchema(client))
 

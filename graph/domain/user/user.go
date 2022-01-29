@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/user"
@@ -27,8 +28,9 @@ import (
 )
 
 var (
-	host    = "mailhog:1025"
-	resUser model.User
+	host      = "mailhog:1025"
+	resUser   model.User
+	SecretKey = []byte("secretKey")
 )
 
 type User struct {
@@ -84,8 +86,8 @@ func (u User) AuthenticateUserValidate() error {
 }
 
 // ** utils **
-func (u *User) HashGenerate() string {
-	b := []byte(u.Password)
+func HashGenerate(password string) string {
+	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
 		logger.Log.Err(err)
@@ -93,14 +95,29 @@ func (u *User) HashGenerate() string {
 	return string(hash)
 }
 
-func (u *User) HashCompare(passwordDigest string) error {
-	return bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(u.Password))
+func CheckPasswordHash(passwordDigest, password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
+	return err
 }
 
 func (u *User) GenerateEmailVerificationToken() string {
 	h := md5.New()
 	h.Write([]byte(strings.ToLower(u.Email)))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func CreateToken(userID string) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	token.Claims = jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 1).Unix(),
+	}
+	tokenString, err := token.SignedString([]byte("secretKey"))
+	if err != nil {
+		logger.Log.Error().Msg(err.Error())
+		return "", err
+	}
+	return tokenString, nil
 }
 
 func SendVerifyEmail(emailToken string) error {
@@ -114,7 +131,7 @@ func SendVerifyEmail(emailToken string) error {
 
 // ** データベース伴う処理 **
 func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *model.User, err error) {
-	pwdHash := u.HashGenerate()
+	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
@@ -130,7 +147,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 	if err != nil {
 		logger.Log.Error().Msg(err.Error())
 		utils.NewValidationError("email", "このメールアドレスは既に使用されています").AddGraphQLError(ctx)
-		return &resUser, err
+		return nil, err
 	}
 
 	resUser = model.User{
@@ -143,7 +160,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintln("fail send email: ", err))
-		return &resUser, err
+		return nil, err
 	}
 
 	return &resUser, nil
@@ -156,14 +173,15 @@ func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*m
 		Only(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
-		return &resUser, nil
+		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
+		return nil, err
 	}
 
-	err = u.HashCompare(res.PasswordDigest)
+	err = CheckPasswordHash(res.PasswordDigest, u.Password)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("password is incorrect: %s", err))
 		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
-		return &resUser, err
+		return nil, err
 	}
 
 	res, err = client.
@@ -172,7 +190,7 @@ func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*m
 		Save(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
-		return &resUser, err
+		return nil, err
 	}
 
 	resUser = model.User{
@@ -217,16 +235,26 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.User.
+	res, err = client.User.
 		UpdateOneID(res.ID).
 		SetEmailVerificationStatus(true).
 		SetEmailVerificationToken("").
 		Save(ctx)
-
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
 		return
 	}
 
+	jwt, _ := CreateToken(res.ID)
+	cookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour * 1),
+	}
+
+	http.SetCookie(w, cookie)
 	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
 }
