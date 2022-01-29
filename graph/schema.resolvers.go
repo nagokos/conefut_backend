@@ -69,10 +69,19 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 
 	res, err := u.AuthenticateUser(r.client.User, ctx)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
+	token, _ := user.CreateToken(res.ID)
+
+	auth.SetAuthCookie(ctx, token)
+
 	return res, nil
+}
+
+func (r *mutationResolver) LogoutUser(ctx context.Context) (*bool, error) {
+	auth.RemoveAuthCookie(ctx)
+	return nil, nil
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
