@@ -5,10 +5,10 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
@@ -18,7 +18,6 @@ import (
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
-	fmt.Println(input.Name)
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
@@ -39,10 +38,13 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 	}
 
 	res, err := u.CreateUser(r.client.User, ctx)
-
 	if err != nil {
-		return res, err
+		return &model.User{}, err
 	}
+
+	token, _ := user.CreateToken(res.ID)
+
+	auth.SetAuthCookie(ctx, token)
 
 	return res, nil
 }
@@ -52,8 +54,6 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		Email:    input.Email,
 		Password: input.Password,
 	}
-
-	fmt.Println(u)
 
 	err := u.AuthenticateUserValidate()
 	if err != nil {
