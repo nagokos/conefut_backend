@@ -106,6 +106,20 @@ func (u *User) GenerateEmailVerificationToken() string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func CreateToken(userID string) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	token.Claims = jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 1).Unix(),
+	}
+	tokenString, err := token.SignedString([]byte("secretKey"))
+	if err != nil {
+		logger.Log.Error().Msg(err.Error())
+		return "", err
+	}
+	return tokenString, nil
+}
+
 func SendVerifyEmail(emailToken string) error {
 	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/email_verification/%s", emailToken)
 	message := strings.NewReader(verifyURL)
