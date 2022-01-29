@@ -41,4 +41,5 @@ input loginUserInput {
 type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
+  logoutUser: Boolean
 }
