@@ -246,7 +246,6 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jwt, _ := CreateToken(res.ID)
-	logger.Log.Debug().Msg(jwt)
 	cookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    jwt,
@@ -255,8 +254,6 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(time.Hour * 1),
 	}
-
-	fmt.Println(cookie)
 
 	http.SetCookie(w, cookie)
 	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
