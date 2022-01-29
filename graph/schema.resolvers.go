@@ -93,6 +93,14 @@ func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture
 	return res, nil
 }
 
+func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error) {
+	user := auth.ForContext(ctx)
+	if user == nil {
+		return nil, nil
+	}
+	return user, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
