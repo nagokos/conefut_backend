@@ -86,8 +86,8 @@ func (u User) AuthenticateUserValidate() error {
 }
 
 // ** utils **
-func (u *User) HashGenerate() string {
-	b := []byte(u.Password)
+func HashGenerate(password string) string {
+	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
 		logger.Log.Err(err)
@@ -95,8 +95,9 @@ func (u *User) HashGenerate() string {
 	return string(hash)
 }
 
-func (u *User) HashCompare(passwordDigest string) error {
-	return bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(u.Password))
+func CheckPasswordHash(passwordDigest, password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
+	return err
 }
 
 func (u *User) GenerateEmailVerificationToken() string {
