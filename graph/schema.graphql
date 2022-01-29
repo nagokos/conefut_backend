@@ -24,6 +24,7 @@ type Prefecture {
 
 type Query {
   getPrefectures: [Prefecture!]!
+  getCurrentUser: User
 }
 
 input createUserInput {
@@ -40,4 +41,5 @@ input loginUserInput {
 type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
+  logoutUser: Boolean
 }
