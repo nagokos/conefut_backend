@@ -235,16 +235,29 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.User.
+	res, err = client.User.
 		UpdateOneID(res.ID).
 		SetEmailVerificationStatus(true).
 		SetEmailVerificationToken("").
 		Save(ctx)
-
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
 		return
 	}
 
+	jwt, _ := CreateToken(res.ID)
+	logger.Log.Debug().Msg(jwt)
+	cookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour * 1),
+	}
+
+	fmt.Println(cookie)
+
+	http.SetCookie(w, cookie)
 	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
 }
