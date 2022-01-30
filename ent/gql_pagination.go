@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -232,6 +233,233 @@ const (
 	pageInfoField   = "pageInfo"
 	totalCountField = "totalCount"
 )
+
+// CompetitionEdge is the edge representation of Competition.
+type CompetitionEdge struct {
+	Node   *Competition `json:"node"`
+	Cursor Cursor       `json:"cursor"`
+}
+
+// CompetitionConnection is the connection containing edges to Competition.
+type CompetitionConnection struct {
+	Edges      []*CompetitionEdge `json:"edges"`
+	PageInfo   PageInfo           `json:"pageInfo"`
+	TotalCount int                `json:"totalCount"`
+}
+
+// CompetitionPaginateOption enables pagination customization.
+type CompetitionPaginateOption func(*competitionPager) error
+
+// WithCompetitionOrder configures pagination ordering.
+func WithCompetitionOrder(order *CompetitionOrder) CompetitionPaginateOption {
+	if order == nil {
+		order = DefaultCompetitionOrder
+	}
+	o := *order
+	return func(pager *competitionPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultCompetitionOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithCompetitionFilter configures pagination filter.
+func WithCompetitionFilter(filter func(*CompetitionQuery) (*CompetitionQuery, error)) CompetitionPaginateOption {
+	return func(pager *competitionPager) error {
+		if filter == nil {
+			return errors.New("CompetitionQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type competitionPager struct {
+	order  *CompetitionOrder
+	filter func(*CompetitionQuery) (*CompetitionQuery, error)
+}
+
+func newCompetitionPager(opts []CompetitionPaginateOption) (*competitionPager, error) {
+	pager := &competitionPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultCompetitionOrder
+	}
+	return pager, nil
+}
+
+func (p *competitionPager) applyFilter(query *CompetitionQuery) (*CompetitionQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *competitionPager) toCursor(c *Competition) Cursor {
+	return p.order.Field.toCursor(c)
+}
+
+func (p *competitionPager) applyCursors(query *CompetitionQuery, after, before *Cursor) *CompetitionQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultCompetitionOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *competitionPager) applyOrder(query *CompetitionQuery, reverse bool) *CompetitionQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultCompetitionOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultCompetitionOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Competition.
+func (c *CompetitionQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...CompetitionPaginateOption,
+) (*CompetitionConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newCompetitionPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if c, err = pager.applyFilter(c); err != nil {
+		return nil, err
+	}
+
+	conn := &CompetitionConnection{Edges: []*CompetitionEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := c.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := c.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	c = pager.applyCursors(c, after, before)
+	c = pager.applyOrder(c, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		c = c.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		c = c.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := c.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Competition
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Competition {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Competition {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*CompetitionEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &CompetitionEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// CompetitionOrderField defines the ordering field of Competition.
+type CompetitionOrderField struct {
+	field    string
+	toCursor func(*Competition) Cursor
+}
+
+// CompetitionOrder defines the ordering of Competition.
+type CompetitionOrder struct {
+	Direction OrderDirection         `json:"direction"`
+	Field     *CompetitionOrderField `json:"field"`
+}
+
+// DefaultCompetitionOrder is the default ordering of Competition.
+var DefaultCompetitionOrder = &CompetitionOrder{
+	Direction: OrderDirectionAsc,
+	Field: &CompetitionOrderField{
+		field: competition.FieldID,
+		toCursor: func(c *Competition) Cursor {
+			return Cursor{ID: c.ID}
+		},
+	},
+}
+
+// ToEdge converts Competition into CompetitionEdge.
+func (c *Competition) ToEdge(order *CompetitionOrder) *CompetitionEdge {
+	if order == nil {
+		order = DefaultCompetitionOrder
+	}
+	return &CompetitionEdge{
+		Node:   c,
+		Cursor: order.Field.toCursor(c),
+	}
+}
 
 // PrefectureEdge is the edge representation of Prefecture.
 type PrefectureEdge struct {

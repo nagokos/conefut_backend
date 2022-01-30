@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Competition is the predicate function for competition builders.
+type Competition func(*sql.Selector)
+
 // Prefecture is the predicate function for prefecture builders.
 type Prefecture func(*sql.Selector)
 

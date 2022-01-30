@@ -46,7 +46,7 @@ init_schema: schema_name
 # マイグレーションファイル作成
 # SEQ_NAMEはcreate_users_tableの部分
 init_migration: seq_name
-	${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
+	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest && migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
 
 # SQLのみを発行
 # make generate後に使用
