@@ -9,7 +9,7 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func InsertPrefecture(ctx context.Context, client *ent.Client) error {
+func InsertPrefectures(ctx context.Context, client *ent.Client) error {
 	prefectures := []string{
 		"北海道",
 		"青森県",
@@ -67,15 +67,34 @@ func InsertPrefecture(ctx context.Context, client *ent.Client) error {
 	return err
 }
 
+func InsertCompetitions(ctx context.Context, client *ent.Client) error {
+	competitions := []string{
+		"サッカー",
+		"フットサル",
+		"ソサイチ",
+	}
+	bulk := make([]*ent.CompetitionCreate, len(competitions))
+	for i, name := range competitions {
+		bulk[i] = client.Competition.Create().SetName(name)
+	}
+	_, err := client.Competition.CreateBulk(bulk...).Save(ctx)
+	return err
+}
+
 func main() {
 	client := db.DatabaseConnection()
 	defer client.Close()
 
 	ctx := context.Background()
 
-	err := InsertPrefecture(ctx, client)
+	err := InsertPrefectures(ctx, client)
 	if err != nil {
 		logger.Log.Fatal().Msg(fmt.Sprintln("error prefectures: ", err))
+	}
+
+	err = InsertCompetitions(ctx, client)
+	if err != nil {
+		logger.Log.Fatal().Msg(fmt.Sprintln("error competitions: ", err))
 	}
 
 	logger.Log.Info().Msg("create initial data!")
