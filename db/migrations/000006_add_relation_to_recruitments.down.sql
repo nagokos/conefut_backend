@@ -1,0 +1,1 @@
+ALTER TABLE "recruitments" DROP CONSTRAINT "recruitments_users_recruitments";
