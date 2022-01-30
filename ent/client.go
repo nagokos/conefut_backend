@@ -9,6 +9,7 @@ import (
 
 	"github.com/nagokos/connefut_backend/ent/migrate"
 
+	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/user"
 
@@ -21,6 +22,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Competition is the client for interacting with the Competition builders.
+	Competition *CompetitionClient
 	// Prefecture is the client for interacting with the Prefecture builders.
 	Prefecture *PrefectureClient
 	// User is the client for interacting with the User builders.
@@ -38,6 +41,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Competition = NewCompetitionClient(c.config)
 	c.Prefecture = NewPrefectureClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -71,10 +75,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Prefecture: NewPrefectureClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:         ctx,
+		config:      cfg,
+		Competition: NewCompetitionClient(cfg),
+		Prefecture:  NewPrefectureClient(cfg),
+		User:        NewUserClient(cfg),
 	}, nil
 }
 
@@ -92,16 +97,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		config:     cfg,
-		Prefecture: NewPrefectureClient(cfg),
-		User:       NewUserClient(cfg),
+		config:      cfg,
+		Competition: NewCompetitionClient(cfg),
+		Prefecture:  NewPrefectureClient(cfg),
+		User:        NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Prefecture.
+//		Competition.
 //		Query().
 //		Count(ctx)
 //
@@ -124,8 +130,99 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Competition.Use(hooks...)
 	c.Prefecture.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// CompetitionClient is a client for the Competition schema.
+type CompetitionClient struct {
+	config
+}
+
+// NewCompetitionClient returns a client for the Competition from the given config.
+func NewCompetitionClient(c config) *CompetitionClient {
+	return &CompetitionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `competition.Hooks(f(g(h())))`.
+func (c *CompetitionClient) Use(hooks ...Hook) {
+	c.hooks.Competition = append(c.hooks.Competition, hooks...)
+}
+
+// Create returns a create builder for Competition.
+func (c *CompetitionClient) Create() *CompetitionCreate {
+	mutation := newCompetitionMutation(c.config, OpCreate)
+	return &CompetitionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Competition entities.
+func (c *CompetitionClient) CreateBulk(builders ...*CompetitionCreate) *CompetitionCreateBulk {
+	return &CompetitionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Competition.
+func (c *CompetitionClient) Update() *CompetitionUpdate {
+	mutation := newCompetitionMutation(c.config, OpUpdate)
+	return &CompetitionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CompetitionClient) UpdateOne(co *Competition) *CompetitionUpdateOne {
+	mutation := newCompetitionMutation(c.config, OpUpdateOne, withCompetition(co))
+	return &CompetitionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CompetitionClient) UpdateOneID(id string) *CompetitionUpdateOne {
+	mutation := newCompetitionMutation(c.config, OpUpdateOne, withCompetitionID(id))
+	return &CompetitionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Competition.
+func (c *CompetitionClient) Delete() *CompetitionDelete {
+	mutation := newCompetitionMutation(c.config, OpDelete)
+	return &CompetitionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *CompetitionClient) DeleteOne(co *Competition) *CompetitionDeleteOne {
+	return c.DeleteOneID(co.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *CompetitionClient) DeleteOneID(id string) *CompetitionDeleteOne {
+	builder := c.Delete().Where(competition.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CompetitionDeleteOne{builder}
+}
+
+// Query returns a query builder for Competition.
+func (c *CompetitionClient) Query() *CompetitionQuery {
+	return &CompetitionQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Competition entity by its id.
+func (c *CompetitionClient) Get(ctx context.Context, id string) (*Competition, error) {
+	return c.Query().Where(competition.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CompetitionClient) GetX(ctx context.Context, id string) *Competition {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CompetitionClient) Hooks() []Hook {
+	return c.hooks.Competition
 }
 
 // PrefectureClient is a client for the Prefecture schema.

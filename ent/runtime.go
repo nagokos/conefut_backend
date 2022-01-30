@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/schema"
 	"github.com/nagokos/connefut_backend/ent/user"
@@ -14,6 +15,29 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	competitionMixin := schema.Competition{}.Mixin()
+	competitionMixinFields0 := competitionMixin[0].Fields()
+	_ = competitionMixinFields0
+	competitionMixinFields1 := competitionMixin[1].Fields()
+	_ = competitionMixinFields1
+	competitionFields := schema.Competition{}.Fields()
+	_ = competitionFields
+	// competitionDescCreatedAt is the schema descriptor for created_at field.
+	competitionDescCreatedAt := competitionMixinFields0[0].Descriptor()
+	// competition.DefaultCreatedAt holds the default value on creation for the created_at field.
+	competition.DefaultCreatedAt = competitionDescCreatedAt.Default.(func() time.Time)
+	// competitionDescUpdatedAt is the schema descriptor for updated_at field.
+	competitionDescUpdatedAt := competitionMixinFields0[1].Descriptor()
+	// competition.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	competition.DefaultUpdatedAt = competitionDescUpdatedAt.Default.(func() time.Time)
+	// competition.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	competition.UpdateDefaultUpdatedAt = competitionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// competitionDescID is the schema descriptor for id field.
+	competitionDescID := competitionMixinFields1[0].Descriptor()
+	// competition.DefaultID holds the default value on creation for the id field.
+	competition.DefaultID = competitionDescID.Default.(func() string)
+	// competition.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	competition.IDValidator = competitionDescID.Validators[0].(func(string) error)
 	prefectureMixin := schema.Prefecture{}.Mixin()
 	prefectureMixinFields0 := prefectureMixin[0].Fields()
 	_ = prefectureMixinFields0

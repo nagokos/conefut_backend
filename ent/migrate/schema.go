@@ -8,6 +8,19 @@ import (
 )
 
 var (
+	// CompetitionsColumns holds the columns for the "competitions" table.
+	CompetitionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Unique: true},
+	}
+	// CompetitionsTable holds the schema information for the "competitions" table.
+	CompetitionsTable = &schema.Table{
+		Name:       "competitions",
+		Columns:    CompetitionsColumns,
+		PrimaryKey: []*schema.Column{CompetitionsColumns[0]},
+	}
 	// PrefecturesColumns holds the columns for the "prefectures" table.
 	PrefecturesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -52,6 +65,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CompetitionsTable,
 		PrefecturesTable,
 		UsersTable,
 	}
