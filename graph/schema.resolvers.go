@@ -9,6 +9,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
@@ -99,6 +100,15 @@ func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error)
 		return nil, nil
 	}
 	return user, nil
+}
+
+func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
+	res, err := competition.GetCompetitions(ctx, r.client.Competition)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
