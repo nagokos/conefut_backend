@@ -34,6 +34,35 @@ var (
 		Columns:    PrefecturesColumns,
 		PrimaryKey: []*schema.Column{PrefecturesColumns[0]},
 	}
+	// RecruitmentsColumns holds the columns for the "recruitments" table.
+	RecruitmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "title", Type: field.TypeString, Size: 60, SchemaType: map[string]string{"postgres": "varchar(60)"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"opponent", "individual", "teammate", "joining", "coaching", "others"}, Default: "opponent"},
+		{Name: "place", Type: field.TypeString, Nullable: true},
+		{Name: "start_at", Type: field.TypeTime, Nullable: true},
+		{Name: "content", Type: field.TypeString, Size: 10000, SchemaType: map[string]string{"postgres": "varchar(10000)"}},
+		{Name: "location_url", Type: field.TypeString, Nullable: true},
+		{Name: "capacity", Type: field.TypeInt},
+		{Name: "closing_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeString, Nullable: true},
+	}
+	// RecruitmentsTable holds the schema information for the "recruitments" table.
+	RecruitmentsTable = &schema.Table{
+		Name:       "recruitments",
+		Columns:    RecruitmentsColumns,
+		PrimaryKey: []*schema.Column{RecruitmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "recruitments_users_recruitments",
+				Columns:    []*schema.Column{RecruitmentsColumns[11]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -67,9 +96,11 @@ var (
 	Tables = []*schema.Table{
 		CompetitionsTable,
 		PrefecturesTable,
+		RecruitmentsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	RecruitmentsTable.ForeignKeys[0].RefTable = UsersTable
 }

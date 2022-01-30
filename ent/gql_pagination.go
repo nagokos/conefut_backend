@@ -16,6 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/errcode"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/vmihailenco/msgpack/v5"
@@ -685,6 +686,233 @@ func (pr *Prefecture) ToEdge(order *PrefectureOrder) *PrefectureEdge {
 	return &PrefectureEdge{
 		Node:   pr,
 		Cursor: order.Field.toCursor(pr),
+	}
+}
+
+// RecruitmentEdge is the edge representation of Recruitment.
+type RecruitmentEdge struct {
+	Node   *Recruitment `json:"node"`
+	Cursor Cursor       `json:"cursor"`
+}
+
+// RecruitmentConnection is the connection containing edges to Recruitment.
+type RecruitmentConnection struct {
+	Edges      []*RecruitmentEdge `json:"edges"`
+	PageInfo   PageInfo           `json:"pageInfo"`
+	TotalCount int                `json:"totalCount"`
+}
+
+// RecruitmentPaginateOption enables pagination customization.
+type RecruitmentPaginateOption func(*recruitmentPager) error
+
+// WithRecruitmentOrder configures pagination ordering.
+func WithRecruitmentOrder(order *RecruitmentOrder) RecruitmentPaginateOption {
+	if order == nil {
+		order = DefaultRecruitmentOrder
+	}
+	o := *order
+	return func(pager *recruitmentPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultRecruitmentOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithRecruitmentFilter configures pagination filter.
+func WithRecruitmentFilter(filter func(*RecruitmentQuery) (*RecruitmentQuery, error)) RecruitmentPaginateOption {
+	return func(pager *recruitmentPager) error {
+		if filter == nil {
+			return errors.New("RecruitmentQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type recruitmentPager struct {
+	order  *RecruitmentOrder
+	filter func(*RecruitmentQuery) (*RecruitmentQuery, error)
+}
+
+func newRecruitmentPager(opts []RecruitmentPaginateOption) (*recruitmentPager, error) {
+	pager := &recruitmentPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultRecruitmentOrder
+	}
+	return pager, nil
+}
+
+func (p *recruitmentPager) applyFilter(query *RecruitmentQuery) (*RecruitmentQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *recruitmentPager) toCursor(r *Recruitment) Cursor {
+	return p.order.Field.toCursor(r)
+}
+
+func (p *recruitmentPager) applyCursors(query *RecruitmentQuery, after, before *Cursor) *RecruitmentQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultRecruitmentOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *recruitmentPager) applyOrder(query *RecruitmentQuery, reverse bool) *RecruitmentQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultRecruitmentOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultRecruitmentOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Recruitment.
+func (r *RecruitmentQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...RecruitmentPaginateOption,
+) (*RecruitmentConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newRecruitmentPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if r, err = pager.applyFilter(r); err != nil {
+		return nil, err
+	}
+
+	conn := &RecruitmentConnection{Edges: []*RecruitmentEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := r.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := r.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	r = pager.applyCursors(r, after, before)
+	r = pager.applyOrder(r, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		r = r.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		r = r.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := r.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Recruitment
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Recruitment {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Recruitment {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*RecruitmentEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &RecruitmentEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// RecruitmentOrderField defines the ordering field of Recruitment.
+type RecruitmentOrderField struct {
+	field    string
+	toCursor func(*Recruitment) Cursor
+}
+
+// RecruitmentOrder defines the ordering of Recruitment.
+type RecruitmentOrder struct {
+	Direction OrderDirection         `json:"direction"`
+	Field     *RecruitmentOrderField `json:"field"`
+}
+
+// DefaultRecruitmentOrder is the default ordering of Recruitment.
+var DefaultRecruitmentOrder = &RecruitmentOrder{
+	Direction: OrderDirectionAsc,
+	Field: &RecruitmentOrderField{
+		field: recruitment.FieldID,
+		toCursor: func(r *Recruitment) Cursor {
+			return Cursor{ID: r.ID}
+		},
+	},
+}
+
+// ToEdge converts Recruitment into RecruitmentEdge.
+func (r *Recruitment) ToEdge(order *RecruitmentOrder) *RecruitmentEdge {
+	if order == nil {
+		order = DefaultRecruitmentOrder
+	}
+	return &RecruitmentEdge{
+		Node:   r,
+		Cursor: order.Field.toCursor(r),
 	}
 }
 

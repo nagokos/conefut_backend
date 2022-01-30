@@ -16,6 +16,8 @@ type Tx struct {
 	Competition *CompetitionClient
 	// Prefecture is the client for interacting with the Prefecture builders.
 	Prefecture *PrefectureClient
+	// Recruitment is the client for interacting with the Recruitment builders.
+	Recruitment *RecruitmentClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -155,6 +157,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Competition = NewCompetitionClient(tx.config)
 	tx.Prefecture = NewPrefectureClient(tx.config)
+	tx.Recruitment = NewRecruitmentClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

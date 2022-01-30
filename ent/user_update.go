@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/predicate"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -187,9 +188,45 @@ func (uu *UserUpdate) ClearLastSignInAt() *UserUpdate {
 	return uu
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (uu *UserUpdate) AddRecruitmentIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddRecruitmentIDs(ids...)
+	return uu
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (uu *UserUpdate) AddRecruitments(r ...*Recruitment) *UserUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return uu.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (uu *UserUpdate) ClearRecruitments() *UserUpdate {
+	uu.mutation.ClearRecruitments()
+	return uu
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (uu *UserUpdate) RemoveRecruitmentIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveRecruitmentIDs(ids...)
+	return uu
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (uu *UserUpdate) RemoveRecruitments(r ...*Recruitment) *UserUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return uu.RemoveRecruitmentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -411,6 +448,60 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldLastSignInAt,
 		})
 	}
+	if uu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !uu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -590,9 +681,45 @@ func (uuo *UserUpdateOne) ClearLastSignInAt() *UserUpdateOne {
 	return uuo
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (uuo *UserUpdateOne) AddRecruitmentIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddRecruitmentIDs(ids...)
+	return uuo
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (uuo *UserUpdateOne) AddRecruitments(r ...*Recruitment) *UserUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return uuo.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (uuo *UserUpdateOne) ClearRecruitments() *UserUpdateOne {
+	uuo.mutation.ClearRecruitments()
+	return uuo
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (uuo *UserUpdateOne) RemoveRecruitmentIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveRecruitmentIDs(ids...)
+	return uuo
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (uuo *UserUpdateOne) RemoveRecruitments(r ...*Recruitment) *UserUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return uuo.RemoveRecruitmentIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -837,6 +964,60 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Type:   field.TypeTime,
 			Column: user.FieldLastSignInAt,
 		})
+	}
+	if uuo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !uuo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues
