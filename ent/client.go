@@ -11,10 +11,12 @@ import (
 
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -26,6 +28,8 @@ type Client struct {
 	Competition *CompetitionClient
 	// Prefecture is the client for interacting with the Prefecture builders.
 	Prefecture *PrefectureClient
+	// Recruitment is the client for interacting with the Recruitment builders.
+	Recruitment *RecruitmentClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -43,6 +47,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Competition = NewCompetitionClient(c.config)
 	c.Prefecture = NewPrefectureClient(c.config)
+	c.Recruitment = NewRecruitmentClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -79,6 +84,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:      cfg,
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
+		Recruitment: NewRecruitmentClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -100,6 +106,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:      cfg,
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
+		Recruitment: NewRecruitmentClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -132,6 +139,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Competition.Use(hooks...)
 	c.Prefecture.Use(hooks...)
+	c.Recruitment.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -315,6 +323,96 @@ func (c *PrefectureClient) Hooks() []Hook {
 	return c.hooks.Prefecture
 }
 
+// RecruitmentClient is a client for the Recruitment schema.
+type RecruitmentClient struct {
+	config
+}
+
+// NewRecruitmentClient returns a client for the Recruitment from the given config.
+func NewRecruitmentClient(c config) *RecruitmentClient {
+	return &RecruitmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `recruitment.Hooks(f(g(h())))`.
+func (c *RecruitmentClient) Use(hooks ...Hook) {
+	c.hooks.Recruitment = append(c.hooks.Recruitment, hooks...)
+}
+
+// Create returns a create builder for Recruitment.
+func (c *RecruitmentClient) Create() *RecruitmentCreate {
+	mutation := newRecruitmentMutation(c.config, OpCreate)
+	return &RecruitmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Recruitment entities.
+func (c *RecruitmentClient) CreateBulk(builders ...*RecruitmentCreate) *RecruitmentCreateBulk {
+	return &RecruitmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Recruitment.
+func (c *RecruitmentClient) Update() *RecruitmentUpdate {
+	mutation := newRecruitmentMutation(c.config, OpUpdate)
+	return &RecruitmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RecruitmentClient) UpdateOne(r *Recruitment) *RecruitmentUpdateOne {
+	mutation := newRecruitmentMutation(c.config, OpUpdateOne, withRecruitment(r))
+	return &RecruitmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RecruitmentClient) UpdateOneID(id string) *RecruitmentUpdateOne {
+	mutation := newRecruitmentMutation(c.config, OpUpdateOne, withRecruitmentID(id))
+	return &RecruitmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Recruitment.
+func (c *RecruitmentClient) Delete() *RecruitmentDelete {
+	mutation := newRecruitmentMutation(c.config, OpDelete)
+	return &RecruitmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *RecruitmentClient) DeleteOne(r *Recruitment) *RecruitmentDeleteOne {
+	return c.DeleteOneID(r.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *RecruitmentClient) DeleteOneID(id string) *RecruitmentDeleteOne {
+	builder := c.Delete().Where(recruitment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RecruitmentDeleteOne{builder}
+}
+
+// Query returns a query builder for Recruitment.
+func (c *RecruitmentClient) Query() *RecruitmentQuery {
+	return &RecruitmentQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Recruitment entity by its id.
+func (c *RecruitmentClient) Get(ctx context.Context, id string) (*Recruitment, error) {
+	return c.Query().Where(recruitment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RecruitmentClient) GetX(ctx context.Context, id string) *Recruitment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RecruitmentClient) Hooks() []Hook {
+	return c.hooks.Recruitment
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -398,6 +496,22 @@ func (c *UserClient) GetX(ctx context.Context, id string) *User {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryRecruitments queries the recruitments edge of a User.
+func (c *UserClient) QueryRecruitments(u *User) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.RecruitmentsTable, user.RecruitmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

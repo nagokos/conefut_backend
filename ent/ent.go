@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -33,6 +34,7 @@ func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
 		competition.Table: competition.ValidColumn,
 		prefecture.Table:  prefecture.ValidColumn,
+		recruitment.Table: recruitment.ValidColumn,
 		user.Table:        user.ValidColumn,
 	}
 	check, ok := checks[table]

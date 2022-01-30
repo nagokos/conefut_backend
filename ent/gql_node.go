@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -112,12 +113,103 @@ func (pr *Prefecture) Node(ctx context.Context) (node *Node, err error) {
 	return node, nil
 }
 
+func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     r.ID,
+		Type:   "Recruitment",
+		Fields: make([]*Field, 10),
+		Edges:  make([]*Edge, 0),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(r.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Title); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "title",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Type); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "recruitment.Type",
+		Name:  "type",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Place); err != nil {
+		return nil, err
+	}
+	node.Fields[4] = &Field{
+		Type:  "string",
+		Name:  "place",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.StartAt); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
+		Type:  "time.Time",
+		Name:  "start_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Content); err != nil {
+		return nil, err
+	}
+	node.Fields[6] = &Field{
+		Type:  "string",
+		Name:  "content",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.LocationURL); err != nil {
+		return nil, err
+	}
+	node.Fields[7] = &Field{
+		Type:  "string",
+		Name:  "Location_url",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Capacity); err != nil {
+		return nil, err
+	}
+	node.Fields[8] = &Field{
+		Type:  "int",
+		Name:  "capacity",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.ClosingAt); err != nil {
+		return nil, err
+	}
+	node.Fields[9] = &Field{
+		Type:  "time.Time",
+		Name:  "closing_at",
+		Value: string(buf),
+	}
+	return node, nil
+}
+
 func (u *User) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     u.ID,
 		Type:   "User",
 		Fields: make([]*Field, 12),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(u.CreatedAt); err != nil {
@@ -216,6 +308,16 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "last_sign_in_at",
 		Value: string(buf),
 	}
+	node.Edges[0] = &Edge{
+		Type: "Recruitment",
+		Name: "recruitments",
+	}
+	err = u.QueryRecruitments().
+		Select(recruitment.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -299,6 +401,15 @@ func (c *Client) noder(ctx context.Context, table string, id string) (Noder, err
 		n, err := c.Prefecture.Query().
 			Where(prefecture.ID(id)).
 			CollectFields(ctx, "Prefecture").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case recruitment.Table:
+		n, err := c.Recruitment.Query().
+			Where(recruitment.ID(id)).
+			CollectFields(ctx, "Recruitment").
 			Only(ctx)
 		if err != nil {
 			return nil, err
@@ -403,6 +514,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []string) ([]Node
 		nodes, err := c.Prefecture.Query().
 			Where(prefecture.IDIn(ids...)).
 			CollectFields(ctx, "Prefecture").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case recruitment.Table:
+		nodes, err := c.Recruitment.Query().
+			Where(recruitment.IDIn(ids...)).
+			CollectFields(ctx, "Recruitment").
 			All(ctx)
 		if err != nil {
 			return nil, err

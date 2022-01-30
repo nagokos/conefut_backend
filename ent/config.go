@@ -26,6 +26,7 @@ type config struct {
 type hooks struct {
 	Competition []ent.Hook
 	Prefecture  []ent.Hook
+	Recruitment []ent.Hook
 	User        []ent.Hook
 }
 

@@ -142,6 +142,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		SetPasswordDigest(pwdHash).
 		SetEmailVerificationToken(emailToken).
 		SetEmailVerificationTokenExpiresAt(tokenExpiresAt).
+		SetLastSignInAt(time.Now()).
 		Save(ctx)
 
 	if err != nil {

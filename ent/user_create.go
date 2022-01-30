@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -186,6 +187,21 @@ func (uc *UserCreate) SetNillableID(s *string) *UserCreate {
 	return uc
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (uc *UserCreate) AddRecruitmentIDs(ids ...string) *UserCreate {
+	uc.mutation.AddRecruitmentIDs(ids...)
+	return uc
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (uc *UserCreate) AddRecruitments(r ...*Recruitment) *UserCreate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return uc.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uc *UserCreate) Mutation() *UserMutation {
 	return uc.mutation
@@ -331,6 +347,9 @@ func (uc *UserCreate) check() error {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
 		}
 	}
+	if len(uc.mutation.RecruitmentsIDs()) == 0 {
+		return &ValidationError{Name: "recruitments", err: errors.New("ent: missing required edge \"recruitments\"")}
+	}
 	return nil
 }
 
@@ -458,6 +477,25 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldLastSignInAt,
 		})
 		_node.LastSignInAt = value
+	}
+	if nodes := uc.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.RecruitmentsTable,
+			Columns: []string{user.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

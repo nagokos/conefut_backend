@@ -8,6 +8,11 @@ import (
 	"strconv"
 )
 
+type Competition struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type Prefecture struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

@@ -11,6 +11,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/user"
 
 	"entgo.io/ent"
@@ -27,6 +28,7 @@ const (
 	// Node types.
 	TypeCompetition = "Competition"
 	TypePrefecture  = "Prefecture"
+	TypeRecruitment = "Recruitment"
 	TypeUser        = "User"
 )
 
@@ -842,6 +844,886 @@ func (m *PrefectureMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Prefecture edge %s", name)
 }
 
+// RecruitmentMutation represents an operation that mutates the Recruitment nodes in the graph.
+type RecruitmentMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	title         *string
+	_type         *recruitment.Type
+	place         *string
+	start_at      *time.Time
+	content       *string
+	_Location_url *string
+	capacity      *int
+	addcapacity   *int
+	closing_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*Recruitment, error)
+	predicates    []predicate.Recruitment
+}
+
+var _ ent.Mutation = (*RecruitmentMutation)(nil)
+
+// recruitmentOption allows management of the mutation configuration using functional options.
+type recruitmentOption func(*RecruitmentMutation)
+
+// newRecruitmentMutation creates new mutation for the Recruitment entity.
+func newRecruitmentMutation(c config, op Op, opts ...recruitmentOption) *RecruitmentMutation {
+	m := &RecruitmentMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRecruitment,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRecruitmentID sets the ID field of the mutation.
+func withRecruitmentID(id string) recruitmentOption {
+	return func(m *RecruitmentMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Recruitment
+		)
+		m.oldValue = func(ctx context.Context) (*Recruitment, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Recruitment.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRecruitment sets the old Recruitment of the mutation.
+func withRecruitment(node *Recruitment) recruitmentOption {
+	return func(m *RecruitmentMutation) {
+		m.oldValue = func(context.Context) (*Recruitment, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RecruitmentMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RecruitmentMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Recruitment entities.
+func (m *RecruitmentMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RecruitmentMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RecruitmentMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RecruitmentMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RecruitmentMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RecruitmentMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RecruitmentMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RecruitmentMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *RecruitmentMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *RecruitmentMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *RecruitmentMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetType sets the "type" field.
+func (m *RecruitmentMutation) SetType(r recruitment.Type) {
+	m._type = &r
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *RecruitmentMutation) GetType() (r recruitment.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldType(ctx context.Context) (v recruitment.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *RecruitmentMutation) ResetType() {
+	m._type = nil
+}
+
+// SetPlace sets the "place" field.
+func (m *RecruitmentMutation) SetPlace(s string) {
+	m.place = &s
+}
+
+// Place returns the value of the "place" field in the mutation.
+func (m *RecruitmentMutation) Place() (r string, exists bool) {
+	v := m.place
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlace returns the old "place" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldPlace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldPlace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldPlace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlace: %w", err)
+	}
+	return oldValue.Place, nil
+}
+
+// ClearPlace clears the value of the "place" field.
+func (m *RecruitmentMutation) ClearPlace() {
+	m.place = nil
+	m.clearedFields[recruitment.FieldPlace] = struct{}{}
+}
+
+// PlaceCleared returns if the "place" field was cleared in this mutation.
+func (m *RecruitmentMutation) PlaceCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldPlace]
+	return ok
+}
+
+// ResetPlace resets all changes to the "place" field.
+func (m *RecruitmentMutation) ResetPlace() {
+	m.place = nil
+	delete(m.clearedFields, recruitment.FieldPlace)
+}
+
+// SetStartAt sets the "start_at" field.
+func (m *RecruitmentMutation) SetStartAt(t time.Time) {
+	m.start_at = &t
+}
+
+// StartAt returns the value of the "start_at" field in the mutation.
+func (m *RecruitmentMutation) StartAt() (r time.Time, exists bool) {
+	v := m.start_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartAt returns the old "start_at" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldStartAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldStartAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldStartAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartAt: %w", err)
+	}
+	return oldValue.StartAt, nil
+}
+
+// ClearStartAt clears the value of the "start_at" field.
+func (m *RecruitmentMutation) ClearStartAt() {
+	m.start_at = nil
+	m.clearedFields[recruitment.FieldStartAt] = struct{}{}
+}
+
+// StartAtCleared returns if the "start_at" field was cleared in this mutation.
+func (m *RecruitmentMutation) StartAtCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldStartAt]
+	return ok
+}
+
+// ResetStartAt resets all changes to the "start_at" field.
+func (m *RecruitmentMutation) ResetStartAt() {
+	m.start_at = nil
+	delete(m.clearedFields, recruitment.FieldStartAt)
+}
+
+// SetContent sets the "content" field.
+func (m *RecruitmentMutation) SetContent(s string) {
+	m.content = &s
+}
+
+// Content returns the value of the "content" field in the mutation.
+func (m *RecruitmentMutation) Content() (r string, exists bool) {
+	v := m.content
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContent returns the old "content" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldContent(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldContent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldContent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContent: %w", err)
+	}
+	return oldValue.Content, nil
+}
+
+// ResetContent resets all changes to the "content" field.
+func (m *RecruitmentMutation) ResetContent() {
+	m.content = nil
+}
+
+// SetLocationURL sets the "Location_url" field.
+func (m *RecruitmentMutation) SetLocationURL(s string) {
+	m._Location_url = &s
+}
+
+// LocationURL returns the value of the "Location_url" field in the mutation.
+func (m *RecruitmentMutation) LocationURL() (r string, exists bool) {
+	v := m._Location_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLocationURL returns the old "Location_url" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldLocationURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLocationURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLocationURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLocationURL: %w", err)
+	}
+	return oldValue.LocationURL, nil
+}
+
+// ClearLocationURL clears the value of the "Location_url" field.
+func (m *RecruitmentMutation) ClearLocationURL() {
+	m._Location_url = nil
+	m.clearedFields[recruitment.FieldLocationURL] = struct{}{}
+}
+
+// LocationURLCleared returns if the "Location_url" field was cleared in this mutation.
+func (m *RecruitmentMutation) LocationURLCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldLocationURL]
+	return ok
+}
+
+// ResetLocationURL resets all changes to the "Location_url" field.
+func (m *RecruitmentMutation) ResetLocationURL() {
+	m._Location_url = nil
+	delete(m.clearedFields, recruitment.FieldLocationURL)
+}
+
+// SetCapacity sets the "capacity" field.
+func (m *RecruitmentMutation) SetCapacity(i int) {
+	m.capacity = &i
+	m.addcapacity = nil
+}
+
+// Capacity returns the value of the "capacity" field in the mutation.
+func (m *RecruitmentMutation) Capacity() (r int, exists bool) {
+	v := m.capacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapacity returns the old "capacity" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldCapacity(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCapacity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCapacity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapacity: %w", err)
+	}
+	return oldValue.Capacity, nil
+}
+
+// AddCapacity adds i to the "capacity" field.
+func (m *RecruitmentMutation) AddCapacity(i int) {
+	if m.addcapacity != nil {
+		*m.addcapacity += i
+	} else {
+		m.addcapacity = &i
+	}
+}
+
+// AddedCapacity returns the value that was added to the "capacity" field in this mutation.
+func (m *RecruitmentMutation) AddedCapacity() (r int, exists bool) {
+	v := m.addcapacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCapacity resets all changes to the "capacity" field.
+func (m *RecruitmentMutation) ResetCapacity() {
+	m.capacity = nil
+	m.addcapacity = nil
+}
+
+// SetClosingAt sets the "closing_at" field.
+func (m *RecruitmentMutation) SetClosingAt(t time.Time) {
+	m.closing_at = &t
+}
+
+// ClosingAt returns the value of the "closing_at" field in the mutation.
+func (m *RecruitmentMutation) ClosingAt() (r time.Time, exists bool) {
+	v := m.closing_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClosingAt returns the old "closing_at" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldClosingAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldClosingAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldClosingAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClosingAt: %w", err)
+	}
+	return oldValue.ClosingAt, nil
+}
+
+// ResetClosingAt resets all changes to the "closing_at" field.
+func (m *RecruitmentMutation) ResetClosingAt() {
+	m.closing_at = nil
+}
+
+// Where appends a list predicates to the RecruitmentMutation builder.
+func (m *RecruitmentMutation) Where(ps ...predicate.Recruitment) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *RecruitmentMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (Recruitment).
+func (m *RecruitmentMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RecruitmentMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.created_at != nil {
+		fields = append(fields, recruitment.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, recruitment.FieldUpdatedAt)
+	}
+	if m.title != nil {
+		fields = append(fields, recruitment.FieldTitle)
+	}
+	if m._type != nil {
+		fields = append(fields, recruitment.FieldType)
+	}
+	if m.place != nil {
+		fields = append(fields, recruitment.FieldPlace)
+	}
+	if m.start_at != nil {
+		fields = append(fields, recruitment.FieldStartAt)
+	}
+	if m.content != nil {
+		fields = append(fields, recruitment.FieldContent)
+	}
+	if m._Location_url != nil {
+		fields = append(fields, recruitment.FieldLocationURL)
+	}
+	if m.capacity != nil {
+		fields = append(fields, recruitment.FieldCapacity)
+	}
+	if m.closing_at != nil {
+		fields = append(fields, recruitment.FieldClosingAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case recruitment.FieldCreatedAt:
+		return m.CreatedAt()
+	case recruitment.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case recruitment.FieldTitle:
+		return m.Title()
+	case recruitment.FieldType:
+		return m.GetType()
+	case recruitment.FieldPlace:
+		return m.Place()
+	case recruitment.FieldStartAt:
+		return m.StartAt()
+	case recruitment.FieldContent:
+		return m.Content()
+	case recruitment.FieldLocationURL:
+		return m.LocationURL()
+	case recruitment.FieldCapacity:
+		return m.Capacity()
+	case recruitment.FieldClosingAt:
+		return m.ClosingAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case recruitment.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case recruitment.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case recruitment.FieldTitle:
+		return m.OldTitle(ctx)
+	case recruitment.FieldType:
+		return m.OldType(ctx)
+	case recruitment.FieldPlace:
+		return m.OldPlace(ctx)
+	case recruitment.FieldStartAt:
+		return m.OldStartAt(ctx)
+	case recruitment.FieldContent:
+		return m.OldContent(ctx)
+	case recruitment.FieldLocationURL:
+		return m.OldLocationURL(ctx)
+	case recruitment.FieldCapacity:
+		return m.OldCapacity(ctx)
+	case recruitment.FieldClosingAt:
+		return m.OldClosingAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Recruitment field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case recruitment.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case recruitment.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case recruitment.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case recruitment.FieldType:
+		v, ok := value.(recruitment.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case recruitment.FieldPlace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlace(v)
+		return nil
+	case recruitment.FieldStartAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartAt(v)
+		return nil
+	case recruitment.FieldContent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContent(v)
+		return nil
+	case recruitment.FieldLocationURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLocationURL(v)
+		return nil
+	case recruitment.FieldCapacity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapacity(v)
+		return nil
+	case recruitment.FieldClosingAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClosingAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Recruitment field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RecruitmentMutation) AddedFields() []string {
+	var fields []string
+	if m.addcapacity != nil {
+		fields = append(fields, recruitment.FieldCapacity)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RecruitmentMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case recruitment.FieldCapacity:
+		return m.AddedCapacity()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RecruitmentMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case recruitment.FieldCapacity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCapacity(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Recruitment numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RecruitmentMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(recruitment.FieldPlace) {
+		fields = append(fields, recruitment.FieldPlace)
+	}
+	if m.FieldCleared(recruitment.FieldStartAt) {
+		fields = append(fields, recruitment.FieldStartAt)
+	}
+	if m.FieldCleared(recruitment.FieldLocationURL) {
+		fields = append(fields, recruitment.FieldLocationURL)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RecruitmentMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RecruitmentMutation) ClearField(name string) error {
+	switch name {
+	case recruitment.FieldPlace:
+		m.ClearPlace()
+		return nil
+	case recruitment.FieldStartAt:
+		m.ClearStartAt()
+		return nil
+	case recruitment.FieldLocationURL:
+		m.ClearLocationURL()
+		return nil
+	}
+	return fmt.Errorf("unknown Recruitment nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RecruitmentMutation) ResetField(name string) error {
+	switch name {
+	case recruitment.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case recruitment.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case recruitment.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case recruitment.FieldType:
+		m.ResetType()
+		return nil
+	case recruitment.FieldPlace:
+		m.ResetPlace()
+		return nil
+	case recruitment.FieldStartAt:
+		m.ResetStartAt()
+		return nil
+	case recruitment.FieldContent:
+		m.ResetContent()
+		return nil
+	case recruitment.FieldLocationURL:
+		m.ResetLocationURL()
+		return nil
+	case recruitment.FieldCapacity:
+		m.ResetCapacity()
+		return nil
+	case recruitment.FieldClosingAt:
+		m.ResetClosingAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Recruitment field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RecruitmentMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RecruitmentMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RecruitmentMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RecruitmentMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RecruitmentMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RecruitmentMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RecruitmentMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Recruitment unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RecruitmentMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Recruitment edge %s", name)
+}
+
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
@@ -861,6 +1743,9 @@ type UserMutation struct {
 	password_digest                     *string
 	last_sign_in_at                     *time.Time
 	clearedFields                       map[string]struct{}
+	recruitments                        map[string]struct{}
+	removedrecruitments                 map[string]struct{}
+	clearedrecruitments                 bool
 	done                                bool
 	oldValue                            func(context.Context) (*User, error)
 	predicates                          []predicate.User
@@ -1448,6 +2333,60 @@ func (m *UserMutation) ResetLastSignInAt() {
 	delete(m.clearedFields, user.FieldLastSignInAt)
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by ids.
+func (m *UserMutation) AddRecruitmentIDs(ids ...string) {
+	if m.recruitments == nil {
+		m.recruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.recruitments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRecruitments clears the "recruitments" edge to the Recruitment entity.
+func (m *UserMutation) ClearRecruitments() {
+	m.clearedrecruitments = true
+}
+
+// RecruitmentsCleared reports if the "recruitments" edge to the Recruitment entity was cleared.
+func (m *UserMutation) RecruitmentsCleared() bool {
+	return m.clearedrecruitments
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to the Recruitment entity by IDs.
+func (m *UserMutation) RemoveRecruitmentIDs(ids ...string) {
+	if m.removedrecruitments == nil {
+		m.removedrecruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.recruitments, ids[i])
+		m.removedrecruitments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRecruitments returns the removed IDs of the "recruitments" edge to the Recruitment entity.
+func (m *UserMutation) RemovedRecruitmentsIDs() (ids []string) {
+	for id := range m.removedrecruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RecruitmentsIDs returns the "recruitments" edge IDs in the mutation.
+func (m *UserMutation) RecruitmentsIDs() (ids []string) {
+	for id := range m.recruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRecruitments resets all changes to the "recruitments" edge.
+func (m *UserMutation) ResetRecruitments() {
+	m.recruitments = nil
+	m.clearedrecruitments = false
+	m.removedrecruitments = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -1786,48 +2725,84 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.recruitments != nil {
+		edges = append(edges, user.EdgeRecruitments)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.recruitments))
+		for id := range m.recruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedrecruitments != nil {
+		edges = append(edges, user.EdgeRecruitments)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.removedrecruitments))
+		for id := range m.removedrecruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedrecruitments {
+		edges = append(edges, user.EdgeRecruitments)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeRecruitments:
+		return m.clearedrecruitments
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeRecruitments:
+		m.ResetRecruitments()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
 }

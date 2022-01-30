@@ -7,6 +7,7 @@ import (
 
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/schema"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
@@ -61,6 +62,37 @@ func init() {
 	prefecture.DefaultID = prefectureDescID.Default.(func() string)
 	// prefecture.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	prefecture.IDValidator = prefectureDescID.Validators[0].(func(string) error)
+	recruitmentMixin := schema.Recruitment{}.Mixin()
+	recruitmentMixinFields0 := recruitmentMixin[0].Fields()
+	_ = recruitmentMixinFields0
+	recruitmentMixinFields1 := recruitmentMixin[1].Fields()
+	_ = recruitmentMixinFields1
+	recruitmentFields := schema.Recruitment{}.Fields()
+	_ = recruitmentFields
+	// recruitmentDescCreatedAt is the schema descriptor for created_at field.
+	recruitmentDescCreatedAt := recruitmentMixinFields1[0].Descriptor()
+	// recruitment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	recruitment.DefaultCreatedAt = recruitmentDescCreatedAt.Default.(func() time.Time)
+	// recruitmentDescUpdatedAt is the schema descriptor for updated_at field.
+	recruitmentDescUpdatedAt := recruitmentMixinFields1[1].Descriptor()
+	// recruitment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	recruitment.DefaultUpdatedAt = recruitmentDescUpdatedAt.Default.(func() time.Time)
+	// recruitment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	recruitment.UpdateDefaultUpdatedAt = recruitmentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// recruitmentDescTitle is the schema descriptor for title field.
+	recruitmentDescTitle := recruitmentFields[0].Descriptor()
+	// recruitment.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	recruitment.TitleValidator = recruitmentDescTitle.Validators[0].(func(string) error)
+	// recruitmentDescContent is the schema descriptor for content field.
+	recruitmentDescContent := recruitmentFields[4].Descriptor()
+	// recruitment.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	recruitment.ContentValidator = recruitmentDescContent.Validators[0].(func(string) error)
+	// recruitmentDescID is the schema descriptor for id field.
+	recruitmentDescID := recruitmentMixinFields0[0].Descriptor()
+	// recruitment.DefaultID holds the default value on creation for the id field.
+	recruitment.DefaultID = recruitmentDescID.Default.(func() string)
+	// recruitment.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	recruitment.IDValidator = recruitmentDescID.Validators[0].(func(string) error)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0

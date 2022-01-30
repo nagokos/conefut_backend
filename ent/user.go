@@ -40,6 +40,27 @@ type User struct {
 	PasswordDigest string `json:"password_digest,omitempty"`
 	// LastSignInAt holds the value of the "last_sign_in_at" field.
 	LastSignInAt time.Time `json:"last_sign_in_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Recruitments holds the value of the recruitments edge.
+	Recruitments []*Recruitment `json:"recruitments,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// RecruitmentsOrErr returns the Recruitments value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) RecruitmentsOrErr() ([]*Recruitment, error) {
+	if e.loadedTypes[0] {
+		return e.Recruitments, nil
+	}
+	return nil, &NotLoadedError{edge: "recruitments"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -149,6 +170,11 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryRecruitments queries the "recruitments" edge of the User entity.
+func (u *User) QueryRecruitments() *RecruitmentQuery {
+	return (&UserClient{config: u.config}).QueryRecruitments(u)
 }
 
 // Update returns a builder for updating this User.

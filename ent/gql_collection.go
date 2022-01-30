@@ -33,6 +33,18 @@ func (pr *PrefectureQuery) collectField(ctx *graphql.OperationContext, field gra
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (r *RecruitmentQuery) CollectFields(ctx context.Context, satisfies ...string) *RecruitmentQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		r = r.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return r
+}
+
+func (r *RecruitmentQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *RecruitmentQuery {
+	return r
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (u *UserQuery) CollectFields(ctx context.Context, satisfies ...string) *UserQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		u = u.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)

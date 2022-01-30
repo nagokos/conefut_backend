@@ -12,5 +12,8 @@ type Competition func(*sql.Selector)
 // Prefecture is the predicate function for prefecture builders.
 type Prefecture func(*sql.Selector)
 
+// Recruitment is the predicate function for recruitment builders.
+type Recruitment func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
