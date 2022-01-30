@@ -22,9 +22,15 @@ type Prefecture {
   name: String!
 }
 
+type Competition {
+  id: String!
+  name: String!
+}
+
 type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
+  getCompetitions: [Competition!]!
 }
 
 input createUserInput {
