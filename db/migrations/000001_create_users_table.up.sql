@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS "users"(
   "email_verification_token" varchar NULL, 
   "email_verification_token_expires_at" timestamp with time zone NULL, 
   "password_digest" varchar NULL, 
-  "last_sign_in_at" timestamp with time zone NULL, 
   "created_at" timestamp with time zone NOT NULL, 
   "updated_at" timestamp with time zone NOT NULL, 
   PRIMARY KEY("id")
 );
+CREATE INDEX IF NOT EXISTS "user_email_verification_token" ON "users"("email_verification_token");
+
