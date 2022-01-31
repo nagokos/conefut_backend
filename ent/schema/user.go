@@ -46,8 +46,13 @@ func (User) Fields() []ent.Field {
 				dialect.Postgres: "varchar(4000)",
 			}).
 			MaxLen(4000),
-		field.Bool("email_verification_status").
-			Default(false),
+		field.Enum("email_verification_status").
+			Values(
+				"unnecessary",
+				"pending",
+				"verified",
+			).
+			Default("pending"),
 		field.String("email_verification_token").
 			Optional(),
 		field.Time("email_verification_token_expires_at").
