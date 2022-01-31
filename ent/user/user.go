@@ -93,8 +93,6 @@ var (
 	DefaultAvatar string
 	// IntroductionValidator is a validator for the "introduction" field. It is called by the builders before save.
 	IntroductionValidator func(string) error
-	// DefaultEmailVerificationStatus holds the default value on creation for the "email_verification_status" field.
-	DefaultEmailVerificationStatus bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -127,6 +125,33 @@ func RoleValidator(r Role) error {
 	}
 }
 
+// EmailVerificationStatus defines the type for the "email_verification_status" enum field.
+type EmailVerificationStatus string
+
+// EmailVerificationStatusPending is the default value of the EmailVerificationStatus enum.
+const DefaultEmailVerificationStatus = EmailVerificationStatusPending
+
+// EmailVerificationStatus values.
+const (
+	EmailVerificationStatusUnnecessary EmailVerificationStatus = "unnecessary"
+	EmailVerificationStatusPending     EmailVerificationStatus = "pending"
+	EmailVerificationStatusVerified    EmailVerificationStatus = "verified"
+)
+
+func (evs EmailVerificationStatus) String() string {
+	return string(evs)
+}
+
+// EmailVerificationStatusValidator is a validator for the "email_verification_status" field enum values. It is called by the builders before save.
+func EmailVerificationStatusValidator(evs EmailVerificationStatus) error {
+	switch evs {
+	case EmailVerificationStatusUnnecessary, EmailVerificationStatusPending, EmailVerificationStatusVerified:
+		return nil
+	default:
+		return fmt.Errorf("user: invalid enum value for email_verification_status field: %q", evs)
+	}
+}
+
 // MarshalGQL implements graphql.Marshaler interface.
 func (r Role) MarshalGQL(w io.Writer) {
 	io.WriteString(w, strconv.Quote(r.String()))
@@ -141,6 +166,24 @@ func (r *Role) UnmarshalGQL(val interface{}) error {
 	*r = Role(str)
 	if err := RoleValidator(*r); err != nil {
 		return fmt.Errorf("%s is not a valid Role", str)
+	}
+	return nil
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (evs EmailVerificationStatus) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(evs.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (evs *EmailVerificationStatus) UnmarshalGQL(val interface{}) error {
+	str, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("enum %T must be a string", val)
+	}
+	*evs = EmailVerificationStatus(str)
+	if err := EmailVerificationStatusValidator(*evs); err != nil {
+		return fmt.Errorf("%s is not a valid EmailVerificationStatus", str)
 	}
 	return nil
 }

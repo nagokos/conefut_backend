@@ -48,7 +48,7 @@ func (c *Competition) Node(ctx context.Context) (node *Node, err error) {
 		ID:     c.ID,
 		Type:   "Competition",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(c.CreatedAt); err != nil {
@@ -75,6 +75,16 @@ func (c *Competition) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "name",
 		Value: string(buf),
 	}
+	node.Edges[0] = &Edge{
+		Type: "Recruitment",
+		Name: "recruitments",
+	}
+	err = c.QueryRecruitments().
+		Select(recruitment.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -83,7 +93,7 @@ func (pr *Prefecture) Node(ctx context.Context) (node *Node, err error) {
 		ID:     pr.ID,
 		Type:   "Prefecture",
 		Fields: make([]*Field, 3),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(pr.CreatedAt); err != nil {
@@ -110,6 +120,16 @@ func (pr *Prefecture) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "name",
 		Value: string(buf),
 	}
+	node.Edges[0] = &Edge{
+		Type: "Recruitment",
+		Name: "recruitments",
+	}
+	err = pr.QueryRecruitments().
+		Select(recruitment.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -117,8 +137,8 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     r.ID,
 		Type:   "Recruitment",
-		Fields: make([]*Field, 10),
-		Edges:  make([]*Edge, 0),
+		Fields: make([]*Field, 11),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(r.CreatedAt); err != nil {
@@ -153,10 +173,18 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "type",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(r.Place); err != nil {
+	if buf, err = json.Marshal(r.Level); err != nil {
 		return nil, err
 	}
 	node.Fields[4] = &Field{
+		Type:  "recruitment.Level",
+		Name:  "level",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.Place); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
 		Type:  "string",
 		Name:  "place",
 		Value: string(buf),
@@ -164,7 +192,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.StartAt); err != nil {
 		return nil, err
 	}
-	node.Fields[5] = &Field{
+	node.Fields[6] = &Field{
 		Type:  "time.Time",
 		Name:  "start_at",
 		Value: string(buf),
@@ -172,7 +200,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.Content); err != nil {
 		return nil, err
 	}
-	node.Fields[6] = &Field{
+	node.Fields[7] = &Field{
 		Type:  "string",
 		Name:  "content",
 		Value: string(buf),
@@ -180,7 +208,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.LocationURL); err != nil {
 		return nil, err
 	}
-	node.Fields[7] = &Field{
+	node.Fields[8] = &Field{
 		Type:  "string",
 		Name:  "Location_url",
 		Value: string(buf),
@@ -188,7 +216,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.Capacity); err != nil {
 		return nil, err
 	}
-	node.Fields[8] = &Field{
+	node.Fields[9] = &Field{
 		Type:  "int",
 		Name:  "capacity",
 		Value: string(buf),
@@ -196,10 +224,40 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.ClosingAt); err != nil {
 		return nil, err
 	}
-	node.Fields[9] = &Field{
+	node.Fields[10] = &Field{
 		Type:  "time.Time",
 		Name:  "closing_at",
 		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "User",
+		Name: "user",
+	}
+	err = r.QueryUser().
+		Select(user.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Prefecture",
+		Name: "prefecture",
+	}
+	err = r.QueryPrefecture().
+		Select(prefecture.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "Competition",
+		Name: "competition",
+	}
+	err = r.QueryCompetition().
+		Select(competition.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }
@@ -272,7 +330,7 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 		return nil, err
 	}
 	node.Fields[7] = &Field{
-		Type:  "bool",
+		Type:  "user.EmailVerificationStatus",
 		Name:  "email_verification_status",
 		Value: string(buf),
 	}

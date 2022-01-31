@@ -10,7 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/competition"
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/user"
 )
 
 // RecruitmentCreate is the builder for creating a Recruitment entity.
@@ -64,6 +67,20 @@ func (rc *RecruitmentCreate) SetType(r recruitment.Type) *RecruitmentCreate {
 func (rc *RecruitmentCreate) SetNillableType(r *recruitment.Type) *RecruitmentCreate {
 	if r != nil {
 		rc.SetType(*r)
+	}
+	return rc
+}
+
+// SetLevel sets the "level" field.
+func (rc *RecruitmentCreate) SetLevel(r recruitment.Level) *RecruitmentCreate {
+	rc.mutation.SetLevel(r)
+	return rc
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableLevel(r *recruitment.Level) *RecruitmentCreate {
+	if r != nil {
+		rc.SetLevel(*r)
 	}
 	return rc
 }
@@ -140,6 +157,39 @@ func (rc *RecruitmentCreate) SetNillableID(s *string) *RecruitmentCreate {
 		rc.SetID(*s)
 	}
 	return rc
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (rc *RecruitmentCreate) SetUserID(id string) *RecruitmentCreate {
+	rc.mutation.SetUserID(id)
+	return rc
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (rc *RecruitmentCreate) SetUser(u *User) *RecruitmentCreate {
+	return rc.SetUserID(u.ID)
+}
+
+// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
+func (rc *RecruitmentCreate) SetPrefectureID(id string) *RecruitmentCreate {
+	rc.mutation.SetPrefectureID(id)
+	return rc
+}
+
+// SetPrefecture sets the "prefecture" edge to the Prefecture entity.
+func (rc *RecruitmentCreate) SetPrefecture(p *Prefecture) *RecruitmentCreate {
+	return rc.SetPrefectureID(p.ID)
+}
+
+// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
+func (rc *RecruitmentCreate) SetCompetitionID(id string) *RecruitmentCreate {
+	rc.mutation.SetCompetitionID(id)
+	return rc
+}
+
+// SetCompetition sets the "competition" edge to the Competition entity.
+func (rc *RecruitmentCreate) SetCompetition(c *Competition) *RecruitmentCreate {
+	return rc.SetCompetitionID(c.ID)
 }
 
 // Mutation returns the RecruitmentMutation object of the builder.
@@ -225,6 +275,10 @@ func (rc *RecruitmentCreate) defaults() {
 		v := recruitment.DefaultType
 		rc.mutation.SetType(v)
 	}
+	if _, ok := rc.mutation.Level(); !ok {
+		v := recruitment.DefaultLevel
+		rc.mutation.SetLevel(v)
+	}
 	if _, ok := rc.mutation.ID(); !ok {
 		v := recruitment.DefaultID()
 		rc.mutation.SetID(v)
@@ -255,6 +309,11 @@ func (rc *RecruitmentCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "type": %w`, err)}
 		}
 	}
+	if v, ok := rc.mutation.Level(); ok {
+		if err := recruitment.LevelValidator(v); err != nil {
+			return &ValidationError{Name: "level", err: fmt.Errorf(`ent: validator failed for field "level": %w`, err)}
+		}
+	}
 	if _, ok := rc.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "content"`)}
 	}
@@ -273,6 +332,15 @@ func (rc *RecruitmentCreate) check() error {
 		if err := recruitment.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
 		}
+	}
+	if _, ok := rc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user", err: errors.New("ent: missing required edge \"user\"")}
+	}
+	if _, ok := rc.mutation.PrefectureID(); !ok {
+		return &ValidationError{Name: "prefecture", err: errors.New("ent: missing required edge \"prefecture\"")}
+	}
+	if _, ok := rc.mutation.CompetitionID(); !ok {
+		return &ValidationError{Name: "competition", err: errors.New("ent: missing required edge \"competition\"")}
 	}
 	return nil
 }
@@ -338,6 +406,14 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		})
 		_node.Type = value
 	}
+	if value, ok := rc.mutation.Level(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: recruitment.FieldLevel,
+		})
+		_node.Level = value
+	}
 	if value, ok := rc.mutation.Place(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -385,6 +461,66 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			Column: recruitment.FieldClosingAt,
 		})
 		_node.ClosingAt = value
+	}
+	if nodes := rc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.UserTable,
+			Columns: []string{recruitment.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := rc.mutation.PrefectureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.PrefectureTable,
+			Columns: []string{recruitment.PrefectureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: prefecture.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.prefecture_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := rc.mutation.CompetitionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.CompetitionTable,
+			Columns: []string{recruitment.CompetitionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: competition.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.competition_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

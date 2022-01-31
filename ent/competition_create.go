@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/competition"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // CompetitionCreate is the builder for creating a Competition entity.
@@ -66,6 +67,21 @@ func (cc *CompetitionCreate) SetNillableID(s *string) *CompetitionCreate {
 		cc.SetID(*s)
 	}
 	return cc
+}
+
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (cc *CompetitionCreate) AddRecruitmentIDs(ids ...string) *CompetitionCreate {
+	cc.mutation.AddRecruitmentIDs(ids...)
+	return cc
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (cc *CompetitionCreate) AddRecruitments(r ...*Recruitment) *CompetitionCreate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return cc.AddRecruitmentIDs(ids...)
 }
 
 // Mutation returns the CompetitionMutation object of the builder.
@@ -224,6 +240,25 @@ func (cc *CompetitionCreate) createSpec() (*Competition, *sqlgraph.CreateSpec) {
 			Column: competition.FieldName,
 		})
 		_node.Name = value
+	}
+	if nodes := cc.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

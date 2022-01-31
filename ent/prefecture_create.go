@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // PrefectureCreate is the builder for creating a Prefecture entity.
@@ -66,6 +67,21 @@ func (pc *PrefectureCreate) SetNillableID(s *string) *PrefectureCreate {
 		pc.SetID(*s)
 	}
 	return pc
+}
+
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (pc *PrefectureCreate) AddRecruitmentIDs(ids ...string) *PrefectureCreate {
+	pc.mutation.AddRecruitmentIDs(ids...)
+	return pc
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (pc *PrefectureCreate) AddRecruitments(r ...*Recruitment) *PrefectureCreate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return pc.AddRecruitmentIDs(ids...)
 }
 
 // Mutation returns the PrefectureMutation object of the builder.
@@ -224,6 +240,25 @@ func (pc *PrefectureCreate) createSpec() (*Prefecture, *sqlgraph.CreateSpec) {
 			Column: prefecture.FieldName,
 		})
 		_node.Name = value
+	}
+	if nodes := pc.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

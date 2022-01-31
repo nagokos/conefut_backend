@@ -35,16 +35,19 @@ const (
 // CompetitionMutation represents an operation that mutates the Competition nodes in the graph.
 type CompetitionMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	name          *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Competition, error)
-	predicates    []predicate.Competition
+	op                  Op
+	typ                 string
+	id                  *string
+	created_at          *time.Time
+	updated_at          *time.Time
+	name                *string
+	clearedFields       map[string]struct{}
+	recruitments        map[string]struct{}
+	removedrecruitments map[string]struct{}
+	clearedrecruitments bool
+	done                bool
+	oldValue            func(context.Context) (*Competition, error)
+	predicates          []predicate.Competition
 }
 
 var _ ent.Mutation = (*CompetitionMutation)(nil)
@@ -240,6 +243,60 @@ func (m *CompetitionMutation) ResetName() {
 	m.name = nil
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by ids.
+func (m *CompetitionMutation) AddRecruitmentIDs(ids ...string) {
+	if m.recruitments == nil {
+		m.recruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.recruitments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRecruitments clears the "recruitments" edge to the Recruitment entity.
+func (m *CompetitionMutation) ClearRecruitments() {
+	m.clearedrecruitments = true
+}
+
+// RecruitmentsCleared reports if the "recruitments" edge to the Recruitment entity was cleared.
+func (m *CompetitionMutation) RecruitmentsCleared() bool {
+	return m.clearedrecruitments
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to the Recruitment entity by IDs.
+func (m *CompetitionMutation) RemoveRecruitmentIDs(ids ...string) {
+	if m.removedrecruitments == nil {
+		m.removedrecruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.recruitments, ids[i])
+		m.removedrecruitments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRecruitments returns the removed IDs of the "recruitments" edge to the Recruitment entity.
+func (m *CompetitionMutation) RemovedRecruitmentsIDs() (ids []string) {
+	for id := range m.removedrecruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RecruitmentsIDs returns the "recruitments" edge IDs in the mutation.
+func (m *CompetitionMutation) RecruitmentsIDs() (ids []string) {
+	for id := range m.recruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRecruitments resets all changes to the "recruitments" edge.
+func (m *CompetitionMutation) ResetRecruitments() {
+	m.recruitments = nil
+	m.clearedrecruitments = false
+	m.removedrecruitments = nil
+}
+
 // Where appends a list predicates to the CompetitionMutation builder.
 func (m *CompetitionMutation) Where(ps ...predicate.Competition) {
 	m.predicates = append(m.predicates, ps...)
@@ -392,65 +449,104 @@ func (m *CompetitionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CompetitionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.recruitments != nil {
+		edges = append(edges, competition.EdgeRecruitments)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *CompetitionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case competition.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.recruitments))
+		for id := range m.recruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CompetitionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedrecruitments != nil {
+		edges = append(edges, competition.EdgeRecruitments)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *CompetitionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case competition.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.removedrecruitments))
+		for id := range m.removedrecruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CompetitionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedrecruitments {
+		edges = append(edges, competition.EdgeRecruitments)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *CompetitionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case competition.EdgeRecruitments:
+		return m.clearedrecruitments
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *CompetitionMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Competition unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *CompetitionMutation) ResetEdge(name string) error {
+	switch name {
+	case competition.EdgeRecruitments:
+		m.ResetRecruitments()
+		return nil
+	}
 	return fmt.Errorf("unknown Competition edge %s", name)
 }
 
 // PrefectureMutation represents an operation that mutates the Prefecture nodes in the graph.
 type PrefectureMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	name          *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Prefecture, error)
-	predicates    []predicate.Prefecture
+	op                  Op
+	typ                 string
+	id                  *string
+	created_at          *time.Time
+	updated_at          *time.Time
+	name                *string
+	clearedFields       map[string]struct{}
+	recruitments        map[string]struct{}
+	removedrecruitments map[string]struct{}
+	clearedrecruitments bool
+	done                bool
+	oldValue            func(context.Context) (*Prefecture, error)
+	predicates          []predicate.Prefecture
 }
 
 var _ ent.Mutation = (*PrefectureMutation)(nil)
@@ -646,6 +742,60 @@ func (m *PrefectureMutation) ResetName() {
 	m.name = nil
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by ids.
+func (m *PrefectureMutation) AddRecruitmentIDs(ids ...string) {
+	if m.recruitments == nil {
+		m.recruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.recruitments[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRecruitments clears the "recruitments" edge to the Recruitment entity.
+func (m *PrefectureMutation) ClearRecruitments() {
+	m.clearedrecruitments = true
+}
+
+// RecruitmentsCleared reports if the "recruitments" edge to the Recruitment entity was cleared.
+func (m *PrefectureMutation) RecruitmentsCleared() bool {
+	return m.clearedrecruitments
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to the Recruitment entity by IDs.
+func (m *PrefectureMutation) RemoveRecruitmentIDs(ids ...string) {
+	if m.removedrecruitments == nil {
+		m.removedrecruitments = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.recruitments, ids[i])
+		m.removedrecruitments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRecruitments returns the removed IDs of the "recruitments" edge to the Recruitment entity.
+func (m *PrefectureMutation) RemovedRecruitmentsIDs() (ids []string) {
+	for id := range m.removedrecruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RecruitmentsIDs returns the "recruitments" edge IDs in the mutation.
+func (m *PrefectureMutation) RecruitmentsIDs() (ids []string) {
+	for id := range m.recruitments {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRecruitments resets all changes to the "recruitments" edge.
+func (m *PrefectureMutation) ResetRecruitments() {
+	m.recruitments = nil
+	m.clearedrecruitments = false
+	m.removedrecruitments = nil
+}
+
 // Where appends a list predicates to the PrefectureMutation builder.
 func (m *PrefectureMutation) Where(ps ...predicate.Prefecture) {
 	m.predicates = append(m.predicates, ps...)
@@ -798,73 +948,116 @@ func (m *PrefectureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PrefectureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.recruitments != nil {
+		edges = append(edges, prefecture.EdgeRecruitments)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *PrefectureMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case prefecture.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.recruitments))
+		for id := range m.recruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PrefectureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedrecruitments != nil {
+		edges = append(edges, prefecture.EdgeRecruitments)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *PrefectureMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case prefecture.EdgeRecruitments:
+		ids := make([]ent.Value, 0, len(m.removedrecruitments))
+		for id := range m.removedrecruitments {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PrefectureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedrecruitments {
+		edges = append(edges, prefecture.EdgeRecruitments)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *PrefectureMutation) EdgeCleared(name string) bool {
+	switch name {
+	case prefecture.EdgeRecruitments:
+		return m.clearedrecruitments
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *PrefectureMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Prefecture unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *PrefectureMutation) ResetEdge(name string) error {
+	switch name {
+	case prefecture.EdgeRecruitments:
+		m.ResetRecruitments()
+		return nil
+	}
 	return fmt.Errorf("unknown Prefecture edge %s", name)
 }
 
 // RecruitmentMutation represents an operation that mutates the Recruitment nodes in the graph.
 type RecruitmentMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	title         *string
-	_type         *recruitment.Type
-	place         *string
-	start_at      *time.Time
-	content       *string
-	_Location_url *string
-	capacity      *int
-	addcapacity   *int
-	closing_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Recruitment, error)
-	predicates    []predicate.Recruitment
+	op                 Op
+	typ                string
+	id                 *string
+	created_at         *time.Time
+	updated_at         *time.Time
+	title              *string
+	_type              *recruitment.Type
+	level              *recruitment.Level
+	place              *string
+	start_at           *time.Time
+	content            *string
+	_Location_url      *string
+	capacity           *int
+	addcapacity        *int
+	closing_at         *time.Time
+	clearedFields      map[string]struct{}
+	user               *string
+	cleareduser        bool
+	prefecture         *string
+	clearedprefecture  bool
+	competition        *string
+	clearedcompetition bool
+	done               bool
+	oldValue           func(context.Context) (*Recruitment, error)
+	predicates         []predicate.Recruitment
 }
 
 var _ ent.Mutation = (*RecruitmentMutation)(nil)
@@ -1094,6 +1287,55 @@ func (m *RecruitmentMutation) OldType(ctx context.Context) (v recruitment.Type, 
 // ResetType resets all changes to the "type" field.
 func (m *RecruitmentMutation) ResetType() {
 	m._type = nil
+}
+
+// SetLevel sets the "level" field.
+func (m *RecruitmentMutation) SetLevel(r recruitment.Level) {
+	m.level = &r
+}
+
+// Level returns the value of the "level" field in the mutation.
+func (m *RecruitmentMutation) Level() (r recruitment.Level, exists bool) {
+	v := m.level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLevel returns the old "level" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldLevel(ctx context.Context) (v recruitment.Level, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLevel: %w", err)
+	}
+	return oldValue.Level, nil
+}
+
+// ClearLevel clears the value of the "level" field.
+func (m *RecruitmentMutation) ClearLevel() {
+	m.level = nil
+	m.clearedFields[recruitment.FieldLevel] = struct{}{}
+}
+
+// LevelCleared returns if the "level" field was cleared in this mutation.
+func (m *RecruitmentMutation) LevelCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldLevel]
+	return ok
+}
+
+// ResetLevel resets all changes to the "level" field.
+func (m *RecruitmentMutation) ResetLevel() {
+	m.level = nil
+	delete(m.clearedFields, recruitment.FieldLevel)
 }
 
 // SetPlace sets the "place" field.
@@ -1371,6 +1613,123 @@ func (m *RecruitmentMutation) ResetClosingAt() {
 	m.closing_at = nil
 }
 
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *RecruitmentMutation) SetUserID(id string) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *RecruitmentMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *RecruitmentMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *RecruitmentMutation) UserID() (id string, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *RecruitmentMutation) UserIDs() (ids []string) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *RecruitmentMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by id.
+func (m *RecruitmentMutation) SetPrefectureID(id string) {
+	m.prefecture = &id
+}
+
+// ClearPrefecture clears the "prefecture" edge to the Prefecture entity.
+func (m *RecruitmentMutation) ClearPrefecture() {
+	m.clearedprefecture = true
+}
+
+// PrefectureCleared reports if the "prefecture" edge to the Prefecture entity was cleared.
+func (m *RecruitmentMutation) PrefectureCleared() bool {
+	return m.clearedprefecture
+}
+
+// PrefectureID returns the "prefecture" edge ID in the mutation.
+func (m *RecruitmentMutation) PrefectureID() (id string, exists bool) {
+	if m.prefecture != nil {
+		return *m.prefecture, true
+	}
+	return
+}
+
+// PrefectureIDs returns the "prefecture" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PrefectureID instead. It exists only for internal usage by the builders.
+func (m *RecruitmentMutation) PrefectureIDs() (ids []string) {
+	if id := m.prefecture; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPrefecture resets all changes to the "prefecture" edge.
+func (m *RecruitmentMutation) ResetPrefecture() {
+	m.prefecture = nil
+	m.clearedprefecture = false
+}
+
+// SetCompetitionID sets the "competition" edge to the Competition entity by id.
+func (m *RecruitmentMutation) SetCompetitionID(id string) {
+	m.competition = &id
+}
+
+// ClearCompetition clears the "competition" edge to the Competition entity.
+func (m *RecruitmentMutation) ClearCompetition() {
+	m.clearedcompetition = true
+}
+
+// CompetitionCleared reports if the "competition" edge to the Competition entity was cleared.
+func (m *RecruitmentMutation) CompetitionCleared() bool {
+	return m.clearedcompetition
+}
+
+// CompetitionID returns the "competition" edge ID in the mutation.
+func (m *RecruitmentMutation) CompetitionID() (id string, exists bool) {
+	if m.competition != nil {
+		return *m.competition, true
+	}
+	return
+}
+
+// CompetitionIDs returns the "competition" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CompetitionID instead. It exists only for internal usage by the builders.
+func (m *RecruitmentMutation) CompetitionIDs() (ids []string) {
+	if id := m.competition; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCompetition resets all changes to the "competition" edge.
+func (m *RecruitmentMutation) ResetCompetition() {
+	m.competition = nil
+	m.clearedcompetition = false
+}
+
 // Where appends a list predicates to the RecruitmentMutation builder.
 func (m *RecruitmentMutation) Where(ps ...predicate.Recruitment) {
 	m.predicates = append(m.predicates, ps...)
@@ -1390,7 +1749,7 @@ func (m *RecruitmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecruitmentMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.created_at != nil {
 		fields = append(fields, recruitment.FieldCreatedAt)
 	}
@@ -1402,6 +1761,9 @@ func (m *RecruitmentMutation) Fields() []string {
 	}
 	if m._type != nil {
 		fields = append(fields, recruitment.FieldType)
+	}
+	if m.level != nil {
+		fields = append(fields, recruitment.FieldLevel)
 	}
 	if m.place != nil {
 		fields = append(fields, recruitment.FieldPlace)
@@ -1437,6 +1799,8 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.Title()
 	case recruitment.FieldType:
 		return m.GetType()
+	case recruitment.FieldLevel:
+		return m.Level()
 	case recruitment.FieldPlace:
 		return m.Place()
 	case recruitment.FieldStartAt:
@@ -1466,6 +1830,8 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldTitle(ctx)
 	case recruitment.FieldType:
 		return m.OldType(ctx)
+	case recruitment.FieldLevel:
+		return m.OldLevel(ctx)
 	case recruitment.FieldPlace:
 		return m.OldPlace(ctx)
 	case recruitment.FieldStartAt:
@@ -1514,6 +1880,13 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
+		return nil
+	case recruitment.FieldLevel:
+		v, ok := value.(recruitment.Level)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLevel(v)
 		return nil
 	case recruitment.FieldPlace:
 		v, ok := value.(string)
@@ -1602,6 +1975,9 @@ func (m *RecruitmentMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *RecruitmentMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(recruitment.FieldLevel) {
+		fields = append(fields, recruitment.FieldLevel)
+	}
 	if m.FieldCleared(recruitment.FieldPlace) {
 		fields = append(fields, recruitment.FieldPlace)
 	}
@@ -1625,6 +2001,9 @@ func (m *RecruitmentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *RecruitmentMutation) ClearField(name string) error {
 	switch name {
+	case recruitment.FieldLevel:
+		m.ClearLevel()
+		return nil
 	case recruitment.FieldPlace:
 		m.ClearPlace()
 		return nil
@@ -1654,6 +2033,9 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 	case recruitment.FieldType:
 		m.ResetType()
 		return nil
+	case recruitment.FieldLevel:
+		m.ResetLevel()
+		return nil
 	case recruitment.FieldPlace:
 		m.ResetPlace()
 		return nil
@@ -1678,49 +2060,113 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *RecruitmentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.user != nil {
+		edges = append(edges, recruitment.EdgeUser)
+	}
+	if m.prefecture != nil {
+		edges = append(edges, recruitment.EdgePrefecture)
+	}
+	if m.competition != nil {
+		edges = append(edges, recruitment.EdgeCompetition)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *RecruitmentMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case recruitment.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case recruitment.EdgePrefecture:
+		if id := m.prefecture; id != nil {
+			return []ent.Value{*id}
+		}
+	case recruitment.EdgeCompetition:
+		if id := m.competition; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *RecruitmentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *RecruitmentMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *RecruitmentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.cleareduser {
+		edges = append(edges, recruitment.EdgeUser)
+	}
+	if m.clearedprefecture {
+		edges = append(edges, recruitment.EdgePrefecture)
+	}
+	if m.clearedcompetition {
+		edges = append(edges, recruitment.EdgeCompetition)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *RecruitmentMutation) EdgeCleared(name string) bool {
+	switch name {
+	case recruitment.EdgeUser:
+		return m.cleareduser
+	case recruitment.EdgePrefecture:
+		return m.clearedprefecture
+	case recruitment.EdgeCompetition:
+		return m.clearedcompetition
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *RecruitmentMutation) ClearEdge(name string) error {
+	switch name {
+	case recruitment.EdgeUser:
+		m.ClearUser()
+		return nil
+	case recruitment.EdgePrefecture:
+		m.ClearPrefecture()
+		return nil
+	case recruitment.EdgeCompetition:
+		m.ClearCompetition()
+		return nil
+	}
 	return fmt.Errorf("unknown Recruitment unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *RecruitmentMutation) ResetEdge(name string) error {
+	switch name {
+	case recruitment.EdgeUser:
+		m.ResetUser()
+		return nil
+	case recruitment.EdgePrefecture:
+		m.ResetPrefecture()
+		return nil
+	case recruitment.EdgeCompetition:
+		m.ResetCompetition()
+		return nil
+	}
 	return fmt.Errorf("unknown Recruitment edge %s", name)
 }
 
@@ -1737,7 +2183,7 @@ type UserMutation struct {
 	role                                *user.Role
 	avatar                              *string
 	introduction                        *string
-	email_verification_status           *bool
+	email_verification_status           *user.EmailVerificationStatus
 	email_verification_token            *string
 	email_verification_token_expires_at *time.Time
 	password_digest                     *string
@@ -2102,12 +2548,12 @@ func (m *UserMutation) ResetIntroduction() {
 }
 
 // SetEmailVerificationStatus sets the "email_verification_status" field.
-func (m *UserMutation) SetEmailVerificationStatus(b bool) {
-	m.email_verification_status = &b
+func (m *UserMutation) SetEmailVerificationStatus(uvs user.EmailVerificationStatus) {
+	m.email_verification_status = &uvs
 }
 
 // EmailVerificationStatus returns the value of the "email_verification_status" field in the mutation.
-func (m *UserMutation) EmailVerificationStatus() (r bool, exists bool) {
+func (m *UserMutation) EmailVerificationStatus() (r user.EmailVerificationStatus, exists bool) {
 	v := m.email_verification_status
 	if v == nil {
 		return
@@ -2118,7 +2564,7 @@ func (m *UserMutation) EmailVerificationStatus() (r bool, exists bool) {
 // OldEmailVerificationStatus returns the old "email_verification_status" field's value of the User entity.
 // If the User object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldEmailVerificationStatus(ctx context.Context) (v bool, err error) {
+func (m *UserMutation) OldEmailVerificationStatus(ctx context.Context) (v user.EmailVerificationStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, fmt.Errorf("OldEmailVerificationStatus is only allowed on UpdateOne operations")
 	}
@@ -2567,7 +3013,7 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		m.SetIntroduction(v)
 		return nil
 	case user.FieldEmailVerificationStatus:
-		v, ok := value.(bool)
+		v, ok := value.(user.EmailVerificationStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
