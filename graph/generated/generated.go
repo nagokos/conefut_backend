@@ -304,6 +304,12 @@ enum Role {
   GENERAL
 }
 
+enum EmailVerificationStatus {
+  UNNECESSARY
+  PENDING
+  VERIFIED
+}
+
 type User {
   id: String!
   name: String!
@@ -311,7 +317,7 @@ type User {
   role: Role!
   avatar: String!
   introduction: String
-  emailVerificationStatus: Boolean!
+  emailVerificationStatus: EmailVerificationStatus!
 }
 
 type Prefecture {
@@ -1118,9 +1124,9 @@ func (ec *executionContext) _User_emailVerificationStatus(ctx context.Context, f
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(model.EmailVerificationStatus)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2872,6 +2878,16 @@ func (ec *executionContext) marshalNCompetition2ᚖgithubᚗcomᚋnagokosᚋconn
 		return graphql.Null
 	}
 	return ec._Competition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, v interface{}) (model.EmailVerificationStatus, error) {
+	var res model.EmailVerificationStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, sel ast.SelectionSet, v model.EmailVerificationStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Prefecture) graphql.Marshaler {

@@ -19,13 +19,13 @@ type Prefecture struct {
 }
 
 type User struct {
-	ID                      string  `json:"id"`
-	Name                    string  `json:"name"`
-	Email                   string  `json:"email"`
-	Role                    Role    `json:"role"`
-	Avatar                  string  `json:"avatar"`
-	Introduction            *string `json:"introduction"`
-	EmailVerificationStatus bool    `json:"emailVerificationStatus"`
+	ID                      string                  `json:"id"`
+	Name                    string                  `json:"name"`
+	Email                   string                  `json:"email"`
+	Role                    Role                    `json:"role"`
+	Avatar                  string                  `json:"avatar"`
+	Introduction            *string                 `json:"introduction"`
+	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
 
 type CreateUserInput struct {
@@ -37,6 +37,49 @@ type CreateUserInput struct {
 type LoginUserInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type EmailVerificationStatus string
+
+const (
+	EmailVerificationStatusUnnecessary EmailVerificationStatus = "UNNECESSARY"
+	EmailVerificationStatusPending     EmailVerificationStatus = "PENDING"
+	EmailVerificationStatusVerified    EmailVerificationStatus = "VERIFIED"
+)
+
+var AllEmailVerificationStatus = []EmailVerificationStatus{
+	EmailVerificationStatusUnnecessary,
+	EmailVerificationStatusPending,
+	EmailVerificationStatusVerified,
+}
+
+func (e EmailVerificationStatus) IsValid() bool {
+	switch e {
+	case EmailVerificationStatusUnnecessary, EmailVerificationStatusPending, EmailVerificationStatusVerified:
+		return true
+	}
+	return false
+}
+
+func (e EmailVerificationStatus) String() string {
+	return string(e)
+}
+
+func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = EmailVerificationStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid EmailVerificationStatus", str)
+	}
+	return nil
+}
+
+func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type Role string
