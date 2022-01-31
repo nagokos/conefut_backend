@@ -152,9 +152,10 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 	}
 
 	resUser = model.User{
-		ID:    res.ID,
-		Name:  res.Name,
-		Email: res.Email,
+		ID:                      res.ID,
+		Name:                    res.Name,
+		Email:                   res.Email,
+		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
 	}
 
 	SendVerifyEmail(emailToken)
@@ -199,7 +200,7 @@ func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*m
 		Name:                    res.Name,
 		Avatar:                  res.Avatar,
 		Email:                   res.Email,
-		EmailVerificationStatus: res.EmailVerificationStatus,
+		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
 	}
 
 	return &resUser, nil
@@ -238,7 +239,7 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 
 	res, err = client.User.
 		UpdateOneID(res.ID).
-		SetEmailVerificationStatus(true).
+		SetEmailVerificationStatus(user.EmailVerificationStatusVerified).
 		SetEmailVerificationToken("").
 		Save(ctx)
 	if err != nil {
