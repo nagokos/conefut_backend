@@ -96,7 +96,7 @@ func getUserByID(db *ent.Client, id string) (*model.User, error) {
 		Role:                    model.Role(res.Role),
 		Avatar:                  res.Avatar,
 		Introduction:            &res.Introduction,
-		EmailVerificationStatus: res.EmailVerificationStatus,
+		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
 	}
 	return user, err
 }
