@@ -84,7 +84,7 @@ func init() {
 	// recruitment.TitleValidator is a validator for the "title" field. It is called by the builders before save.
 	recruitment.TitleValidator = recruitmentDescTitle.Validators[0].(func(string) error)
 	// recruitmentDescContent is the schema descriptor for content field.
-	recruitmentDescContent := recruitmentFields[4].Descriptor()
+	recruitmentDescContent := recruitmentFields[5].Descriptor()
 	// recruitment.ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	recruitment.ContentValidator = recruitmentDescContent.Validators[0].(func(string) error)
 	// recruitmentDescID is the schema descriptor for id field.
@@ -126,10 +126,6 @@ func init() {
 	userDescIntroduction := userFields[4].Descriptor()
 	// user.IntroductionValidator is a validator for the "introduction" field. It is called by the builders before save.
 	user.IntroductionValidator = userDescIntroduction.Validators[0].(func(string) error)
-	// userDescEmailVerificationStatus is the schema descriptor for email_verification_status field.
-	userDescEmailVerificationStatus := userFields[5].Descriptor()
-	// user.DefaultEmailVerificationStatus holds the default value on creation for the email_verification_status field.
-	user.DefaultEmailVerificationStatus = userDescEmailVerificationStatus.Default.(bool)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userMixinFields1[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

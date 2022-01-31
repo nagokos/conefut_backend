@@ -95,15 +95,15 @@ func (uu *UserUpdate) ClearIntroduction() *UserUpdate {
 }
 
 // SetEmailVerificationStatus sets the "email_verification_status" field.
-func (uu *UserUpdate) SetEmailVerificationStatus(b bool) *UserUpdate {
-	uu.mutation.SetEmailVerificationStatus(b)
+func (uu *UserUpdate) SetEmailVerificationStatus(uvs user.EmailVerificationStatus) *UserUpdate {
+	uu.mutation.SetEmailVerificationStatus(uvs)
 	return uu
 }
 
 // SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableEmailVerificationStatus(b *bool) *UserUpdate {
-	if b != nil {
-		uu.SetEmailVerificationStatus(*b)
+func (uu *UserUpdate) SetNillableEmailVerificationStatus(uvs *user.EmailVerificationStatus) *UserUpdate {
+	if uvs != nil {
+		uu.SetEmailVerificationStatus(*uvs)
 	}
 	return uu
 }
@@ -320,6 +320,11 @@ func (uu *UserUpdate) check() error {
 			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
 		}
 	}
+	if v, ok := uu.mutation.EmailVerificationStatus(); ok {
+		if err := user.EmailVerificationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf("ent: validator failed for field \"email_verification_status\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -391,7 +396,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.EmailVerificationStatus(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeBool,
+			Type:   field.TypeEnum,
 			Value:  value,
 			Column: user.FieldEmailVerificationStatus,
 		})
@@ -588,15 +593,15 @@ func (uuo *UserUpdateOne) ClearIntroduction() *UserUpdateOne {
 }
 
 // SetEmailVerificationStatus sets the "email_verification_status" field.
-func (uuo *UserUpdateOne) SetEmailVerificationStatus(b bool) *UserUpdateOne {
-	uuo.mutation.SetEmailVerificationStatus(b)
+func (uuo *UserUpdateOne) SetEmailVerificationStatus(uvs user.EmailVerificationStatus) *UserUpdateOne {
+	uuo.mutation.SetEmailVerificationStatus(uvs)
 	return uuo
 }
 
 // SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableEmailVerificationStatus(b *bool) *UserUpdateOne {
-	if b != nil {
-		uuo.SetEmailVerificationStatus(*b)
+func (uuo *UserUpdateOne) SetNillableEmailVerificationStatus(uvs *user.EmailVerificationStatus) *UserUpdateOne {
+	if uvs != nil {
+		uuo.SetEmailVerificationStatus(*uvs)
 	}
 	return uuo
 }
@@ -820,6 +825,11 @@ func (uuo *UserUpdateOne) check() error {
 			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
 		}
 	}
+	if v, ok := uuo.mutation.EmailVerificationStatus(); ok {
+		if err := user.EmailVerificationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf("ent: validator failed for field \"email_verification_status\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -908,7 +918,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.EmailVerificationStatus(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeBool,
+			Type:   field.TypeEnum,
 			Value:  value,
 			Column: user.FieldEmailVerificationStatus,
 		})

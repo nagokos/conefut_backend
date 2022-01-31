@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // PrefectureQuery is the builder for querying Prefecture entities.
@@ -24,6 +26,8 @@ type PrefectureQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Prefecture
+	// eager-loading edges.
+	withRecruitments *RecruitmentQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (pq *PrefectureQuery) Unique(unique bool) *PrefectureQuery {
 func (pq *PrefectureQuery) Order(o ...OrderFunc) *PrefectureQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryRecruitments chains the current query on the "recruitments" edge.
+func (pq *PrefectureQuery) QueryRecruitments() *RecruitmentQuery {
+	query := &RecruitmentQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prefecture.Table, prefecture.FieldID, selector),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prefecture.RecruitmentsTable, prefecture.RecruitmentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Prefecture entity from the query.
@@ -236,15 +262,27 @@ func (pq *PrefectureQuery) Clone() *PrefectureQuery {
 		return nil
 	}
 	return &PrefectureQuery{
-		config:     pq.config,
-		limit:      pq.limit,
-		offset:     pq.offset,
-		order:      append([]OrderFunc{}, pq.order...),
-		predicates: append([]predicate.Prefecture{}, pq.predicates...),
+		config:           pq.config,
+		limit:            pq.limit,
+		offset:           pq.offset,
+		order:            append([]OrderFunc{}, pq.order...),
+		predicates:       append([]predicate.Prefecture{}, pq.predicates...),
+		withRecruitments: pq.withRecruitments.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
+}
+
+// WithRecruitments tells the query-builder to eager-load the nodes that are connected to
+// the "recruitments" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PrefectureQuery) WithRecruitments(opts ...func(*RecruitmentQuery)) *PrefectureQuery {
+	query := &RecruitmentQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withRecruitments = query
+	return pq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -310,8 +348,11 @@ func (pq *PrefectureQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 	var (
-		nodes = []*Prefecture{}
-		_spec = pq.querySpec()
+		nodes       = []*Prefecture{}
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withRecruitments != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Prefecture{config: pq.config}
@@ -323,6 +364,7 @@ func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, pq.driver, _spec); err != nil {
@@ -331,6 +373,36 @@ func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := pq.withRecruitments; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*Prefecture)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Recruitments = []*Recruitment{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Recruitment(func(s *sql.Selector) {
+			s.Where(sql.InValues(prefecture.RecruitmentsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.prefecture_id
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "prefecture_id" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "prefecture_id" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Recruitments = append(node.Edges.Recruitments, n)
+		}
+	}
+
 	return nodes, nil
 }
 

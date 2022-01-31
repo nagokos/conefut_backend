@@ -17,8 +17,17 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// EdgeRecruitments holds the string denoting the recruitments edge name in mutations.
+	EdgeRecruitments = "recruitments"
 	// Table holds the table name of the prefecture in the database.
 	Table = "prefectures"
+	// RecruitmentsTable is the table that holds the recruitments relation/edge.
+	RecruitmentsTable = "recruitments"
+	// RecruitmentsInverseTable is the table name for the Recruitment entity.
+	// It exists in this package in order to avoid circular dependency with the "recruitment" package.
+	RecruitmentsInverseTable = "recruitments"
+	// RecruitmentsColumn is the table column denoting the recruitments relation/edge.
+	RecruitmentsColumn = "prefecture_id"
 )
 
 // Columns holds all SQL columns for prefecture fields.

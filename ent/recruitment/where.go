@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 )
 
@@ -463,6 +464,68 @@ func TypeNotIn(vs ...Type) predicate.Recruitment {
 			return
 		}
 		s.Where(sql.NotIn(s.C(FieldType), v...))
+	})
+}
+
+// LevelEQ applies the EQ predicate on the "level" field.
+func LevelEQ(v Level) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLevel), v))
+	})
+}
+
+// LevelNEQ applies the NEQ predicate on the "level" field.
+func LevelNEQ(v Level) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldLevel), v))
+	})
+}
+
+// LevelIn applies the In predicate on the "level" field.
+func LevelIn(vs ...Level) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldLevel), v...))
+	})
+}
+
+// LevelNotIn applies the NotIn predicate on the "level" field.
+func LevelNotIn(vs ...Level) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldLevel), v...))
+	})
+}
+
+// LevelIsNil applies the IsNil predicate on the "level" field.
+func LevelIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldLevel)))
+	})
+}
+
+// LevelNotNil applies the NotNil predicate on the "level" field.
+func LevelNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldLevel)))
 	})
 }
 
@@ -1066,6 +1129,90 @@ func ClosingAtLT(v time.Time) predicate.Recruitment {
 func ClosingAtLTE(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldClosingAt), v))
+	})
+}
+
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(UserTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(UserInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPrefecture applies the HasEdge predicate on the "prefecture" edge.
+func HasPrefecture() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(PrefectureTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PrefectureTable, PrefectureColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPrefectureWith applies the HasEdge predicate on the "prefecture" edge with a given conditions (other predicates).
+func HasPrefectureWith(preds ...predicate.Prefecture) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(PrefectureInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PrefectureTable, PrefectureColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCompetition applies the HasEdge predicate on the "competition" edge.
+func HasCompetition() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(CompetitionTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CompetitionTable, CompetitionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCompetitionWith applies the HasEdge predicate on the "competition" edge with a given conditions (other predicates).
+func HasCompetitionWith(preds ...predicate.Competition) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(CompetitionInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CompetitionTable, CompetitionColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

@@ -31,7 +31,7 @@ type User struct {
 	// Introduction holds the value of the "introduction" field.
 	Introduction string `json:"introduction,omitempty"`
 	// EmailVerificationStatus holds the value of the "email_verification_status" field.
-	EmailVerificationStatus bool `json:"email_verification_status,omitempty"`
+	EmailVerificationStatus user.EmailVerificationStatus `json:"email_verification_status,omitempty"`
 	// EmailVerificationToken holds the value of the "email_verification_token" field.
 	EmailVerificationToken string `json:"email_verification_token,omitempty"`
 	// EmailVerificationTokenExpiresAt holds the value of the "email_verification_token_expires_at" field.
@@ -68,9 +68,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldEmailVerificationStatus:
-			values[i] = new(sql.NullBool)
-		case user.FieldID, user.FieldName, user.FieldEmail, user.FieldRole, user.FieldAvatar, user.FieldIntroduction, user.FieldEmailVerificationToken, user.FieldPasswordDigest:
+		case user.FieldID, user.FieldName, user.FieldEmail, user.FieldRole, user.FieldAvatar, user.FieldIntroduction, user.FieldEmailVerificationStatus, user.FieldEmailVerificationToken, user.FieldPasswordDigest:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldEmailVerificationTokenExpiresAt, user.FieldLastSignInAt:
 			values[i] = new(sql.NullTime)
@@ -138,10 +136,10 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 				u.Introduction = value.String
 			}
 		case user.FieldEmailVerificationStatus:
-			if value, ok := values[i].(*sql.NullBool); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field email_verification_status", values[i])
 			} else if value.Valid {
-				u.EmailVerificationStatus = value.Bool
+				u.EmailVerificationStatus = user.EmailVerificationStatus(value.String)
 			}
 		case user.FieldEmailVerificationToken:
 			if value, ok := values[i].(*sql.NullString); !ok {

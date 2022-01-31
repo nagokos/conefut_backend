@@ -11,8 +11,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/user"
 )
 
 // RecruitmentQuery is the builder for querying Recruitment entities.
@@ -24,7 +27,11 @@ type RecruitmentQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Recruitment
-	withFKs    bool
+	// eager-loading edges.
+	withUser        *UserQuery
+	withPrefecture  *PrefectureQuery
+	withCompetition *CompetitionQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,6 +66,72 @@ func (rq *RecruitmentQuery) Unique(unique bool) *RecruitmentQuery {
 func (rq *RecruitmentQuery) Order(o ...OrderFunc) *RecruitmentQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryUser chains the current query on the "user" edge.
+func (rq *RecruitmentQuery) QueryUser() *UserQuery {
+	query := &UserQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.UserTable, recruitment.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPrefecture chains the current query on the "prefecture" edge.
+func (rq *RecruitmentQuery) QueryPrefecture() *PrefectureQuery {
+	query := &PrefectureQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(prefecture.Table, prefecture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.PrefectureTable, recruitment.PrefectureColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCompetition chains the current query on the "competition" edge.
+func (rq *RecruitmentQuery) QueryCompetition() *CompetitionQuery {
+	query := &CompetitionQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(competition.Table, competition.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.CompetitionTable, recruitment.CompetitionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Recruitment entity from the query.
@@ -237,15 +310,51 @@ func (rq *RecruitmentQuery) Clone() *RecruitmentQuery {
 		return nil
 	}
 	return &RecruitmentQuery{
-		config:     rq.config,
-		limit:      rq.limit,
-		offset:     rq.offset,
-		order:      append([]OrderFunc{}, rq.order...),
-		predicates: append([]predicate.Recruitment{}, rq.predicates...),
+		config:          rq.config,
+		limit:           rq.limit,
+		offset:          rq.offset,
+		order:           append([]OrderFunc{}, rq.order...),
+		predicates:      append([]predicate.Recruitment{}, rq.predicates...),
+		withUser:        rq.withUser.Clone(),
+		withPrefecture:  rq.withPrefecture.Clone(),
+		withCompetition: rq.withCompetition.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
+}
+
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithUser(opts ...func(*UserQuery)) *RecruitmentQuery {
+	query := &UserQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withUser = query
+	return rq
+}
+
+// WithPrefecture tells the query-builder to eager-load the nodes that are connected to
+// the "prefecture" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithPrefecture(opts ...func(*PrefectureQuery)) *RecruitmentQuery {
+	query := &PrefectureQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withPrefecture = query
+	return rq
+}
+
+// WithCompetition tells the query-builder to eager-load the nodes that are connected to
+// the "competition" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithCompetition(opts ...func(*CompetitionQuery)) *RecruitmentQuery {
+	query := &CompetitionQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withCompetition = query
+	return rq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -311,10 +420,18 @@ func (rq *RecruitmentQuery) prepareQuery(ctx context.Context) error {
 
 func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) {
 	var (
-		nodes   = []*Recruitment{}
-		withFKs = rq.withFKs
-		_spec   = rq.querySpec()
+		nodes       = []*Recruitment{}
+		withFKs     = rq.withFKs
+		_spec       = rq.querySpec()
+		loadedTypes = [3]bool{
+			rq.withUser != nil,
+			rq.withPrefecture != nil,
+			rq.withCompetition != nil,
+		}
 	)
+	if rq.withUser != nil || rq.withPrefecture != nil || rq.withCompetition != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, recruitment.ForeignKeys...)
 	}
@@ -328,6 +445,7 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, rq.driver, _spec); err != nil {
@@ -336,6 +454,94 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := rq.withUser; query != nil {
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Recruitment)
+		for i := range nodes {
+			if nodes[i].user_id == nil {
+				continue
+			}
+			fk := *nodes[i].user_id
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(user.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.User = n
+			}
+		}
+	}
+
+	if query := rq.withPrefecture; query != nil {
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Recruitment)
+		for i := range nodes {
+			if nodes[i].prefecture_id == nil {
+				continue
+			}
+			fk := *nodes[i].prefecture_id
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(prefecture.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "prefecture_id" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Prefecture = n
+			}
+		}
+	}
+
+	if query := rq.withCompetition; query != nil {
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*Recruitment)
+		for i := range nodes {
+			if nodes[i].competition_id == nil {
+				continue
+			}
+			fk := *nodes[i].competition_id
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(competition.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "competition_id" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Competition = n
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

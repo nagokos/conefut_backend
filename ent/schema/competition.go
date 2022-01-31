@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -27,5 +29,11 @@ func (Competition) Fields() []ent.Field {
 
 // Edges of the Competition.
 func (Competition) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("recruitments", Recruitment.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Restrict,
+			}).
+			StorageKey(edge.Column("competition_id")),
+	}
 }

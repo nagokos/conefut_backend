@@ -22,6 +22,8 @@ const (
 	FieldTitle = "title"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldLevel holds the string denoting the level field in the database.
+	FieldLevel = "level"
 	// FieldPlace holds the string denoting the place field in the database.
 	FieldPlace = "place"
 	// FieldStartAt holds the string denoting the start_at field in the database.
@@ -34,8 +36,35 @@ const (
 	FieldCapacity = "capacity"
 	// FieldClosingAt holds the string denoting the closing_at field in the database.
 	FieldClosingAt = "closing_at"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
+	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
+	EdgePrefecture = "prefecture"
+	// EdgeCompetition holds the string denoting the competition edge name in mutations.
+	EdgeCompetition = "competition"
 	// Table holds the table name of the recruitment in the database.
 	Table = "recruitments"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "recruitments"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_id"
+	// PrefectureTable is the table that holds the prefecture relation/edge.
+	PrefectureTable = "recruitments"
+	// PrefectureInverseTable is the table name for the Prefecture entity.
+	// It exists in this package in order to avoid circular dependency with the "prefecture" package.
+	PrefectureInverseTable = "prefectures"
+	// PrefectureColumn is the table column denoting the prefecture relation/edge.
+	PrefectureColumn = "prefecture_id"
+	// CompetitionTable is the table that holds the competition relation/edge.
+	CompetitionTable = "recruitments"
+	// CompetitionInverseTable is the table name for the Competition entity.
+	// It exists in this package in order to avoid circular dependency with the "competition" package.
+	CompetitionInverseTable = "competitions"
+	// CompetitionColumn is the table column denoting the competition relation/edge.
+	CompetitionColumn = "competition_id"
 )
 
 // Columns holds all SQL columns for recruitment fields.
@@ -45,6 +74,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTitle,
 	FieldType,
+	FieldLevel,
 	FieldPlace,
 	FieldStartAt,
 	FieldContent,
@@ -56,6 +86,8 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "recruitments"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"competition_id",
+	"prefecture_id",
 	"user_id",
 }
 
@@ -121,6 +153,35 @@ func TypeValidator(_type Type) error {
 	}
 }
 
+// Level defines the type for the "level" enum field.
+type Level string
+
+// LevelEnjoy is the default value of the Level enum.
+const DefaultLevel = LevelEnjoy
+
+// Level values.
+const (
+	LevelEnjoy    Level = "enjoy"
+	LevelBeginner Level = "beginner"
+	LevelMiddle   Level = "middle"
+	LevelExpert   Level = "expert"
+	LevelOpen     Level = "open"
+)
+
+func (l Level) String() string {
+	return string(l)
+}
+
+// LevelValidator is a validator for the "level" field enum values. It is called by the builders before save.
+func LevelValidator(l Level) error {
+	switch l {
+	case LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
+		return nil
+	default:
+		return fmt.Errorf("recruitment: invalid enum value for level field: %q", l)
+	}
+}
+
 // MarshalGQL implements graphql.Marshaler interface.
 func (_type Type) MarshalGQL(w io.Writer) {
 	io.WriteString(w, strconv.Quote(_type.String()))
@@ -135,6 +196,24 @@ func (_type *Type) UnmarshalGQL(val interface{}) error {
 	*_type = Type(str)
 	if err := TypeValidator(*_type); err != nil {
 		return fmt.Errorf("%s is not a valid Type", str)
+	}
+	return nil
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (l Level) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(l.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (l *Level) UnmarshalGQL(val interface{}) error {
+	str, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("enum %T must be a string", val)
+	}
+	*l = Level(str)
+	if err := LevelValidator(*l); err != nil {
+		return fmt.Errorf("%s is not a valid Level", str)
 	}
 	return nil
 }

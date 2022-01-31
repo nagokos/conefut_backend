@@ -104,15 +104,15 @@ func (uc *UserCreate) SetNillableIntroduction(s *string) *UserCreate {
 }
 
 // SetEmailVerificationStatus sets the "email_verification_status" field.
-func (uc *UserCreate) SetEmailVerificationStatus(b bool) *UserCreate {
-	uc.mutation.SetEmailVerificationStatus(b)
+func (uc *UserCreate) SetEmailVerificationStatus(uvs user.EmailVerificationStatus) *UserCreate {
+	uc.mutation.SetEmailVerificationStatus(uvs)
 	return uc
 }
 
 // SetNillableEmailVerificationStatus sets the "email_verification_status" field if the given value is not nil.
-func (uc *UserCreate) SetNillableEmailVerificationStatus(b *bool) *UserCreate {
-	if b != nil {
-		uc.SetEmailVerificationStatus(*b)
+func (uc *UserCreate) SetNillableEmailVerificationStatus(uvs *user.EmailVerificationStatus) *UserCreate {
+	if uvs != nil {
+		uc.SetEmailVerificationStatus(*uvs)
 	}
 	return uc
 }
@@ -342,13 +342,15 @@ func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.EmailVerificationStatus(); !ok {
 		return &ValidationError{Name: "email_verification_status", err: errors.New(`ent: missing required field "email_verification_status"`)}
 	}
+	if v, ok := uc.mutation.EmailVerificationStatus(); ok {
+		if err := user.EmailVerificationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf(`ent: validator failed for field "email_verification_status": %w`, err)}
+		}
+	}
 	if v, ok := uc.mutation.ID(); ok {
 		if err := user.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
 		}
-	}
-	if len(uc.mutation.RecruitmentsIDs()) == 0 {
-		return &ValidationError{Name: "recruitments", err: errors.New("ent: missing required edge \"recruitments\"")}
 	}
 	return nil
 }
@@ -440,7 +442,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := uc.mutation.EmailVerificationStatus(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeBool,
+			Type:   field.TypeEnum,
 			Value:  value,
 			Column: user.FieldEmailVerificationStatus,
 		})

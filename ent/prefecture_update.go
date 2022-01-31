@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // PrefectureUpdate is the builder for updating Prefecture entities.
@@ -39,9 +40,45 @@ func (pu *PrefectureUpdate) SetName(s string) *PrefectureUpdate {
 	return pu
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (pu *PrefectureUpdate) AddRecruitmentIDs(ids ...string) *PrefectureUpdate {
+	pu.mutation.AddRecruitmentIDs(ids...)
+	return pu
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (pu *PrefectureUpdate) AddRecruitments(r ...*Recruitment) *PrefectureUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return pu.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the PrefectureMutation object of the builder.
 func (pu *PrefectureUpdate) Mutation() *PrefectureMutation {
 	return pu.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (pu *PrefectureUpdate) ClearRecruitments() *PrefectureUpdate {
+	pu.mutation.ClearRecruitments()
+	return pu
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (pu *PrefectureUpdate) RemoveRecruitmentIDs(ids ...string) *PrefectureUpdate {
+	pu.mutation.RemoveRecruitmentIDs(ids...)
+	return pu
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (pu *PrefectureUpdate) RemoveRecruitments(r ...*Recruitment) *PrefectureUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return pu.RemoveRecruitmentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -139,6 +176,60 @@ func (pu *PrefectureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: prefecture.FieldName,
 		})
 	}
+	if pu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !pu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{prefecture.Label}
@@ -170,9 +261,45 @@ func (puo *PrefectureUpdateOne) SetName(s string) *PrefectureUpdateOne {
 	return puo
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (puo *PrefectureUpdateOne) AddRecruitmentIDs(ids ...string) *PrefectureUpdateOne {
+	puo.mutation.AddRecruitmentIDs(ids...)
+	return puo
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (puo *PrefectureUpdateOne) AddRecruitments(r ...*Recruitment) *PrefectureUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return puo.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the PrefectureMutation object of the builder.
 func (puo *PrefectureUpdateOne) Mutation() *PrefectureMutation {
 	return puo.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (puo *PrefectureUpdateOne) ClearRecruitments() *PrefectureUpdateOne {
+	puo.mutation.ClearRecruitments()
+	return puo
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (puo *PrefectureUpdateOne) RemoveRecruitmentIDs(ids ...string) *PrefectureUpdateOne {
+	puo.mutation.RemoveRecruitmentIDs(ids...)
+	return puo
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (puo *PrefectureUpdateOne) RemoveRecruitments(r ...*Recruitment) *PrefectureUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return puo.RemoveRecruitmentIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -293,6 +420,60 @@ func (puo *PrefectureUpdateOne) sqlSave(ctx context.Context) (_node *Prefecture,
 			Value:  value,
 			Column: prefecture.FieldName,
 		})
+	}
+	if puo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !puo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prefecture.RecruitmentsTable,
+			Columns: []string{prefecture.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Prefecture{config: puo.config}
 	_spec.Assign = _node.assignValues

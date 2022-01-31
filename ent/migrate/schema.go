@@ -41,12 +41,15 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "title", Type: field.TypeString, Size: 60, SchemaType: map[string]string{"postgres": "varchar(60)"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"opponent", "individual", "teammate", "joining", "coaching", "others"}, Default: "opponent"},
+		{Name: "level", Type: field.TypeEnum, Nullable: true, Enums: []string{"enjoy", "beginner", "middle", "expert", "open"}, Default: "enjoy"},
 		{Name: "place", Type: field.TypeString, Nullable: true},
 		{Name: "start_at", Type: field.TypeTime, Nullable: true},
 		{Name: "content", Type: field.TypeString, Size: 10000, SchemaType: map[string]string{"postgres": "varchar(10000)"}},
 		{Name: "location_url", Type: field.TypeString, Nullable: true},
 		{Name: "capacity", Type: field.TypeInt},
 		{Name: "closing_at", Type: field.TypeTime},
+		{Name: "competition_id", Type: field.TypeString, Nullable: true},
+		{Name: "prefecture_id", Type: field.TypeString, Nullable: true},
 		{Name: "user_id", Type: field.TypeString, Nullable: true},
 	}
 	// RecruitmentsTable holds the schema information for the "recruitments" table.
@@ -56,8 +59,20 @@ var (
 		PrimaryKey: []*schema.Column{RecruitmentsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
+				Symbol:     "recruitments_competitions_recruitments",
+				Columns:    []*schema.Column{RecruitmentsColumns[12]},
+				RefColumns: []*schema.Column{CompetitionsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "recruitments_prefectures_recruitments",
+				Columns:    []*schema.Column{RecruitmentsColumns[13]},
+				RefColumns: []*schema.Column{PrefecturesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
 				Symbol:     "recruitments_users_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[11]},
+				Columns:    []*schema.Column{RecruitmentsColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -73,7 +88,7 @@ var (
 		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "general"}, Default: "general"},
 		{Name: "avatar", Type: field.TypeString, Default: "https://abs.twimg.com/sticky/default_profile_images/default_profile.png"},
 		{Name: "introduction", Type: field.TypeString, Nullable: true, Size: 4000, SchemaType: map[string]string{"postgres": "varchar(4000)"}},
-		{Name: "email_verification_status", Type: field.TypeBool, Default: false},
+		{Name: "email_verification_status", Type: field.TypeEnum, Enums: []string{"unnecessary", "pending", "verified"}, Default: "pending"},
 		{Name: "email_verification_token", Type: field.TypeString, Nullable: true},
 		{Name: "email_verification_token_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "password_digest", Type: field.TypeString, Nullable: true},
@@ -102,5 +117,7 @@ var (
 )
 
 func init() {
-	RecruitmentsTable.ForeignKeys[0].RefTable = UsersTable
+	RecruitmentsTable.ForeignKeys[0].RefTable = CompetitionsTable
+	RecruitmentsTable.ForeignKeys[1].RefTable = PrefecturesTable
+	RecruitmentsTable.ForeignKeys[2].RefTable = UsersTable
 }

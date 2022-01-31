@@ -4,14 +4,18 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
+	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/user"
 )
 
 // RecruitmentUpdate is the builder for updating Recruitment entities.
@@ -50,6 +54,26 @@ func (ru *RecruitmentUpdate) SetNillableType(r *recruitment.Type) *RecruitmentUp
 	if r != nil {
 		ru.SetType(*r)
 	}
+	return ru
+}
+
+// SetLevel sets the "level" field.
+func (ru *RecruitmentUpdate) SetLevel(r recruitment.Level) *RecruitmentUpdate {
+	ru.mutation.SetLevel(r)
+	return ru
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableLevel(r *recruitment.Level) *RecruitmentUpdate {
+	if r != nil {
+		ru.SetLevel(*r)
+	}
+	return ru
+}
+
+// ClearLevel clears the value of the "level" field.
+func (ru *RecruitmentUpdate) ClearLevel() *RecruitmentUpdate {
+	ru.mutation.ClearLevel()
 	return ru
 }
 
@@ -138,9 +162,60 @@ func (ru *RecruitmentUpdate) SetClosingAt(t time.Time) *RecruitmentUpdate {
 	return ru
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (ru *RecruitmentUpdate) SetUserID(id string) *RecruitmentUpdate {
+	ru.mutation.SetUserID(id)
+	return ru
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (ru *RecruitmentUpdate) SetUser(u *User) *RecruitmentUpdate {
+	return ru.SetUserID(u.ID)
+}
+
+// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
+func (ru *RecruitmentUpdate) SetPrefectureID(id string) *RecruitmentUpdate {
+	ru.mutation.SetPrefectureID(id)
+	return ru
+}
+
+// SetPrefecture sets the "prefecture" edge to the Prefecture entity.
+func (ru *RecruitmentUpdate) SetPrefecture(p *Prefecture) *RecruitmentUpdate {
+	return ru.SetPrefectureID(p.ID)
+}
+
+// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
+func (ru *RecruitmentUpdate) SetCompetitionID(id string) *RecruitmentUpdate {
+	ru.mutation.SetCompetitionID(id)
+	return ru
+}
+
+// SetCompetition sets the "competition" edge to the Competition entity.
+func (ru *RecruitmentUpdate) SetCompetition(c *Competition) *RecruitmentUpdate {
+	return ru.SetCompetitionID(c.ID)
+}
+
 // Mutation returns the RecruitmentMutation object of the builder.
 func (ru *RecruitmentUpdate) Mutation() *RecruitmentMutation {
 	return ru.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (ru *RecruitmentUpdate) ClearUser() *RecruitmentUpdate {
+	ru.mutation.ClearUser()
+	return ru
+}
+
+// ClearPrefecture clears the "prefecture" edge to the Prefecture entity.
+func (ru *RecruitmentUpdate) ClearPrefecture() *RecruitmentUpdate {
+	ru.mutation.ClearPrefecture()
+	return ru
+}
+
+// ClearCompetition clears the "competition" edge to the Competition entity.
+func (ru *RecruitmentUpdate) ClearCompetition() *RecruitmentUpdate {
+	ru.mutation.ClearCompetition()
+	return ru
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -224,10 +299,24 @@ func (ru *RecruitmentUpdate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
 		}
 	}
+	if v, ok := ru.mutation.Level(); ok {
+		if err := recruitment.LevelValidator(v); err != nil {
+			return &ValidationError{Name: "level", err: fmt.Errorf("ent: validator failed for field \"level\": %w", err)}
+		}
+	}
 	if v, ok := ru.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
 		}
+	}
+	if _, ok := ru.mutation.UserID(); ru.mutation.UserCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"user\"")
+	}
+	if _, ok := ru.mutation.PrefectureID(); ru.mutation.PrefectureCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"prefecture\"")
+	}
+	if _, ok := ru.mutation.CompetitionID(); ru.mutation.CompetitionCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"competition\"")
 	}
 	return nil
 }
@@ -269,6 +358,19 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: recruitment.FieldType,
+		})
+	}
+	if value, ok := ru.mutation.Level(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: recruitment.FieldLevel,
+		})
+	}
+	if ru.mutation.LevelCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Column: recruitment.FieldLevel,
 		})
 	}
 	if value, ok := ru.mutation.Place(); ok {
@@ -338,6 +440,111 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldClosingAt,
 		})
 	}
+	if ru.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.UserTable,
+			Columns: []string{recruitment.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.UserTable,
+			Columns: []string{recruitment.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ru.mutation.PrefectureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.PrefectureTable,
+			Columns: []string{recruitment.PrefectureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: prefecture.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.PrefectureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.PrefectureTable,
+			Columns: []string{recruitment.PrefectureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: prefecture.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ru.mutation.CompetitionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.CompetitionTable,
+			Columns: []string{recruitment.CompetitionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: competition.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.CompetitionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.CompetitionTable,
+			Columns: []string{recruitment.CompetitionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: competition.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{recruitment.Label}
@@ -380,6 +587,26 @@ func (ruo *RecruitmentUpdateOne) SetNillableType(r *recruitment.Type) *Recruitme
 	if r != nil {
 		ruo.SetType(*r)
 	}
+	return ruo
+}
+
+// SetLevel sets the "level" field.
+func (ruo *RecruitmentUpdateOne) SetLevel(r recruitment.Level) *RecruitmentUpdateOne {
+	ruo.mutation.SetLevel(r)
+	return ruo
+}
+
+// SetNillableLevel sets the "level" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableLevel(r *recruitment.Level) *RecruitmentUpdateOne {
+	if r != nil {
+		ruo.SetLevel(*r)
+	}
+	return ruo
+}
+
+// ClearLevel clears the value of the "level" field.
+func (ruo *RecruitmentUpdateOne) ClearLevel() *RecruitmentUpdateOne {
+	ruo.mutation.ClearLevel()
 	return ruo
 }
 
@@ -468,9 +695,60 @@ func (ruo *RecruitmentUpdateOne) SetClosingAt(t time.Time) *RecruitmentUpdateOne
 	return ruo
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (ruo *RecruitmentUpdateOne) SetUserID(id string) *RecruitmentUpdateOne {
+	ruo.mutation.SetUserID(id)
+	return ruo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (ruo *RecruitmentUpdateOne) SetUser(u *User) *RecruitmentUpdateOne {
+	return ruo.SetUserID(u.ID)
+}
+
+// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
+func (ruo *RecruitmentUpdateOne) SetPrefectureID(id string) *RecruitmentUpdateOne {
+	ruo.mutation.SetPrefectureID(id)
+	return ruo
+}
+
+// SetPrefecture sets the "prefecture" edge to the Prefecture entity.
+func (ruo *RecruitmentUpdateOne) SetPrefecture(p *Prefecture) *RecruitmentUpdateOne {
+	return ruo.SetPrefectureID(p.ID)
+}
+
+// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
+func (ruo *RecruitmentUpdateOne) SetCompetitionID(id string) *RecruitmentUpdateOne {
+	ruo.mutation.SetCompetitionID(id)
+	return ruo
+}
+
+// SetCompetition sets the "competition" edge to the Competition entity.
+func (ruo *RecruitmentUpdateOne) SetCompetition(c *Competition) *RecruitmentUpdateOne {
+	return ruo.SetCompetitionID(c.ID)
+}
+
 // Mutation returns the RecruitmentMutation object of the builder.
 func (ruo *RecruitmentUpdateOne) Mutation() *RecruitmentMutation {
 	return ruo.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (ruo *RecruitmentUpdateOne) ClearUser() *RecruitmentUpdateOne {
+	ruo.mutation.ClearUser()
+	return ruo
+}
+
+// ClearPrefecture clears the "prefecture" edge to the Prefecture entity.
+func (ruo *RecruitmentUpdateOne) ClearPrefecture() *RecruitmentUpdateOne {
+	ruo.mutation.ClearPrefecture()
+	return ruo
+}
+
+// ClearCompetition clears the "competition" edge to the Competition entity.
+func (ruo *RecruitmentUpdateOne) ClearCompetition() *RecruitmentUpdateOne {
+	ruo.mutation.ClearCompetition()
+	return ruo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -561,10 +839,24 @@ func (ruo *RecruitmentUpdateOne) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
 		}
 	}
+	if v, ok := ruo.mutation.Level(); ok {
+		if err := recruitment.LevelValidator(v); err != nil {
+			return &ValidationError{Name: "level", err: fmt.Errorf("ent: validator failed for field \"level\": %w", err)}
+		}
+	}
 	if v, ok := ruo.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
 		}
+	}
+	if _, ok := ruo.mutation.UserID(); ruo.mutation.UserCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"user\"")
+	}
+	if _, ok := ruo.mutation.PrefectureID(); ruo.mutation.PrefectureCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"prefecture\"")
+	}
+	if _, ok := ruo.mutation.CompetitionID(); ruo.mutation.CompetitionCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"competition\"")
 	}
 	return nil
 }
@@ -623,6 +915,19 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: recruitment.FieldType,
+		})
+	}
+	if value, ok := ruo.mutation.Level(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: recruitment.FieldLevel,
+		})
+	}
+	if ruo.mutation.LevelCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Column: recruitment.FieldLevel,
 		})
 	}
 	if value, ok := ruo.mutation.Place(); ok {
@@ -691,6 +996,111 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Value:  value,
 			Column: recruitment.FieldClosingAt,
 		})
+	}
+	if ruo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.UserTable,
+			Columns: []string{recruitment.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.UserTable,
+			Columns: []string{recruitment.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ruo.mutation.PrefectureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.PrefectureTable,
+			Columns: []string{recruitment.PrefectureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: prefecture.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.PrefectureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.PrefectureTable,
+			Columns: []string{recruitment.PrefectureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: prefecture.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ruo.mutation.CompetitionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.CompetitionTable,
+			Columns: []string{recruitment.CompetitionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: competition.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.CompetitionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recruitment.CompetitionTable,
+			Columns: []string{recruitment.CompetitionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: competition.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Recruitment{config: ruo.config}
 	_spec.Assign = _node.assignValues

@@ -135,13 +135,6 @@ func Introduction(v string) predicate.User {
 	})
 }
 
-// EmailVerificationStatus applies equality check predicate on the "email_verification_status" field. It's identical to EmailVerificationStatusEQ.
-func EmailVerificationStatus(v bool) predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldEmailVerificationStatus), v))
-	})
-}
-
 // EmailVerificationToken applies equality check predicate on the "email_verification_token" field. It's identical to EmailVerificationTokenEQ.
 func EmailVerificationToken(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -829,16 +822,50 @@ func IntroductionContainsFold(v string) predicate.User {
 }
 
 // EmailVerificationStatusEQ applies the EQ predicate on the "email_verification_status" field.
-func EmailVerificationStatusEQ(v bool) predicate.User {
+func EmailVerificationStatusEQ(v EmailVerificationStatus) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldEmailVerificationStatus), v))
 	})
 }
 
 // EmailVerificationStatusNEQ applies the NEQ predicate on the "email_verification_status" field.
-func EmailVerificationStatusNEQ(v bool) predicate.User {
+func EmailVerificationStatusNEQ(v EmailVerificationStatus) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.NEQ(s.C(FieldEmailVerificationStatus), v))
+	})
+}
+
+// EmailVerificationStatusIn applies the In predicate on the "email_verification_status" field.
+func EmailVerificationStatusIn(vs ...EmailVerificationStatus) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldEmailVerificationStatus), v...))
+	})
+}
+
+// EmailVerificationStatusNotIn applies the NotIn predicate on the "email_verification_status" field.
+func EmailVerificationStatusNotIn(vs ...EmailVerificationStatus) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldEmailVerificationStatus), v...))
 	})
 }
 

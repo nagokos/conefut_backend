@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // CompetitionUpdate is the builder for updating Competition entities.
@@ -39,9 +40,45 @@ func (cu *CompetitionUpdate) SetName(s string) *CompetitionUpdate {
 	return cu
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (cu *CompetitionUpdate) AddRecruitmentIDs(ids ...string) *CompetitionUpdate {
+	cu.mutation.AddRecruitmentIDs(ids...)
+	return cu
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (cu *CompetitionUpdate) AddRecruitments(r ...*Recruitment) *CompetitionUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return cu.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the CompetitionMutation object of the builder.
 func (cu *CompetitionUpdate) Mutation() *CompetitionMutation {
 	return cu.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (cu *CompetitionUpdate) ClearRecruitments() *CompetitionUpdate {
+	cu.mutation.ClearRecruitments()
+	return cu
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (cu *CompetitionUpdate) RemoveRecruitmentIDs(ids ...string) *CompetitionUpdate {
+	cu.mutation.RemoveRecruitmentIDs(ids...)
+	return cu
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (cu *CompetitionUpdate) RemoveRecruitments(r ...*Recruitment) *CompetitionUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return cu.RemoveRecruitmentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -139,6 +176,60 @@ func (cu *CompetitionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: competition.FieldName,
 		})
 	}
+	if cu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !cu.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{competition.Label}
@@ -170,9 +261,45 @@ func (cuo *CompetitionUpdateOne) SetName(s string) *CompetitionUpdateOne {
 	return cuo
 }
 
+// AddRecruitmentIDs adds the "recruitments" edge to the Recruitment entity by IDs.
+func (cuo *CompetitionUpdateOne) AddRecruitmentIDs(ids ...string) *CompetitionUpdateOne {
+	cuo.mutation.AddRecruitmentIDs(ids...)
+	return cuo
+}
+
+// AddRecruitments adds the "recruitments" edges to the Recruitment entity.
+func (cuo *CompetitionUpdateOne) AddRecruitments(r ...*Recruitment) *CompetitionUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return cuo.AddRecruitmentIDs(ids...)
+}
+
 // Mutation returns the CompetitionMutation object of the builder.
 func (cuo *CompetitionUpdateOne) Mutation() *CompetitionMutation {
 	return cuo.mutation
+}
+
+// ClearRecruitments clears all "recruitments" edges to the Recruitment entity.
+func (cuo *CompetitionUpdateOne) ClearRecruitments() *CompetitionUpdateOne {
+	cuo.mutation.ClearRecruitments()
+	return cuo
+}
+
+// RemoveRecruitmentIDs removes the "recruitments" edge to Recruitment entities by IDs.
+func (cuo *CompetitionUpdateOne) RemoveRecruitmentIDs(ids ...string) *CompetitionUpdateOne {
+	cuo.mutation.RemoveRecruitmentIDs(ids...)
+	return cuo
+}
+
+// RemoveRecruitments removes "recruitments" edges to Recruitment entities.
+func (cuo *CompetitionUpdateOne) RemoveRecruitments(r ...*Recruitment) *CompetitionUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return cuo.RemoveRecruitmentIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -293,6 +420,60 @@ func (cuo *CompetitionUpdateOne) sqlSave(ctx context.Context) (_node *Competitio
 			Value:  value,
 			Column: competition.FieldName,
 		})
+	}
+	if cuo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedRecruitmentsIDs(); len(nodes) > 0 && !cuo.mutation.RecruitmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RecruitmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   competition.RecruitmentsTable,
+			Columns: []string{competition.RecruitmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitment.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Competition{config: cuo.config}
 	_spec.Assign = _node.assignValues

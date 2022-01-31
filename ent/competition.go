@@ -22,6 +22,27 @@ type Competition struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the CompetitionQuery when eager-loading is set.
+	Edges CompetitionEdges `json:"edges"`
+}
+
+// CompetitionEdges holds the relations/edges for other nodes in the graph.
+type CompetitionEdges struct {
+	// Recruitments holds the value of the recruitments edge.
+	Recruitments []*Recruitment `json:"recruitments,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// RecruitmentsOrErr returns the Recruitments value or an error if the edge
+// was not loaded in eager-loading.
+func (e CompetitionEdges) RecruitmentsOrErr() ([]*Recruitment, error) {
+	if e.loadedTypes[0] {
+		return e.Recruitments, nil
+	}
+	return nil, &NotLoadedError{edge: "recruitments"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -75,6 +96,11 @@ func (c *Competition) assignValues(columns []string, values []interface{}) error
 		}
 	}
 	return nil
+}
+
+// QueryRecruitments queries the "recruitments" edge of the Competition entity.
+func (c *Competition) QueryRecruitments() *RecruitmentQuery {
+	return (&CompetitionClient{config: c.config}).QueryRecruitments(c)
 }
 
 // Update returns a builder for updating this Competition.

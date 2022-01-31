@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 )
 
 // CompetitionQuery is the builder for querying Competition entities.
@@ -24,6 +26,8 @@ type CompetitionQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Competition
+	// eager-loading edges.
+	withRecruitments *RecruitmentQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (cq *CompetitionQuery) Unique(unique bool) *CompetitionQuery {
 func (cq *CompetitionQuery) Order(o ...OrderFunc) *CompetitionQuery {
 	cq.order = append(cq.order, o...)
 	return cq
+}
+
+// QueryRecruitments chains the current query on the "recruitments" edge.
+func (cq *CompetitionQuery) QueryRecruitments() *RecruitmentQuery {
+	query := &RecruitmentQuery{config: cq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(competition.Table, competition.FieldID, selector),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, competition.RecruitmentsTable, competition.RecruitmentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Competition entity from the query.
@@ -236,15 +262,27 @@ func (cq *CompetitionQuery) Clone() *CompetitionQuery {
 		return nil
 	}
 	return &CompetitionQuery{
-		config:     cq.config,
-		limit:      cq.limit,
-		offset:     cq.offset,
-		order:      append([]OrderFunc{}, cq.order...),
-		predicates: append([]predicate.Competition{}, cq.predicates...),
+		config:           cq.config,
+		limit:            cq.limit,
+		offset:           cq.offset,
+		order:            append([]OrderFunc{}, cq.order...),
+		predicates:       append([]predicate.Competition{}, cq.predicates...),
+		withRecruitments: cq.withRecruitments.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
 	}
+}
+
+// WithRecruitments tells the query-builder to eager-load the nodes that are connected to
+// the "recruitments" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CompetitionQuery) WithRecruitments(opts ...func(*RecruitmentQuery)) *CompetitionQuery {
+	query := &RecruitmentQuery{config: cq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withRecruitments = query
+	return cq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -310,8 +348,11 @@ func (cq *CompetitionQuery) prepareQuery(ctx context.Context) error {
 
 func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) {
 	var (
-		nodes = []*Competition{}
-		_spec = cq.querySpec()
+		nodes       = []*Competition{}
+		_spec       = cq.querySpec()
+		loadedTypes = [1]bool{
+			cq.withRecruitments != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Competition{config: cq.config}
@@ -323,6 +364,7 @@ func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) 
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, cq.driver, _spec); err != nil {
@@ -331,6 +373,36 @@ func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := cq.withRecruitments; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*Competition)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Recruitments = []*Recruitment{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Recruitment(func(s *sql.Selector) {
+			s.Where(sql.InValues(competition.RecruitmentsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.competition_id
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "competition_id" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "competition_id" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Recruitments = append(node.Edges.Recruitments, n)
+		}
+	}
+
 	return nodes, nil
 }
 

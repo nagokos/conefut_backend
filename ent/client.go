@@ -228,6 +228,22 @@ func (c *CompetitionClient) GetX(ctx context.Context, id string) *Competition {
 	return obj
 }
 
+// QueryRecruitments queries the recruitments edge of a Competition.
+func (c *CompetitionClient) QueryRecruitments(co *Competition) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(competition.Table, competition.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, competition.RecruitmentsTable, competition.RecruitmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CompetitionClient) Hooks() []Hook {
 	return c.hooks.Competition
@@ -318,6 +334,22 @@ func (c *PrefectureClient) GetX(ctx context.Context, id string) *Prefecture {
 	return obj
 }
 
+// QueryRecruitments queries the recruitments edge of a Prefecture.
+func (c *PrefectureClient) QueryRecruitments(pr *Prefecture) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prefecture.Table, prefecture.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prefecture.RecruitmentsTable, prefecture.RecruitmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PrefectureClient) Hooks() []Hook {
 	return c.hooks.Prefecture
@@ -406,6 +438,54 @@ func (c *RecruitmentClient) GetX(ctx context.Context, id string) *Recruitment {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryUser queries the user edge of a Recruitment.
+func (c *RecruitmentClient) QueryUser(r *Recruitment) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.UserTable, recruitment.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPrefecture queries the prefecture edge of a Recruitment.
+func (c *RecruitmentClient) QueryPrefecture(r *Recruitment) *PrefectureQuery {
+	query := &PrefectureQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(prefecture.Table, prefecture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.PrefectureTable, recruitment.PrefectureColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCompetition queries the competition edge of a Recruitment.
+func (c *RecruitmentClient) QueryCompetition(r *Recruitment) *CompetitionQuery {
+	query := &CompetitionQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(competition.Table, competition.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitment.CompetitionTable, recruitment.CompetitionColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

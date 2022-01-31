@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 )
 
@@ -373,6 +374,34 @@ func NameEqualFold(v string) predicate.Prefecture {
 func NameContainsFold(v string) predicate.Prefecture {
 	return predicate.Prefecture(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldName), v))
+	})
+}
+
+// HasRecruitments applies the HasEdge predicate on the "recruitments" edge.
+func HasRecruitments() predicate.Prefecture {
+	return predicate.Prefecture(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(RecruitmentsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RecruitmentsTable, RecruitmentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRecruitmentsWith applies the HasEdge predicate on the "recruitments" edge with a given conditions (other predicates).
+func HasRecruitmentsWith(preds ...predicate.Recruitment) predicate.Prefecture {
+	return predicate.Prefecture(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(RecruitmentsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RecruitmentsTable, RecruitmentsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 
