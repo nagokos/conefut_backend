@@ -7,6 +7,12 @@ enum Role {
   GENERAL
 }
 
+enum EmailVerificationStatus {
+  UNNECESSARY
+  PENDING
+  VERIFIED
+}
+
 type User {
   id: String!
   name: String!
@@ -14,7 +20,7 @@ type User {
   role: Role!
   avatar: String!
   introduction: String
-  emailVerificationStatus: Boolean!
+  emailVerificationStatus: EmailVerificationStatus!
 }
 
 type Prefecture {
