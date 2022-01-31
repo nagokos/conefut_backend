@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -36,6 +37,16 @@ func (Recruitment) Fields() []ent.Field {
 				"others",
 			).
 			Default("opponent"),
+		field.Enum("level").
+			Values(
+				"enjoy",
+				"beginner",
+				"middle",
+				"expert",
+				"open",
+			).
+			Default("enjoy").
+			Optional(),
 		field.String("place").
 			Optional(),
 		field.Time("start_at").
