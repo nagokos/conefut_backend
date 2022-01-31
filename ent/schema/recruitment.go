@@ -68,5 +68,18 @@ func (Recruitment) Fields() []ent.Field {
 
 // Edges of the Recruitment.
 func (Recruitment) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("user", User.Type).
+			Unique().
+			Required().
+			Ref("recruitments"),
+		edge.From("prefecture", Prefecture.Type).
+			Unique().
+			Required().
+			Ref("recruitments"),
+		edge.From("competition", Competition.Type).
+			Unique().
+			Required().
+			Ref("recruitments"),
+	}
 }
