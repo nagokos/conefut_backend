@@ -139,6 +139,14 @@ func (rc *RecruitmentCreate) SetCapacity(i int) *RecruitmentCreate {
 	return rc
 }
 
+// SetNillableCapacity sets the "capacity" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableCapacity(i *int) *RecruitmentCreate {
+	if i != nil {
+		rc.SetCapacity(*i)
+	}
+	return rc
+}
+
 // SetClosingAt sets the "closing_at" field.
 func (rc *RecruitmentCreate) SetClosingAt(t time.Time) *RecruitmentCreate {
 	rc.mutation.SetClosingAt(t)
@@ -321,9 +329,6 @@ func (rc *RecruitmentCreate) check() error {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "content": %w`, err)}
 		}
-	}
-	if _, ok := rc.mutation.Capacity(); !ok {
-		return &ValidationError{Name: "capacity", err: errors.New(`ent: missing required field "capacity"`)}
 	}
 	if _, ok := rc.mutation.ClosingAt(); !ok {
 		return &ValidationError{Name: "closing_at", err: errors.New(`ent: missing required field "closing_at"`)}

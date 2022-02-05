@@ -46,7 +46,7 @@ var (
 		{Name: "start_at", Type: field.TypeTime, Nullable: true},
 		{Name: "content", Type: field.TypeString, Size: 10000, SchemaType: map[string]string{"postgres": "varchar(10000)"}},
 		{Name: "location_url", Type: field.TypeString, Nullable: true},
-		{Name: "capacity", Type: field.TypeInt},
+		{Name: "capacity", Type: field.TypeInt, Nullable: true},
 		{Name: "closing_at", Type: field.TypeTime},
 		{Name: "competition_id", Type: field.TypeString, Nullable: true},
 		{Name: "prefecture_id", Type: field.TypeString, Nullable: true},

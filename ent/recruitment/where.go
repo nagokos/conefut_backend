@@ -1056,6 +1056,20 @@ func CapacityLTE(v int) predicate.Recruitment {
 	})
 }
 
+// CapacityIsNil applies the IsNil predicate on the "capacity" field.
+func CapacityIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldCapacity)))
+	})
+}
+
+// CapacityNotNil applies the NotNil predicate on the "capacity" field.
+func CapacityNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldCapacity)))
+	})
+}
+
 // ClosingAtEQ applies the EQ predicate on the "closing_at" field.
 func ClosingAtEQ(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {

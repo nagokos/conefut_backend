@@ -1571,10 +1571,24 @@ func (m *RecruitmentMutation) AddedCapacity() (r int, exists bool) {
 	return *v, true
 }
 
+// ClearCapacity clears the value of the "capacity" field.
+func (m *RecruitmentMutation) ClearCapacity() {
+	m.capacity = nil
+	m.addcapacity = nil
+	m.clearedFields[recruitment.FieldCapacity] = struct{}{}
+}
+
+// CapacityCleared returns if the "capacity" field was cleared in this mutation.
+func (m *RecruitmentMutation) CapacityCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldCapacity]
+	return ok
+}
+
 // ResetCapacity resets all changes to the "capacity" field.
 func (m *RecruitmentMutation) ResetCapacity() {
 	m.capacity = nil
 	m.addcapacity = nil
+	delete(m.clearedFields, recruitment.FieldCapacity)
 }
 
 // SetClosingAt sets the "closing_at" field.
@@ -1987,6 +2001,9 @@ func (m *RecruitmentMutation) ClearedFields() []string {
 	if m.FieldCleared(recruitment.FieldLocationURL) {
 		fields = append(fields, recruitment.FieldLocationURL)
 	}
+	if m.FieldCleared(recruitment.FieldCapacity) {
+		fields = append(fields, recruitment.FieldCapacity)
+	}
 	return fields
 }
 
@@ -2012,6 +2029,9 @@ func (m *RecruitmentMutation) ClearField(name string) error {
 		return nil
 	case recruitment.FieldLocationURL:
 		m.ClearLocationURL()
+		return nil
+	case recruitment.FieldCapacity:
+		m.ClearCapacity()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment nullable field %s", name)
