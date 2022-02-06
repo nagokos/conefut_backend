@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/nagokos/connefut_backend/ent/validation"
 )
 
 // User holds the schema definition for the User entity.
@@ -28,15 +29,18 @@ func (User) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(50)",
 			}).
-			MaxLen(50),
+			Validate(validation.CheckStringLen(50)),
 		field.String("email").
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(100)",
 			}).
-			MaxLen(100).
+			Validate(validation.CheckStringLen(100)).
 			Unique(),
 		field.Enum("role").
-			Values("admin", "general").
+			Values(
+				"admin",
+				"general",
+			).
 			Default("general"),
 		field.String("avatar").
 			Default("https://abs.twimg.com/sticky/default_profile_images/default_profile.png"),
@@ -45,7 +49,7 @@ func (User) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(4000)",
 			}).
-			MaxLen(4000),
+			Validate(validation.CheckStringLen(4000)),
 		field.Enum("email_verification_status").
 			Values(
 				"unnecessary",
