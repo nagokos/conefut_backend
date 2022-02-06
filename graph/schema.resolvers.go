@@ -5,12 +5,14 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
+	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -83,6 +85,40 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 func (r *mutationResolver) LogoutUser(ctx context.Context) (*bool, error) {
 	auth.RemoveAuthCookie(ctx)
 	return nil, nil
+}
+
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error) {
+	rm := recruitment.Recruitment{
+		Title:         input.Title,
+		Type:          input.Type,
+		Content:       input.Content,
+		StartAt:       input.StartAt,
+		Level:         input.Level,
+		Capacity:      input.Capacity,
+		Place:         input.Place,
+		LocationURL:   input.LocationURL,
+		ClosingAt:     input.ClosingAt,
+		CompetitionID: input.CompetitionID,
+		PrefectureID:  input.PrefectureID,
+	}
+
+	err := rm.CreateRecruitmentValidate()
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintln("recruitment validation errors:", err.Error()))
+		errs := err.(validation.Errors)
+
+		for k, errMessage := range errs {
+			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+		}
+		return &model.Recruitment{}, err
+	}
+
+	resRecruitment, err := rm.CreateRecruitment(ctx, r.client.Recruitment)
+	if err != nil {
+		return &model.Recruitment{}, err
+	}
+
+	return resRecruitment, nil
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
