@@ -150,9 +150,23 @@ func (ru *RecruitmentUpdate) SetCapacity(i int) *RecruitmentUpdate {
 	return ru
 }
 
+// SetNillableCapacity sets the "capacity" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableCapacity(i *int) *RecruitmentUpdate {
+	if i != nil {
+		ru.SetCapacity(*i)
+	}
+	return ru
+}
+
 // AddCapacity adds i to the "capacity" field.
 func (ru *RecruitmentUpdate) AddCapacity(i int) *RecruitmentUpdate {
 	ru.mutation.AddCapacity(i)
+	return ru
+}
+
+// ClearCapacity clears the value of the "capacity" field.
+func (ru *RecruitmentUpdate) ClearCapacity() *RecruitmentUpdate {
+	ru.mutation.ClearCapacity()
 	return ru
 }
 
@@ -433,6 +447,12 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldCapacity,
 		})
 	}
+	if ru.mutation.CapacityCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Column: recruitment.FieldCapacity,
+		})
+	}
 	if value, ok := ru.mutation.ClosingAt(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -683,9 +703,23 @@ func (ruo *RecruitmentUpdateOne) SetCapacity(i int) *RecruitmentUpdateOne {
 	return ruo
 }
 
+// SetNillableCapacity sets the "capacity" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableCapacity(i *int) *RecruitmentUpdateOne {
+	if i != nil {
+		ruo.SetCapacity(*i)
+	}
+	return ruo
+}
+
 // AddCapacity adds i to the "capacity" field.
 func (ruo *RecruitmentUpdateOne) AddCapacity(i int) *RecruitmentUpdateOne {
 	ruo.mutation.AddCapacity(i)
+	return ruo
+}
+
+// ClearCapacity clears the value of the "capacity" field.
+func (ruo *RecruitmentUpdateOne) ClearCapacity() *RecruitmentUpdateOne {
+	ruo.mutation.ClearCapacity()
 	return ruo
 }
 
@@ -987,6 +1021,12 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
 			Type:   field.TypeInt,
 			Value:  value,
+			Column: recruitment.FieldCapacity,
+		})
+	}
+	if ruo.mutation.CapacityCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
 			Column: recruitment.FieldCapacity,
 		})
 	}

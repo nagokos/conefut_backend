@@ -156,9 +156,6 @@ func TypeValidator(_type Type) error {
 // Level defines the type for the "level" enum field.
 type Level string
 
-// LevelEnjoy is the default value of the Level enum.
-const DefaultLevel = LevelEnjoy
-
 // Level values.
 const (
 	LevelEnjoy    Level = "enjoy"

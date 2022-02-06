@@ -45,7 +45,6 @@ func (Recruitment) Fields() []ent.Field {
 				"expert",
 				"open",
 			).
-			Default("enjoy").
 			Optional(),
 		field.String("place").
 			Optional(),
@@ -60,7 +59,8 @@ func (Recruitment) Fields() []ent.Field {
 		field.String("Location_url").
 			Optional().
 			Comment("会場の場所を埋め込むURL"),
-		field.Int("capacity"),
+		field.Int("capacity").
+			Optional(),
 		field.Time("closing_at").
 			Comment("募集期限"),
 	}
