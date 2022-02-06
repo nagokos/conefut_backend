@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type Competition struct {
@@ -18,6 +19,22 @@ type Prefecture struct {
 	Name string `json:"name"`
 }
 
+type Recruitment struct {
+	ID          string       `json:"id"`
+	Title       string       `json:"title"`
+	Content     string       `json:"content"`
+	Type        Type         `json:"type"`
+	Level       Level        `json:"level"`
+	Place       *string      `json:"place"`
+	StartAt     *time.Time   `json:"startAt"`
+	LocationURL *string      `json:"locationUrl"`
+	Capacity    *int         `json:"capacity"`
+	ClosingAt   time.Time    `json:"closingAt"`
+	Competition *Competition `json:"competition"`
+	Prefecture  *Prefecture  `json:"prefecture"`
+	User        *User        `json:"user"`
+}
+
 type User struct {
 	ID                      string                  `json:"id"`
 	Name                    string                  `json:"name"`
@@ -26,6 +43,20 @@ type User struct {
 	Avatar                  string                  `json:"avatar"`
 	Introduction            *string                 `json:"introduction"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
+}
+
+type CreateRecruitmentInput struct {
+	Title         string     `json:"title"`
+	Content       string     `json:"content"`
+	Type          Type       `json:"type"`
+	Level         Level      `json:"level"`
+	Place         *string    `json:"place"`
+	StartAt       *time.Time `json:"startAt"`
+	LocationURL   *string    `json:"locationUrl"`
+	Capacity      *int       `json:"capacity"`
+	ClosingAt     time.Time  `json:"closingAt"`
+	CompetitionID string     `json:"competitionId"`
+	PrefectureID  string     `json:"prefectureId"`
 }
 
 type CreateUserInput struct {
@@ -82,6 +113,55 @@ func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type Level string
+
+const (
+	LevelUnnecessary Level = "UNNECESSARY"
+	LevelEnjoy       Level = "ENJOY"
+	LevelBeginner    Level = "BEGINNER"
+	LevelMiddle      Level = "MIDDLE"
+	LevelExpert      Level = "EXPERT"
+	LevelOpen        Level = "OPEN"
+)
+
+var AllLevel = []Level{
+	LevelUnnecessary,
+	LevelEnjoy,
+	LevelBeginner,
+	LevelMiddle,
+	LevelExpert,
+	LevelOpen,
+}
+
+func (e Level) IsValid() bool {
+	switch e {
+	case LevelUnnecessary, LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
+		return true
+	}
+	return false
+}
+
+func (e Level) String() string {
+	return string(e)
+}
+
+func (e *Level) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Level(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Level", str)
+	}
+	return nil
+}
+
+func (e Level) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type Role string
 
 const (
@@ -120,5 +200,54 @@ func (e *Role) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Role) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Type string
+
+const (
+	TypeOpponent   Type = "OPPONENT"
+	TypeIndividual Type = "INDIVIDUAL"
+	TypeTeammate   Type = "TEAMMATE"
+	TypeJoining    Type = "JOINING"
+	TypeCoaching   Type = "COACHING"
+	TypeOthers     Type = "OTHERS"
+)
+
+var AllType = []Type{
+	TypeOpponent,
+	TypeIndividual,
+	TypeTeammate,
+	TypeJoining,
+	TypeCoaching,
+	TypeOthers,
+}
+
+func (e Type) IsValid() bool {
+	switch e {
+	case TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
+		return true
+	}
+	return false
+}
+
+func (e Type) String() string {
+	return string(e)
+}
+
+func (e *Type) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Type(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Type", str)
+	}
+	return nil
+}
+
+func (e Type) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
