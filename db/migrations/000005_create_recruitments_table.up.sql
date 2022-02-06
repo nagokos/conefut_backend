@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS "recruitments"(
   "id" varchar UNIQUE NOT NULL,
   "title" varchar(60) NOT NULL,
   "type" varchar NOT NULL DEFAULT 'opponent',
-  "level" varchar NULL,
+  "level" varchar NOT NULL DEFAULT 'unnecessary',
   "place" varchar NULL,
   "start_at" timestamp with time zone NULL,
   "content" varchar(10000) NOT NULL,
