@@ -41,7 +41,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "title", Type: field.TypeString, Size: 60, SchemaType: map[string]string{"postgres": "varchar(60)"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"opponent", "individual", "teammate", "joining", "coaching", "others"}, Default: "opponent"},
-		{Name: "level", Type: field.TypeEnum, Nullable: true, Enums: []string{"enjoy", "beginner", "middle", "expert", "open"}, Default: "enjoy"},
+		{Name: "level", Type: field.TypeEnum, Nullable: true, Enums: []string{"enjoy", "beginner", "middle", "expert", "open"}},
 		{Name: "place", Type: field.TypeString, Nullable: true},
 		{Name: "start_at", Type: field.TypeTime, Nullable: true},
 		{Name: "content", Type: field.TypeString, Size: 10000, SchemaType: map[string]string{"postgres": "varchar(10000)"}},

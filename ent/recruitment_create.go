@@ -283,10 +283,6 @@ func (rc *RecruitmentCreate) defaults() {
 		v := recruitment.DefaultType
 		rc.mutation.SetType(v)
 	}
-	if _, ok := rc.mutation.Level(); !ok {
-		v := recruitment.DefaultLevel
-		rc.mutation.SetLevel(v)
-	}
 	if _, ok := rc.mutation.ID(); !ok {
 		v := recruitment.DefaultID()
 		rc.mutation.SetID(v)
