@@ -51,7 +51,7 @@ install_migrate:
 # マイグレーションファイル作成
 # SEQ_NAMEはcreate_users_tableの部分
 init_migration: seq_name
-  ${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
+	${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
 
 # SQLのみを発行
 # make generate後に使用
