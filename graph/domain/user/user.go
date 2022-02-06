@@ -158,6 +158,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
 	}
 
+	// 本番環境と開発環境では違う
 	SendVerifyEmail(emailToken)
 
 	if err != nil {
