@@ -46,7 +46,7 @@ init_schema: schema_name
 	          go run entgo.io/ent/cmd/ent init ${SCHEMA_NAME} 
 
 install_migrate:
-	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # マイグレーションファイル作成
 # SEQ_NAMEはcreate_users_tableの部分
