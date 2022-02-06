@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/validation"
 )
 
 // Recruitment holds the schema definition for the Recruitment entity.
@@ -23,7 +24,7 @@ func (Recruitment) Mixin() []ent.Mixin {
 func (Recruitment) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("title").
-			MaxLen(60).
+			Validate(validation.CheckStringLen(60)).
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(60)",
 			}),
@@ -39,19 +40,21 @@ func (Recruitment) Fields() []ent.Field {
 			Default("opponent"),
 		field.Enum("level").
 			Values(
+				"unnecessary",
 				"enjoy",
 				"beginner",
 				"middle",
 				"expert",
 				"open",
 			).
+			Default("unnecessary").
 			Optional(),
 		field.String("place").
 			Optional(),
 		field.Time("start_at").
 			Optional(),
 		field.String("content").
-			MaxLen(10000).
+			Validate(validation.CheckStringLen(10000)).
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(10000)",
 			}).
