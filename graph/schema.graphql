@@ -15,6 +15,24 @@ enum EmailVerificationStatus {
   VERIFIED
 }
 
+enum Type {
+  OPPONENT
+  INDIVIDUAL
+  TEAMMATE
+  JOINING
+  COACHING
+  OTHERS
+}
+
+enum Level {
+  UNNECESSARY
+  ENJOY
+  BEGINNER
+  MIDDLE
+  EXPERT
+  OPEN
+}
+
 type User {
   id: String!
   name: String!
