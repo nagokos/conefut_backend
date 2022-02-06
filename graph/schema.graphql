@@ -86,8 +86,23 @@ input loginUserInput {
   password: String!
 }
 
+input createRecruitmentInput {
+  title: String!
+  content: String!
+  type: Type!
+  level: Level!
+  place: String
+  startAt: DateTime
+  locationUrl: String
+  capacity: Int
+  closingAt: DateTime!
+  competitionId: String!
+  prefectureId: String!
+}
+
 type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean
+  createRecruitment(input: createRecruitmentInput!): Recruitment!
 }
