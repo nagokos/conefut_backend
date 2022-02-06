@@ -156,13 +156,17 @@ func TypeValidator(_type Type) error {
 // Level defines the type for the "level" enum field.
 type Level string
 
+// LevelUnnecessary is the default value of the Level enum.
+const DefaultLevel = LevelUnnecessary
+
 // Level values.
 const (
-	LevelEnjoy    Level = "enjoy"
-	LevelBeginner Level = "beginner"
-	LevelMiddle   Level = "middle"
-	LevelExpert   Level = "expert"
-	LevelOpen     Level = "open"
+	LevelUnnecessary Level = "unnecessary"
+	LevelEnjoy       Level = "enjoy"
+	LevelBeginner    Level = "beginner"
+	LevelMiddle      Level = "middle"
+	LevelExpert      Level = "expert"
+	LevelOpen        Level = "open"
 )
 
 func (l Level) String() string {
@@ -172,7 +176,7 @@ func (l Level) String() string {
 // LevelValidator is a validator for the "level" field enum values. It is called by the builders before save.
 func LevelValidator(l Level) error {
 	switch l {
-	case LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
+	case LevelUnnecessary, LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
 		return nil
 	default:
 		return fmt.Errorf("recruitment: invalid enum value for level field: %q", l)
