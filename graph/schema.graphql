@@ -53,6 +53,22 @@ type Competition {
   name: String!
 }
 
+type Recruitment {
+  id: String!
+  title: String!
+  content: String!
+  type: Type!
+  level: Level!
+  place: String
+  startAt: DateTime
+  locationUrl: String
+  capacity: Int
+  closingAt: DateTime!
+  competition: Competition!
+  prefecture: Prefecture!
+  user: User!
+}
+
 type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
