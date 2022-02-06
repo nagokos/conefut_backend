@@ -45,7 +45,6 @@ func (Recruitment) Fields() []ent.Field {
 				"expert",
 				"open",
 			).
-			Default("enjoy").
 			Optional(),
 		field.String("place").
 			Optional(),
