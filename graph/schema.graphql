@@ -2,6 +2,8 @@
 #
 # https://gqlgen.com/getting-started/
 
+scalar DateTime
+
 enum Role {
   ADMIN
   GENERAL
@@ -11,6 +13,24 @@ enum EmailVerificationStatus {
   UNNECESSARY
   PENDING
   VERIFIED
+}
+
+enum Type {
+  OPPONENT
+  INDIVIDUAL
+  TEAMMATE
+  JOINING
+  COACHING
+  OTHERS
+}
+
+enum Level {
+  UNNECESSARY
+  ENJOY
+  BEGINNER
+  MIDDLE
+  EXPERT
+  OPEN
 }
 
 type User {
@@ -33,6 +53,22 @@ type Competition {
   name: String!
 }
 
+type Recruitment {
+  id: String!
+  title: String!
+  content: String!
+  type: Type!
+  level: Level!
+  place: String
+  startAt: DateTime
+  locationUrl: String
+  capacity: Int
+  closingAt: DateTime!
+  competition: Competition!
+  prefecture: Prefecture!
+  user: User!
+}
+
 type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
@@ -50,8 +86,23 @@ input loginUserInput {
   password: String!
 }
 
+input createRecruitmentInput {
+  title: String!
+  content: String!
+  type: Type!
+  level: Level!
+  place: String
+  startAt: DateTime
+  locationUrl: String
+  capacity: Int
+  closingAt: DateTime!
+  competitionId: String!
+  prefectureId: String!
+}
+
 type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean
+  createRecruitment(input: createRecruitmentInput!): Recruitment!
 }

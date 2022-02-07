@@ -110,7 +110,7 @@ func CreateToken(userID string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	token.Claims = jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 1).Unix(),
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
 	tokenString, err := token.SignedString([]byte("secretKey"))
 	if err != nil {
@@ -158,6 +158,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
 	}
 
+	// 本番環境と開発環境では違う
 	SendVerifyEmail(emailToken)
 
 	if err != nil {

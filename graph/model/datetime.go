@@ -15,6 +15,9 @@ import (
 func UnmarshalDateTime(v interface{}) (time.Time, error) {
 	switch v := v.(type) {
 	case string:
+		if len(v) == 0 {
+			return time.Time{}, nil
+		}
 		return time.Parse("2006/01/02 15:04", v)
 	case time.Time:
 		return v, nil
