@@ -119,16 +119,30 @@ func (rc *RecruitmentCreate) SetContent(s string) *RecruitmentCreate {
 	return rc
 }
 
-// SetLocationURL sets the "Location_url" field.
-func (rc *RecruitmentCreate) SetLocationURL(s string) *RecruitmentCreate {
-	rc.mutation.SetLocationURL(s)
+// SetLocationLat sets the "locationLat" field.
+func (rc *RecruitmentCreate) SetLocationLat(f float64) *RecruitmentCreate {
+	rc.mutation.SetLocationLat(f)
 	return rc
 }
 
-// SetNillableLocationURL sets the "Location_url" field if the given value is not nil.
-func (rc *RecruitmentCreate) SetNillableLocationURL(s *string) *RecruitmentCreate {
-	if s != nil {
-		rc.SetLocationURL(*s)
+// SetNillableLocationLat sets the "locationLat" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableLocationLat(f *float64) *RecruitmentCreate {
+	if f != nil {
+		rc.SetLocationLat(*f)
+	}
+	return rc
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (rc *RecruitmentCreate) SetLocationLng(f float64) *RecruitmentCreate {
+	rc.mutation.SetLocationLng(f)
+	return rc
+}
+
+// SetNillableLocationLng sets the "locationLng" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableLocationLng(f *float64) *RecruitmentCreate {
+	if f != nil {
+		rc.SetLocationLng(*f)
 	}
 	return rc
 }
@@ -443,13 +457,21 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		})
 		_node.Content = value
 	}
-	if value, ok := rc.mutation.LocationURL(); ok {
+	if value, ok := rc.mutation.LocationLat(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeFloat64,
 			Value:  value,
-			Column: recruitment.FieldLocationURL,
+			Column: recruitment.FieldLocationLat,
 		})
-		_node.LocationURL = value
+		_node.LocationLat = value
+	}
+	if value, ok := rc.mutation.LocationLng(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+		_node.LocationLng = value
 	}
 	if value, ok := rc.mutation.Capacity(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

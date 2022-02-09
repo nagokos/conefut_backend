@@ -30,8 +30,10 @@ const (
 	FieldStartAt = "start_at"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
-	// FieldLocationURL holds the string denoting the location_url field in the database.
-	FieldLocationURL = "location_url"
+	// FieldLocationLat holds the string denoting the locationlat field in the database.
+	FieldLocationLat = "location_lat"
+	// FieldLocationLng holds the string denoting the locationlng field in the database.
+	FieldLocationLng = "location_lng"
 	// FieldCapacity holds the string denoting the capacity field in the database.
 	FieldCapacity = "capacity"
 	// FieldClosingAt holds the string denoting the closing_at field in the database.
@@ -78,7 +80,8 @@ var Columns = []string{
 	FieldPlace,
 	FieldStartAt,
 	FieldContent,
-	FieldLocationURL,
+	FieldLocationLat,
+	FieldLocationLng,
 	FieldCapacity,
 	FieldClosingAt,
 }

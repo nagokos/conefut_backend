@@ -1044,7 +1044,10 @@ type RecruitmentMutation struct {
 	place              *string
 	start_at           *time.Time
 	content            *string
-	_Location_url      *string
+	locationLat        *float64
+	addlocationLat     *float64
+	locationLng        *float64
+	addlocationLng     *float64
 	capacity           *int
 	addcapacity        *int
 	closing_at         *time.Time
@@ -1472,53 +1475,144 @@ func (m *RecruitmentMutation) ResetContent() {
 	m.content = nil
 }
 
-// SetLocationURL sets the "Location_url" field.
-func (m *RecruitmentMutation) SetLocationURL(s string) {
-	m._Location_url = &s
+// SetLocationLat sets the "locationLat" field.
+func (m *RecruitmentMutation) SetLocationLat(f float64) {
+	m.locationLat = &f
+	m.addlocationLat = nil
 }
 
-// LocationURL returns the value of the "Location_url" field in the mutation.
-func (m *RecruitmentMutation) LocationURL() (r string, exists bool) {
-	v := m._Location_url
+// LocationLat returns the value of the "locationLat" field in the mutation.
+func (m *RecruitmentMutation) LocationLat() (r float64, exists bool) {
+	v := m.locationLat
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLocationURL returns the old "Location_url" field's value of the Recruitment entity.
+// OldLocationLat returns the old "locationLat" field's value of the Recruitment entity.
 // If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RecruitmentMutation) OldLocationURL(ctx context.Context) (v string, err error) {
+func (m *RecruitmentMutation) OldLocationLat(ctx context.Context) (v float64, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLocationURL is only allowed on UpdateOne operations")
+		return v, fmt.Errorf("OldLocationLat is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLocationURL requires an ID field in the mutation")
+		return v, fmt.Errorf("OldLocationLat requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLocationURL: %w", err)
+		return v, fmt.Errorf("querying old value for OldLocationLat: %w", err)
 	}
-	return oldValue.LocationURL, nil
+	return oldValue.LocationLat, nil
 }
 
-// ClearLocationURL clears the value of the "Location_url" field.
-func (m *RecruitmentMutation) ClearLocationURL() {
-	m._Location_url = nil
-	m.clearedFields[recruitment.FieldLocationURL] = struct{}{}
+// AddLocationLat adds f to the "locationLat" field.
+func (m *RecruitmentMutation) AddLocationLat(f float64) {
+	if m.addlocationLat != nil {
+		*m.addlocationLat += f
+	} else {
+		m.addlocationLat = &f
+	}
 }
 
-// LocationURLCleared returns if the "Location_url" field was cleared in this mutation.
-func (m *RecruitmentMutation) LocationURLCleared() bool {
-	_, ok := m.clearedFields[recruitment.FieldLocationURL]
+// AddedLocationLat returns the value that was added to the "locationLat" field in this mutation.
+func (m *RecruitmentMutation) AddedLocationLat() (r float64, exists bool) {
+	v := m.addlocationLat
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (m *RecruitmentMutation) ClearLocationLat() {
+	m.locationLat = nil
+	m.addlocationLat = nil
+	m.clearedFields[recruitment.FieldLocationLat] = struct{}{}
+}
+
+// LocationLatCleared returns if the "locationLat" field was cleared in this mutation.
+func (m *RecruitmentMutation) LocationLatCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldLocationLat]
 	return ok
 }
 
-// ResetLocationURL resets all changes to the "Location_url" field.
-func (m *RecruitmentMutation) ResetLocationURL() {
-	m._Location_url = nil
-	delete(m.clearedFields, recruitment.FieldLocationURL)
+// ResetLocationLat resets all changes to the "locationLat" field.
+func (m *RecruitmentMutation) ResetLocationLat() {
+	m.locationLat = nil
+	m.addlocationLat = nil
+	delete(m.clearedFields, recruitment.FieldLocationLat)
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (m *RecruitmentMutation) SetLocationLng(f float64) {
+	m.locationLng = &f
+	m.addlocationLng = nil
+}
+
+// LocationLng returns the value of the "locationLng" field in the mutation.
+func (m *RecruitmentMutation) LocationLng() (r float64, exists bool) {
+	v := m.locationLng
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLocationLng returns the old "locationLng" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldLocationLng(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLocationLng is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLocationLng requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLocationLng: %w", err)
+	}
+	return oldValue.LocationLng, nil
+}
+
+// AddLocationLng adds f to the "locationLng" field.
+func (m *RecruitmentMutation) AddLocationLng(f float64) {
+	if m.addlocationLng != nil {
+		*m.addlocationLng += f
+	} else {
+		m.addlocationLng = &f
+	}
+}
+
+// AddedLocationLng returns the value that was added to the "locationLng" field in this mutation.
+func (m *RecruitmentMutation) AddedLocationLng() (r float64, exists bool) {
+	v := m.addlocationLng
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (m *RecruitmentMutation) ClearLocationLng() {
+	m.locationLng = nil
+	m.addlocationLng = nil
+	m.clearedFields[recruitment.FieldLocationLng] = struct{}{}
+}
+
+// LocationLngCleared returns if the "locationLng" field was cleared in this mutation.
+func (m *RecruitmentMutation) LocationLngCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldLocationLng]
+	return ok
+}
+
+// ResetLocationLng resets all changes to the "locationLng" field.
+func (m *RecruitmentMutation) ResetLocationLng() {
+	m.locationLng = nil
+	m.addlocationLng = nil
+	delete(m.clearedFields, recruitment.FieldLocationLng)
 }
 
 // SetCapacity sets the "capacity" field.
@@ -1763,7 +1857,7 @@ func (m *RecruitmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecruitmentMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.created_at != nil {
 		fields = append(fields, recruitment.FieldCreatedAt)
 	}
@@ -1788,8 +1882,11 @@ func (m *RecruitmentMutation) Fields() []string {
 	if m.content != nil {
 		fields = append(fields, recruitment.FieldContent)
 	}
-	if m._Location_url != nil {
-		fields = append(fields, recruitment.FieldLocationURL)
+	if m.locationLat != nil {
+		fields = append(fields, recruitment.FieldLocationLat)
+	}
+	if m.locationLng != nil {
+		fields = append(fields, recruitment.FieldLocationLng)
 	}
 	if m.capacity != nil {
 		fields = append(fields, recruitment.FieldCapacity)
@@ -1821,8 +1918,10 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.StartAt()
 	case recruitment.FieldContent:
 		return m.Content()
-	case recruitment.FieldLocationURL:
-		return m.LocationURL()
+	case recruitment.FieldLocationLat:
+		return m.LocationLat()
+	case recruitment.FieldLocationLng:
+		return m.LocationLng()
 	case recruitment.FieldCapacity:
 		return m.Capacity()
 	case recruitment.FieldClosingAt:
@@ -1852,8 +1951,10 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldStartAt(ctx)
 	case recruitment.FieldContent:
 		return m.OldContent(ctx)
-	case recruitment.FieldLocationURL:
-		return m.OldLocationURL(ctx)
+	case recruitment.FieldLocationLat:
+		return m.OldLocationLat(ctx)
+	case recruitment.FieldLocationLng:
+		return m.OldLocationLng(ctx)
 	case recruitment.FieldCapacity:
 		return m.OldCapacity(ctx)
 	case recruitment.FieldClosingAt:
@@ -1923,12 +2024,19 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetContent(v)
 		return nil
-	case recruitment.FieldLocationURL:
-		v, ok := value.(string)
+	case recruitment.FieldLocationLat:
+		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLocationURL(v)
+		m.SetLocationLat(v)
+		return nil
+	case recruitment.FieldLocationLng:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLocationLng(v)
 		return nil
 	case recruitment.FieldCapacity:
 		v, ok := value.(int)
@@ -1952,6 +2060,12 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *RecruitmentMutation) AddedFields() []string {
 	var fields []string
+	if m.addlocationLat != nil {
+		fields = append(fields, recruitment.FieldLocationLat)
+	}
+	if m.addlocationLng != nil {
+		fields = append(fields, recruitment.FieldLocationLng)
+	}
 	if m.addcapacity != nil {
 		fields = append(fields, recruitment.FieldCapacity)
 	}
@@ -1963,6 +2077,10 @@ func (m *RecruitmentMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *RecruitmentMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case recruitment.FieldLocationLat:
+		return m.AddedLocationLat()
+	case recruitment.FieldLocationLng:
+		return m.AddedLocationLng()
 	case recruitment.FieldCapacity:
 		return m.AddedCapacity()
 	}
@@ -1974,6 +2092,20 @@ func (m *RecruitmentMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *RecruitmentMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case recruitment.FieldLocationLat:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLocationLat(v)
+		return nil
+	case recruitment.FieldLocationLng:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLocationLng(v)
+		return nil
 	case recruitment.FieldCapacity:
 		v, ok := value.(int)
 		if !ok {
@@ -1998,8 +2130,11 @@ func (m *RecruitmentMutation) ClearedFields() []string {
 	if m.FieldCleared(recruitment.FieldStartAt) {
 		fields = append(fields, recruitment.FieldStartAt)
 	}
-	if m.FieldCleared(recruitment.FieldLocationURL) {
-		fields = append(fields, recruitment.FieldLocationURL)
+	if m.FieldCleared(recruitment.FieldLocationLat) {
+		fields = append(fields, recruitment.FieldLocationLat)
+	}
+	if m.FieldCleared(recruitment.FieldLocationLng) {
+		fields = append(fields, recruitment.FieldLocationLng)
 	}
 	if m.FieldCleared(recruitment.FieldCapacity) {
 		fields = append(fields, recruitment.FieldCapacity)
@@ -2027,8 +2162,11 @@ func (m *RecruitmentMutation) ClearField(name string) error {
 	case recruitment.FieldStartAt:
 		m.ClearStartAt()
 		return nil
-	case recruitment.FieldLocationURL:
-		m.ClearLocationURL()
+	case recruitment.FieldLocationLat:
+		m.ClearLocationLat()
+		return nil
+	case recruitment.FieldLocationLng:
+		m.ClearLocationLng()
 		return nil
 	case recruitment.FieldCapacity:
 		m.ClearCapacity()
@@ -2065,8 +2203,11 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 	case recruitment.FieldContent:
 		m.ResetContent()
 		return nil
-	case recruitment.FieldLocationURL:
-		m.ResetLocationURL()
+	case recruitment.FieldLocationLat:
+		m.ResetLocationLat()
+		return nil
+	case recruitment.FieldLocationLng:
+		m.ResetLocationLng()
 		return nil
 	case recruitment.FieldCapacity:
 		m.ResetCapacity()

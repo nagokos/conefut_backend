@@ -137,7 +137,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     r.ID,
 		Type:   "Recruitment",
-		Fields: make([]*Field, 11),
+		Fields: make([]*Field, 12),
 		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
@@ -205,18 +205,26 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "content",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(r.LocationURL); err != nil {
+	if buf, err = json.Marshal(r.LocationLat); err != nil {
 		return nil, err
 	}
 	node.Fields[8] = &Field{
-		Type:  "string",
-		Name:  "Location_url",
+		Type:  "float64",
+		Name:  "locationLat",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.LocationLng); err != nil {
+		return nil, err
+	}
+	node.Fields[9] = &Field{
+		Type:  "float64",
+		Name:  "locationLng",
 		Value: string(buf),
 	}
 	if buf, err = json.Marshal(r.Capacity); err != nil {
 		return nil, err
 	}
-	node.Fields[9] = &Field{
+	node.Fields[10] = &Field{
 		Type:  "int",
 		Name:  "capacity",
 		Value: string(buf),
@@ -224,7 +232,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.ClosingAt); err != nil {
 		return nil, err
 	}
-	node.Fields[10] = &Field{
+	node.Fields[11] = &Field{
 		Type:  "time.Time",
 		Name:  "closing_at",
 		Value: string(buf),

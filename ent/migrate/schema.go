@@ -45,7 +45,8 @@ var (
 		{Name: "place", Type: field.TypeString, Nullable: true},
 		{Name: "start_at", Type: field.TypeTime, Nullable: true},
 		{Name: "content", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(10000)"}},
-		{Name: "location_url", Type: field.TypeString, Nullable: true},
+		{Name: "location_lat", Type: field.TypeFloat64, Nullable: true},
+		{Name: "location_lng", Type: field.TypeFloat64, Nullable: true},
 		{Name: "capacity", Type: field.TypeInt, Nullable: true},
 		{Name: "closing_at", Type: field.TypeTime},
 		{Name: "competition_id", Type: field.TypeString, Nullable: true},
@@ -60,19 +61,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "recruitments_competitions_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[12]},
+				Columns:    []*schema.Column{RecruitmentsColumns[13]},
 				RefColumns: []*schema.Column{CompetitionsColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_prefectures_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[13]},
+				Columns:    []*schema.Column{RecruitmentsColumns[14]},
 				RefColumns: []*schema.Column{PrefecturesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_users_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[14]},
+				Columns:    []*schema.Column{RecruitmentsColumns[15]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
