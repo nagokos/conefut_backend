@@ -59,9 +59,12 @@ func (Recruitment) Fields() []ent.Field {
 				dialect.Postgres: "varchar(10000)",
 			}).
 			Comment("募集詳細"),
-		field.String("Location_url").
+		field.Float("locationLat").
 			Optional().
-			Comment("会場の場所を埋め込むURL"),
+			Comment("会場の緯度"),
+		field.Float("locationLng").
+			Optional().
+			Comment("会場の経度"),
 		field.Int("capacity").
 			Optional(),
 		field.Time("closing_at").
