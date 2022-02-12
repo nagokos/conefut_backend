@@ -1051,6 +1051,7 @@ type RecruitmentMutation struct {
 	capacity           *int
 	addcapacity        *int
 	closing_at         *time.Time
+	is_published       *bool
 	clearedFields      map[string]struct{}
 	user               *string
 	cleareduser        bool
@@ -1721,6 +1722,42 @@ func (m *RecruitmentMutation) ResetClosingAt() {
 	m.closing_at = nil
 }
 
+// SetIsPublished sets the "is_published" field.
+func (m *RecruitmentMutation) SetIsPublished(b bool) {
+	m.is_published = &b
+}
+
+// IsPublished returns the value of the "is_published" field in the mutation.
+func (m *RecruitmentMutation) IsPublished() (r bool, exists bool) {
+	v := m.is_published
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsPublished returns the old "is_published" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldIsPublished(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldIsPublished is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldIsPublished requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsPublished: %w", err)
+	}
+	return oldValue.IsPublished, nil
+}
+
+// ResetIsPublished resets all changes to the "is_published" field.
+func (m *RecruitmentMutation) ResetIsPublished() {
+	m.is_published = nil
+}
+
 // SetUserID sets the "user" edge to the User entity by id.
 func (m *RecruitmentMutation) SetUserID(id string) {
 	m.user = &id
@@ -1857,7 +1894,7 @@ func (m *RecruitmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecruitmentMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, recruitment.FieldCreatedAt)
 	}
@@ -1894,6 +1931,9 @@ func (m *RecruitmentMutation) Fields() []string {
 	if m.closing_at != nil {
 		fields = append(fields, recruitment.FieldClosingAt)
 	}
+	if m.is_published != nil {
+		fields = append(fields, recruitment.FieldIsPublished)
+	}
 	return fields
 }
 
@@ -1926,6 +1966,8 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.Capacity()
 	case recruitment.FieldClosingAt:
 		return m.ClosingAt()
+	case recruitment.FieldIsPublished:
+		return m.IsPublished()
 	}
 	return nil, false
 }
@@ -1959,6 +2001,8 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldCapacity(ctx)
 	case recruitment.FieldClosingAt:
 		return m.OldClosingAt(ctx)
+	case recruitment.FieldIsPublished:
+		return m.OldIsPublished(ctx)
 	}
 	return nil, fmt.Errorf("unknown Recruitment field %s", name)
 }
@@ -2051,6 +2095,13 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetClosingAt(v)
+		return nil
+	case recruitment.FieldIsPublished:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsPublished(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)
@@ -2214,6 +2265,9 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 		return nil
 	case recruitment.FieldClosingAt:
 		m.ResetClosingAt()
+		return nil
+	case recruitment.FieldIsPublished:
+		m.ResetIsPublished()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)

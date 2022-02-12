@@ -210,6 +210,20 @@ func (ru *RecruitmentUpdate) SetClosingAt(t time.Time) *RecruitmentUpdate {
 	return ru
 }
 
+// SetIsPublished sets the "is_published" field.
+func (ru *RecruitmentUpdate) SetIsPublished(b bool) *RecruitmentUpdate {
+	ru.mutation.SetIsPublished(b)
+	return ru
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableIsPublished(b *bool) *RecruitmentUpdate {
+	if b != nil {
+		ru.SetIsPublished(*b)
+	}
+	return ru
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (ru *RecruitmentUpdate) SetUserID(id string) *RecruitmentUpdate {
 	ru.mutation.SetUserID(id)
@@ -521,6 +535,13 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldClosingAt,
 		})
 	}
+	if value, ok := ru.mutation.IsPublished(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
+		})
+	}
 	if ru.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -821,6 +842,20 @@ func (ruo *RecruitmentUpdateOne) ClearCapacity() *RecruitmentUpdateOne {
 // SetClosingAt sets the "closing_at" field.
 func (ruo *RecruitmentUpdateOne) SetClosingAt(t time.Time) *RecruitmentUpdateOne {
 	ruo.mutation.SetClosingAt(t)
+	return ruo
+}
+
+// SetIsPublished sets the "is_published" field.
+func (ruo *RecruitmentUpdateOne) SetIsPublished(b bool) *RecruitmentUpdateOne {
+	ruo.mutation.SetIsPublished(b)
+	return ruo
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableIsPublished(b *bool) *RecruitmentUpdateOne {
+	if b != nil {
+		ruo.SetIsPublished(*b)
+	}
 	return ruo
 }
 
@@ -1157,6 +1192,13 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Type:   field.TypeTime,
 			Value:  value,
 			Column: recruitment.FieldClosingAt,
+		})
+	}
+	if value, ok := ruo.mutation.IsPublished(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
 		})
 	}
 	if ruo.mutation.UserCleared() {

@@ -38,6 +38,8 @@ const (
 	FieldCapacity = "capacity"
 	// FieldClosingAt holds the string denoting the closing_at field in the database.
 	FieldClosingAt = "closing_at"
+	// FieldIsPublished holds the string denoting the is_published field in the database.
+	FieldIsPublished = "is_published"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
@@ -84,6 +86,7 @@ var Columns = []string{
 	FieldLocationLng,
 	FieldCapacity,
 	FieldClosingAt,
+	FieldIsPublished,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "recruitments"
@@ -120,6 +123,8 @@ var (
 	TitleValidator func(string) error
 	// ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	ContentValidator func(string) error
+	// DefaultIsPublished holds the default value on creation for the "is_published" field.
+	DefaultIsPublished bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.

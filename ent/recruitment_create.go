@@ -167,6 +167,20 @@ func (rc *RecruitmentCreate) SetClosingAt(t time.Time) *RecruitmentCreate {
 	return rc
 }
 
+// SetIsPublished sets the "is_published" field.
+func (rc *RecruitmentCreate) SetIsPublished(b bool) *RecruitmentCreate {
+	rc.mutation.SetIsPublished(b)
+	return rc
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableIsPublished(b *bool) *RecruitmentCreate {
+	if b != nil {
+		rc.SetIsPublished(*b)
+	}
+	return rc
+}
+
 // SetID sets the "id" field.
 func (rc *RecruitmentCreate) SetID(s string) *RecruitmentCreate {
 	rc.mutation.SetID(s)
@@ -301,6 +315,10 @@ func (rc *RecruitmentCreate) defaults() {
 		v := recruitment.DefaultLevel
 		rc.mutation.SetLevel(v)
 	}
+	if _, ok := rc.mutation.IsPublished(); !ok {
+		v := recruitment.DefaultIsPublished
+		rc.mutation.SetIsPublished(v)
+	}
 	if _, ok := rc.mutation.ID(); !ok {
 		v := recruitment.DefaultID()
 		rc.mutation.SetID(v)
@@ -346,6 +364,9 @@ func (rc *RecruitmentCreate) check() error {
 	}
 	if _, ok := rc.mutation.ClosingAt(); !ok {
 		return &ValidationError{Name: "closing_at", err: errors.New(`ent: missing required field "closing_at"`)}
+	}
+	if _, ok := rc.mutation.IsPublished(); !ok {
+		return &ValidationError{Name: "is_published", err: errors.New(`ent: missing required field "is_published"`)}
 	}
 	if v, ok := rc.mutation.ID(); ok {
 		if err := recruitment.IDValidator(v); err != nil {
@@ -488,6 +509,14 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			Column: recruitment.FieldClosingAt,
 		})
 		_node.ClosingAt = value
+	}
+	if value, ok := rc.mutation.IsPublished(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
+		})
+		_node.IsPublished = value
 	}
 	if nodes := rc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -163,6 +163,13 @@ func ClosingAt(v time.Time) predicate.Recruitment {
 	})
 }
 
+// IsPublished applies equality check predicate on the "is_published" field. It's identical to IsPublishedEQ.
+func IsPublished(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIsPublished), v))
+	})
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
@@ -1205,6 +1212,20 @@ func ClosingAtLT(v time.Time) predicate.Recruitment {
 func ClosingAtLTE(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldClosingAt), v))
+	})
+}
+
+// IsPublishedEQ applies the EQ predicate on the "is_published" field.
+func IsPublishedEQ(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIsPublished), v))
+	})
+}
+
+// IsPublishedNEQ applies the NEQ predicate on the "is_published" field.
+func IsPublishedNEQ(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldIsPublished), v))
 	})
 }
 

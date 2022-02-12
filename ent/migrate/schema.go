@@ -49,6 +49,7 @@ var (
 		{Name: "location_lng", Type: field.TypeFloat64, Nullable: true},
 		{Name: "capacity", Type: field.TypeInt, Nullable: true},
 		{Name: "closing_at", Type: field.TypeTime},
+		{Name: "is_published", Type: field.TypeBool, Default: false},
 		{Name: "competition_id", Type: field.TypeString, Nullable: true},
 		{Name: "prefecture_id", Type: field.TypeString, Nullable: true},
 		{Name: "user_id", Type: field.TypeString, Nullable: true},
@@ -61,19 +62,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "recruitments_competitions_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[13]},
+				Columns:    []*schema.Column{RecruitmentsColumns[14]},
 				RefColumns: []*schema.Column{CompetitionsColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_prefectures_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[14]},
+				Columns:    []*schema.Column{RecruitmentsColumns[15]},
 				RefColumns: []*schema.Column{PrefecturesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_users_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[15]},
+				Columns:    []*schema.Column{RecruitmentsColumns[16]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
