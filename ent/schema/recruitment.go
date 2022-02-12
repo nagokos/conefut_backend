@@ -69,6 +69,9 @@ func (Recruitment) Fields() []ent.Field {
 			Optional(),
 		field.Time("closing_at").
 			Comment("募集期限"),
+		field.Bool("is_published").
+			Default(false).
+			Comment("公開済みかどうか"),
 	}
 }
 
