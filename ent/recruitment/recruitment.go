@@ -30,12 +30,16 @@ const (
 	FieldStartAt = "start_at"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
-	// FieldLocationURL holds the string denoting the location_url field in the database.
-	FieldLocationURL = "location_url"
+	// FieldLocationLat holds the string denoting the locationlat field in the database.
+	FieldLocationLat = "location_lat"
+	// FieldLocationLng holds the string denoting the locationlng field in the database.
+	FieldLocationLng = "location_lng"
 	// FieldCapacity holds the string denoting the capacity field in the database.
 	FieldCapacity = "capacity"
 	// FieldClosingAt holds the string denoting the closing_at field in the database.
 	FieldClosingAt = "closing_at"
+	// FieldIsPublished holds the string denoting the is_published field in the database.
+	FieldIsPublished = "is_published"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
@@ -78,9 +82,11 @@ var Columns = []string{
 	FieldPlace,
 	FieldStartAt,
 	FieldContent,
-	FieldLocationURL,
+	FieldLocationLat,
+	FieldLocationLng,
 	FieldCapacity,
 	FieldClosingAt,
+	FieldIsPublished,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "recruitments"
@@ -117,6 +123,8 @@ var (
 	TitleValidator func(string) error
 	// ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	ContentValidator func(string) error
+	// DefaultIsPublished holds the default value on creation for the "is_published" field.
+	DefaultIsPublished bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.

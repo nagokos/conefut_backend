@@ -73,8 +73,10 @@ type ComplexityRoot struct {
 		Competition func(childComplexity int) int
 		Content     func(childComplexity int) int
 		ID          func(childComplexity int) int
+		IsPublished func(childComplexity int) int
 		Level       func(childComplexity int) int
-		LocationURL func(childComplexity int) int
+		LocationLat func(childComplexity int) int
+		LocationLng func(childComplexity int) int
 		Place       func(childComplexity int) int
 		Prefecture  func(childComplexity int) int
 		StartAt     func(childComplexity int) int
@@ -248,6 +250,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.ID(childComplexity), true
 
+	case "Recruitment.isPublished":
+		if e.complexity.Recruitment.IsPublished == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.IsPublished(childComplexity), true
+
 	case "Recruitment.level":
 		if e.complexity.Recruitment.Level == nil {
 			break
@@ -255,12 +264,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.Level(childComplexity), true
 
-	case "Recruitment.locationUrl":
-		if e.complexity.Recruitment.LocationURL == nil {
+	case "Recruitment.locationLat":
+		if e.complexity.Recruitment.LocationLat == nil {
 			break
 		}
 
-		return e.complexity.Recruitment.LocationURL(childComplexity), true
+		return e.complexity.Recruitment.LocationLat(childComplexity), true
+
+	case "Recruitment.locationLng":
+		if e.complexity.Recruitment.LocationLng == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.LocationLng(childComplexity), true
 
 	case "Recruitment.place":
 		if e.complexity.Recruitment.Place == nil {
@@ -480,7 +496,9 @@ type Recruitment {
   level: Level!
   place: String
   startAt: DateTime
-  locationUrl: String
+  locationLat: Float
+  locationLng: Float
+  isPublished: Boolean!
   capacity: Int
   closingAt: DateTime!
   competition: Competition!
@@ -512,8 +530,10 @@ input createRecruitmentInput {
   level: Level!
   place: String
   startAt: DateTime
-  locationUrl: String
+  locationLat: Float
+  locationLng: Float
   capacity: Int
+  isPublished: Boolean!
   closingAt: DateTime!
   competitionId: String!
   prefectureId: String!
@@ -1356,7 +1376,7 @@ func (ec *executionContext) _Recruitment_startAt(ctx context.Context, field grap
 	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Recruitment_locationUrl(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Recruitment_locationLat(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1374,7 +1394,7 @@ func (ec *executionContext) _Recruitment_locationUrl(ctx context.Context, field 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LocationURL, nil
+		return obj.LocationLat, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1383,9 +1403,76 @@ func (ec *executionContext) _Recruitment_locationUrl(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*float64)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Recruitment_locationLng(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Recruitment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LocationLng, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*float64)
+	fc.Result = res
+	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Recruitment_isPublished(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Recruitment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsPublished, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_capacity(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -2988,11 +3075,19 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 			if err != nil {
 				return it, err
 			}
-		case "locationUrl":
+		case "locationLat":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locationUrl"))
-			it.LocationURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locationLat"))
+			it.LocationLat, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "locationLng":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locationLng"))
+			it.LocationLng, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3001,6 +3096,14 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("capacity"))
 			it.Capacity, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isPublished":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isPublished"))
+			it.IsPublished, err = ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3328,8 +3431,15 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_place(ctx, field, obj)
 		case "startAt":
 			out.Values[i] = ec._Recruitment_startAt(ctx, field, obj)
-		case "locationUrl":
-			out.Values[i] = ec._Recruitment_locationUrl(ctx, field, obj)
+		case "locationLat":
+			out.Values[i] = ec._Recruitment_locationLat(ctx, field, obj)
+		case "locationLng":
+			out.Values[i] = ec._Recruitment_locationLng(ctx, field, obj)
+		case "isPublished":
+			out.Values[i] = ec._Recruitment_isPublished(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "capacity":
 			out.Values[i] = ec._Recruitment_capacity(ctx, field, obj)
 		case "closingAt":
@@ -4197,6 +4307,21 @@ func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context,
 		return graphql.Null
 	}
 	return model.MarshalDateTime(*v)
+}
+
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloat(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalFloat(*v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {

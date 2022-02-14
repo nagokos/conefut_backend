@@ -18,7 +18,7 @@ func UnmarshalDateTime(v interface{}) (time.Time, error) {
 		if len(v) == 0 {
 			return time.Time{}, nil
 		}
-		return time.Parse("2006/01/02 15:04", v)
+		return time.ParseInLocation("2006/01/02 15:04", v, time.Local)
 	case time.Time:
 		return v, nil
 	default:
@@ -31,6 +31,10 @@ func UnmarshalDateTime(v interface{}) (time.Time, error) {
 */
 func MarshalDateTime(t time.Time) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
-		w.Write([]byte(strconv.Quote(t.Format("2006/01/02 15:04"))))
+		if t.IsZero() {
+			w.Write([]byte(`""`))
+		} else {
+			w.Write([]byte(strconv.Quote(t.Format("2006/01/02 15:04"))))
+		}
 	})
 }

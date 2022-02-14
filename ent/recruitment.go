@@ -36,14 +36,20 @@ type Recruitment struct {
 	// Content holds the value of the "content" field.
 	// 募集詳細
 	Content string `json:"content,omitempty"`
-	// LocationURL holds the value of the "Location_url" field.
-	// 会場の場所を埋め込むURL
-	LocationURL string `json:"Location_url,omitempty"`
+	// LocationLat holds the value of the "locationLat" field.
+	// 会場の緯度
+	LocationLat float64 `json:"locationLat,omitempty"`
+	// LocationLng holds the value of the "locationLng" field.
+	// 会場の経度
+	LocationLng float64 `json:"locationLng,omitempty"`
 	// Capacity holds the value of the "capacity" field.
 	Capacity int `json:"capacity,omitempty"`
 	// ClosingAt holds the value of the "closing_at" field.
 	// 募集期限
 	ClosingAt time.Time `json:"closing_at,omitempty"`
+	// IsPublished holds the value of the "is_published" field.
+	// 公開済みかどうか
+	IsPublished bool `json:"is_published,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the RecruitmentQuery when eager-loading is set.
 	Edges          RecruitmentEdges `json:"edges"`
@@ -112,9 +118,13 @@ func (*Recruitment) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case recruitment.FieldIsPublished:
+			values[i] = new(sql.NullBool)
+		case recruitment.FieldLocationLat, recruitment.FieldLocationLng:
+			values[i] = new(sql.NullFloat64)
 		case recruitment.FieldCapacity:
 			values[i] = new(sql.NullInt64)
-		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldLocationURL:
+		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent:
 			values[i] = new(sql.NullString)
 		case recruitment.FieldCreatedAt, recruitment.FieldUpdatedAt, recruitment.FieldStartAt, recruitment.FieldClosingAt:
 			values[i] = new(sql.NullTime)
@@ -193,11 +203,17 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 			} else if value.Valid {
 				r.Content = value.String
 			}
-		case recruitment.FieldLocationURL:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field Location_url", values[i])
+		case recruitment.FieldLocationLat:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field locationLat", values[i])
 			} else if value.Valid {
-				r.LocationURL = value.String
+				r.LocationLat = value.Float64
+			}
+		case recruitment.FieldLocationLng:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field locationLng", values[i])
+			} else if value.Valid {
+				r.LocationLng = value.Float64
 			}
 		case recruitment.FieldCapacity:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -210,6 +226,12 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 				return fmt.Errorf("unexpected type %T for field closing_at", values[i])
 			} else if value.Valid {
 				r.ClosingAt = value.Time
+			}
+		case recruitment.FieldIsPublished:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_published", values[i])
+			} else if value.Valid {
+				r.IsPublished = value.Bool
 			}
 		case recruitment.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -291,12 +313,16 @@ func (r *Recruitment) String() string {
 	builder.WriteString(r.StartAt.Format(time.ANSIC))
 	builder.WriteString(", content=")
 	builder.WriteString(r.Content)
-	builder.WriteString(", Location_url=")
-	builder.WriteString(r.LocationURL)
+	builder.WriteString(", locationLat=")
+	builder.WriteString(fmt.Sprintf("%v", r.LocationLat))
+	builder.WriteString(", locationLng=")
+	builder.WriteString(fmt.Sprintf("%v", r.LocationLng))
 	builder.WriteString(", capacity=")
 	builder.WriteString(fmt.Sprintf("%v", r.Capacity))
 	builder.WriteString(", closing_at=")
 	builder.WriteString(r.ClosingAt.Format(time.ANSIC))
+	builder.WriteString(", is_published=")
+	builder.WriteString(fmt.Sprintf("%v", r.IsPublished))
 	builder.WriteByte(')')
 	return builder.String()
 }

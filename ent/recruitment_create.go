@@ -119,16 +119,30 @@ func (rc *RecruitmentCreate) SetContent(s string) *RecruitmentCreate {
 	return rc
 }
 
-// SetLocationURL sets the "Location_url" field.
-func (rc *RecruitmentCreate) SetLocationURL(s string) *RecruitmentCreate {
-	rc.mutation.SetLocationURL(s)
+// SetLocationLat sets the "locationLat" field.
+func (rc *RecruitmentCreate) SetLocationLat(f float64) *RecruitmentCreate {
+	rc.mutation.SetLocationLat(f)
 	return rc
 }
 
-// SetNillableLocationURL sets the "Location_url" field if the given value is not nil.
-func (rc *RecruitmentCreate) SetNillableLocationURL(s *string) *RecruitmentCreate {
-	if s != nil {
-		rc.SetLocationURL(*s)
+// SetNillableLocationLat sets the "locationLat" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableLocationLat(f *float64) *RecruitmentCreate {
+	if f != nil {
+		rc.SetLocationLat(*f)
+	}
+	return rc
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (rc *RecruitmentCreate) SetLocationLng(f float64) *RecruitmentCreate {
+	rc.mutation.SetLocationLng(f)
+	return rc
+}
+
+// SetNillableLocationLng sets the "locationLng" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableLocationLng(f *float64) *RecruitmentCreate {
+	if f != nil {
+		rc.SetLocationLng(*f)
 	}
 	return rc
 }
@@ -150,6 +164,20 @@ func (rc *RecruitmentCreate) SetNillableCapacity(i *int) *RecruitmentCreate {
 // SetClosingAt sets the "closing_at" field.
 func (rc *RecruitmentCreate) SetClosingAt(t time.Time) *RecruitmentCreate {
 	rc.mutation.SetClosingAt(t)
+	return rc
+}
+
+// SetIsPublished sets the "is_published" field.
+func (rc *RecruitmentCreate) SetIsPublished(b bool) *RecruitmentCreate {
+	rc.mutation.SetIsPublished(b)
+	return rc
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableIsPublished(b *bool) *RecruitmentCreate {
+	if b != nil {
+		rc.SetIsPublished(*b)
+	}
 	return rc
 }
 
@@ -287,6 +315,10 @@ func (rc *RecruitmentCreate) defaults() {
 		v := recruitment.DefaultLevel
 		rc.mutation.SetLevel(v)
 	}
+	if _, ok := rc.mutation.IsPublished(); !ok {
+		v := recruitment.DefaultIsPublished
+		rc.mutation.SetIsPublished(v)
+	}
 	if _, ok := rc.mutation.ID(); !ok {
 		v := recruitment.DefaultID()
 		rc.mutation.SetID(v)
@@ -332,6 +364,9 @@ func (rc *RecruitmentCreate) check() error {
 	}
 	if _, ok := rc.mutation.ClosingAt(); !ok {
 		return &ValidationError{Name: "closing_at", err: errors.New(`ent: missing required field "closing_at"`)}
+	}
+	if _, ok := rc.mutation.IsPublished(); !ok {
+		return &ValidationError{Name: "is_published", err: errors.New(`ent: missing required field "is_published"`)}
 	}
 	if v, ok := rc.mutation.ID(); ok {
 		if err := recruitment.IDValidator(v); err != nil {
@@ -443,13 +478,21 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		})
 		_node.Content = value
 	}
-	if value, ok := rc.mutation.LocationURL(); ok {
+	if value, ok := rc.mutation.LocationLat(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeFloat64,
 			Value:  value,
-			Column: recruitment.FieldLocationURL,
+			Column: recruitment.FieldLocationLat,
 		})
-		_node.LocationURL = value
+		_node.LocationLat = value
+	}
+	if value, ok := rc.mutation.LocationLng(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+		_node.LocationLng = value
 	}
 	if value, ok := rc.mutation.Capacity(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
@@ -466,6 +509,14 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			Column: recruitment.FieldClosingAt,
 		})
 		_node.ClosingAt = value
+	}
+	if value, ok := rc.mutation.IsPublished(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
+		})
+		_node.IsPublished = value
 	}
 	if nodes := rc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

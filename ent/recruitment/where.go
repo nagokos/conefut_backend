@@ -135,10 +135,17 @@ func Content(v string) predicate.Recruitment {
 	})
 }
 
-// LocationURL applies equality check predicate on the "Location_url" field. It's identical to LocationURLEQ.
-func LocationURL(v string) predicate.Recruitment {
+// LocationLat applies equality check predicate on the "locationLat" field. It's identical to LocationLatEQ.
+func LocationLat(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldLocationURL), v))
+		s.Where(sql.EQ(s.C(FieldLocationLat), v))
+	})
+}
+
+// LocationLng applies equality check predicate on the "locationLng" field. It's identical to LocationLngEQ.
+func LocationLng(v float64) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLocationLng), v))
 	})
 }
 
@@ -153,6 +160,13 @@ func Capacity(v int) predicate.Recruitment {
 func ClosingAt(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldClosingAt), v))
+	})
+}
+
+// IsPublished applies equality check predicate on the "is_published" field. It's identical to IsPublishedEQ.
+func IsPublished(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIsPublished), v))
 	})
 }
 
@@ -855,22 +869,22 @@ func ContentContainsFold(v string) predicate.Recruitment {
 	})
 }
 
-// LocationURLEQ applies the EQ predicate on the "Location_url" field.
-func LocationURLEQ(v string) predicate.Recruitment {
+// LocationLatEQ applies the EQ predicate on the "locationLat" field.
+func LocationLatEQ(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldLocationURL), v))
+		s.Where(sql.EQ(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLNEQ applies the NEQ predicate on the "Location_url" field.
-func LocationURLNEQ(v string) predicate.Recruitment {
+// LocationLatNEQ applies the NEQ predicate on the "locationLat" field.
+func LocationLatNEQ(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldLocationURL), v))
+		s.Where(sql.NEQ(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLIn applies the In predicate on the "Location_url" field.
-func LocationURLIn(vs ...string) predicate.Recruitment {
+// LocationLatIn applies the In predicate on the "locationLat" field.
+func LocationLatIn(vs ...float64) predicate.Recruitment {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -882,12 +896,12 @@ func LocationURLIn(vs ...string) predicate.Recruitment {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.In(s.C(FieldLocationURL), v...))
+		s.Where(sql.In(s.C(FieldLocationLat), v...))
 	})
 }
 
-// LocationURLNotIn applies the NotIn predicate on the "Location_url" field.
-func LocationURLNotIn(vs ...string) predicate.Recruitment {
+// LocationLatNotIn applies the NotIn predicate on the "locationLat" field.
+func LocationLatNotIn(vs ...float64) predicate.Recruitment {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -899,84 +913,139 @@ func LocationURLNotIn(vs ...string) predicate.Recruitment {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.NotIn(s.C(FieldLocationURL), v...))
+		s.Where(sql.NotIn(s.C(FieldLocationLat), v...))
 	})
 }
 
-// LocationURLGT applies the GT predicate on the "Location_url" field.
-func LocationURLGT(v string) predicate.Recruitment {
+// LocationLatGT applies the GT predicate on the "locationLat" field.
+func LocationLatGT(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldLocationURL), v))
+		s.Where(sql.GT(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLGTE applies the GTE predicate on the "Location_url" field.
-func LocationURLGTE(v string) predicate.Recruitment {
+// LocationLatGTE applies the GTE predicate on the "locationLat" field.
+func LocationLatGTE(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldLocationURL), v))
+		s.Where(sql.GTE(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLLT applies the LT predicate on the "Location_url" field.
-func LocationURLLT(v string) predicate.Recruitment {
+// LocationLatLT applies the LT predicate on the "locationLat" field.
+func LocationLatLT(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldLocationURL), v))
+		s.Where(sql.LT(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLLTE applies the LTE predicate on the "Location_url" field.
-func LocationURLLTE(v string) predicate.Recruitment {
+// LocationLatLTE applies the LTE predicate on the "locationLat" field.
+func LocationLatLTE(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldLocationURL), v))
+		s.Where(sql.LTE(s.C(FieldLocationLat), v))
 	})
 }
 
-// LocationURLContains applies the Contains predicate on the "Location_url" field.
-func LocationURLContains(v string) predicate.Recruitment {
+// LocationLatIsNil applies the IsNil predicate on the "locationLat" field.
+func LocationLatIsNil() predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.Contains(s.C(FieldLocationURL), v))
+		s.Where(sql.IsNull(s.C(FieldLocationLat)))
 	})
 }
 
-// LocationURLHasPrefix applies the HasPrefix predicate on the "Location_url" field.
-func LocationURLHasPrefix(v string) predicate.Recruitment {
+// LocationLatNotNil applies the NotNil predicate on the "locationLat" field.
+func LocationLatNotNil() predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.HasPrefix(s.C(FieldLocationURL), v))
+		s.Where(sql.NotNull(s.C(FieldLocationLat)))
 	})
 }
 
-// LocationURLHasSuffix applies the HasSuffix predicate on the "Location_url" field.
-func LocationURLHasSuffix(v string) predicate.Recruitment {
+// LocationLngEQ applies the EQ predicate on the "locationLng" field.
+func LocationLngEQ(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.HasSuffix(s.C(FieldLocationURL), v))
+		s.Where(sql.EQ(s.C(FieldLocationLng), v))
 	})
 }
 
-// LocationURLIsNil applies the IsNil predicate on the "Location_url" field.
-func LocationURLIsNil() predicate.Recruitment {
+// LocationLngNEQ applies the NEQ predicate on the "locationLng" field.
+func LocationLngNEQ(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.IsNull(s.C(FieldLocationURL)))
+		s.Where(sql.NEQ(s.C(FieldLocationLng), v))
 	})
 }
 
-// LocationURLNotNil applies the NotNil predicate on the "Location_url" field.
-func LocationURLNotNil() predicate.Recruitment {
+// LocationLngIn applies the In predicate on the "locationLng" field.
+func LocationLngIn(vs ...float64) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.NotNull(s.C(FieldLocationURL)))
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldLocationLng), v...))
 	})
 }
 
-// LocationURLEqualFold applies the EqualFold predicate on the "Location_url" field.
-func LocationURLEqualFold(v string) predicate.Recruitment {
+// LocationLngNotIn applies the NotIn predicate on the "locationLng" field.
+func LocationLngNotIn(vs ...float64) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EqualFold(s.C(FieldLocationURL), v))
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldLocationLng), v...))
 	})
 }
 
-// LocationURLContainsFold applies the ContainsFold predicate on the "Location_url" field.
-func LocationURLContainsFold(v string) predicate.Recruitment {
+// LocationLngGT applies the GT predicate on the "locationLng" field.
+func LocationLngGT(v float64) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.ContainsFold(s.C(FieldLocationURL), v))
+		s.Where(sql.GT(s.C(FieldLocationLng), v))
+	})
+}
+
+// LocationLngGTE applies the GTE predicate on the "locationLng" field.
+func LocationLngGTE(v float64) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldLocationLng), v))
+	})
+}
+
+// LocationLngLT applies the LT predicate on the "locationLng" field.
+func LocationLngLT(v float64) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldLocationLng), v))
+	})
+}
+
+// LocationLngLTE applies the LTE predicate on the "locationLng" field.
+func LocationLngLTE(v float64) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldLocationLng), v))
+	})
+}
+
+// LocationLngIsNil applies the IsNil predicate on the "locationLng" field.
+func LocationLngIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldLocationLng)))
+	})
+}
+
+// LocationLngNotNil applies the NotNil predicate on the "locationLng" field.
+func LocationLngNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldLocationLng)))
 	})
 }
 
@@ -1143,6 +1212,20 @@ func ClosingAtLT(v time.Time) predicate.Recruitment {
 func ClosingAtLTE(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldClosingAt), v))
+	})
+}
+
+// IsPublishedEQ applies the EQ predicate on the "is_published" field.
+func IsPublishedEQ(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIsPublished), v))
+	})
+}
+
+// IsPublishedNEQ applies the NEQ predicate on the "is_published" field.
+func IsPublishedNEQ(v bool) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldIsPublished), v))
 	})
 }
 

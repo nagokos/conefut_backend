@@ -27,7 +27,9 @@ type Recruitment struct {
 	Level       Level        `json:"level"`
 	Place       *string      `json:"place"`
 	StartAt     *time.Time   `json:"startAt"`
-	LocationURL *string      `json:"locationUrl"`
+	LocationLat *float64     `json:"locationLat"`
+	LocationLng *float64     `json:"locationLng"`
+	IsPublished bool         `json:"isPublished"`
 	Capacity    *int         `json:"capacity"`
 	ClosingAt   time.Time    `json:"closingAt"`
 	Competition *Competition `json:"competition"`
@@ -52,8 +54,10 @@ type CreateRecruitmentInput struct {
 	Level         Level      `json:"level"`
 	Place         *string    `json:"place"`
 	StartAt       *time.Time `json:"startAt"`
-	LocationURL   *string    `json:"locationUrl"`
+	LocationLat   *float64   `json:"locationLat"`
+	LocationLng   *float64   `json:"locationLng"`
 	Capacity      *int       `json:"capacity"`
+	IsPublished   bool       `json:"isPublished"`
 	ClosingAt     time.Time  `json:"closingAt"`
 	CompetitionID string     `json:"competitionId"`
 	PrefectureID  string     `json:"prefectureId"`

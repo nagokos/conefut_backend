@@ -123,23 +123,57 @@ func (ru *RecruitmentUpdate) SetContent(s string) *RecruitmentUpdate {
 	return ru
 }
 
-// SetLocationURL sets the "Location_url" field.
-func (ru *RecruitmentUpdate) SetLocationURL(s string) *RecruitmentUpdate {
-	ru.mutation.SetLocationURL(s)
+// SetLocationLat sets the "locationLat" field.
+func (ru *RecruitmentUpdate) SetLocationLat(f float64) *RecruitmentUpdate {
+	ru.mutation.ResetLocationLat()
+	ru.mutation.SetLocationLat(f)
 	return ru
 }
 
-// SetNillableLocationURL sets the "Location_url" field if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillableLocationURL(s *string) *RecruitmentUpdate {
-	if s != nil {
-		ru.SetLocationURL(*s)
+// SetNillableLocationLat sets the "locationLat" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableLocationLat(f *float64) *RecruitmentUpdate {
+	if f != nil {
+		ru.SetLocationLat(*f)
 	}
 	return ru
 }
 
-// ClearLocationURL clears the value of the "Location_url" field.
-func (ru *RecruitmentUpdate) ClearLocationURL() *RecruitmentUpdate {
-	ru.mutation.ClearLocationURL()
+// AddLocationLat adds f to the "locationLat" field.
+func (ru *RecruitmentUpdate) AddLocationLat(f float64) *RecruitmentUpdate {
+	ru.mutation.AddLocationLat(f)
+	return ru
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (ru *RecruitmentUpdate) ClearLocationLat() *RecruitmentUpdate {
+	ru.mutation.ClearLocationLat()
+	return ru
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (ru *RecruitmentUpdate) SetLocationLng(f float64) *RecruitmentUpdate {
+	ru.mutation.ResetLocationLng()
+	ru.mutation.SetLocationLng(f)
+	return ru
+}
+
+// SetNillableLocationLng sets the "locationLng" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableLocationLng(f *float64) *RecruitmentUpdate {
+	if f != nil {
+		ru.SetLocationLng(*f)
+	}
+	return ru
+}
+
+// AddLocationLng adds f to the "locationLng" field.
+func (ru *RecruitmentUpdate) AddLocationLng(f float64) *RecruitmentUpdate {
+	ru.mutation.AddLocationLng(f)
+	return ru
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (ru *RecruitmentUpdate) ClearLocationLng() *RecruitmentUpdate {
+	ru.mutation.ClearLocationLng()
 	return ru
 }
 
@@ -173,6 +207,20 @@ func (ru *RecruitmentUpdate) ClearCapacity() *RecruitmentUpdate {
 // SetClosingAt sets the "closing_at" field.
 func (ru *RecruitmentUpdate) SetClosingAt(t time.Time) *RecruitmentUpdate {
 	ru.mutation.SetClosingAt(t)
+	return ru
+}
+
+// SetIsPublished sets the "is_published" field.
+func (ru *RecruitmentUpdate) SetIsPublished(b bool) *RecruitmentUpdate {
+	ru.mutation.SetIsPublished(b)
+	return ru
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableIsPublished(b *bool) *RecruitmentUpdate {
+	if b != nil {
+		ru.SetIsPublished(*b)
+	}
 	return ru
 }
 
@@ -420,17 +468,44 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldContent,
 		})
 	}
-	if value, ok := ru.mutation.LocationURL(); ok {
+	if value, ok := ru.mutation.LocationLat(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeFloat64,
 			Value:  value,
-			Column: recruitment.FieldLocationURL,
+			Column: recruitment.FieldLocationLat,
 		})
 	}
-	if ru.mutation.LocationURLCleared() {
+	if value, ok := ru.mutation.AddedLocationLat(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLat,
+		})
+	}
+	if ru.mutation.LocationLatCleared() {
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: recruitment.FieldLocationURL,
+			Type:   field.TypeFloat64,
+			Column: recruitment.FieldLocationLat,
+		})
+	}
+	if value, ok := ru.mutation.LocationLng(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+	}
+	if value, ok := ru.mutation.AddedLocationLng(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+	}
+	if ru.mutation.LocationLngCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Column: recruitment.FieldLocationLng,
 		})
 	}
 	if value, ok := ru.mutation.Capacity(); ok {
@@ -458,6 +533,13 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeTime,
 			Value:  value,
 			Column: recruitment.FieldClosingAt,
+		})
+	}
+	if value, ok := ru.mutation.IsPublished(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
 		})
 	}
 	if ru.mutation.UserCleared() {
@@ -676,23 +758,57 @@ func (ruo *RecruitmentUpdateOne) SetContent(s string) *RecruitmentUpdateOne {
 	return ruo
 }
 
-// SetLocationURL sets the "Location_url" field.
-func (ruo *RecruitmentUpdateOne) SetLocationURL(s string) *RecruitmentUpdateOne {
-	ruo.mutation.SetLocationURL(s)
+// SetLocationLat sets the "locationLat" field.
+func (ruo *RecruitmentUpdateOne) SetLocationLat(f float64) *RecruitmentUpdateOne {
+	ruo.mutation.ResetLocationLat()
+	ruo.mutation.SetLocationLat(f)
 	return ruo
 }
 
-// SetNillableLocationURL sets the "Location_url" field if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillableLocationURL(s *string) *RecruitmentUpdateOne {
-	if s != nil {
-		ruo.SetLocationURL(*s)
+// SetNillableLocationLat sets the "locationLat" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableLocationLat(f *float64) *RecruitmentUpdateOne {
+	if f != nil {
+		ruo.SetLocationLat(*f)
 	}
 	return ruo
 }
 
-// ClearLocationURL clears the value of the "Location_url" field.
-func (ruo *RecruitmentUpdateOne) ClearLocationURL() *RecruitmentUpdateOne {
-	ruo.mutation.ClearLocationURL()
+// AddLocationLat adds f to the "locationLat" field.
+func (ruo *RecruitmentUpdateOne) AddLocationLat(f float64) *RecruitmentUpdateOne {
+	ruo.mutation.AddLocationLat(f)
+	return ruo
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (ruo *RecruitmentUpdateOne) ClearLocationLat() *RecruitmentUpdateOne {
+	ruo.mutation.ClearLocationLat()
+	return ruo
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (ruo *RecruitmentUpdateOne) SetLocationLng(f float64) *RecruitmentUpdateOne {
+	ruo.mutation.ResetLocationLng()
+	ruo.mutation.SetLocationLng(f)
+	return ruo
+}
+
+// SetNillableLocationLng sets the "locationLng" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableLocationLng(f *float64) *RecruitmentUpdateOne {
+	if f != nil {
+		ruo.SetLocationLng(*f)
+	}
+	return ruo
+}
+
+// AddLocationLng adds f to the "locationLng" field.
+func (ruo *RecruitmentUpdateOne) AddLocationLng(f float64) *RecruitmentUpdateOne {
+	ruo.mutation.AddLocationLng(f)
+	return ruo
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (ruo *RecruitmentUpdateOne) ClearLocationLng() *RecruitmentUpdateOne {
+	ruo.mutation.ClearLocationLng()
 	return ruo
 }
 
@@ -726,6 +842,20 @@ func (ruo *RecruitmentUpdateOne) ClearCapacity() *RecruitmentUpdateOne {
 // SetClosingAt sets the "closing_at" field.
 func (ruo *RecruitmentUpdateOne) SetClosingAt(t time.Time) *RecruitmentUpdateOne {
 	ruo.mutation.SetClosingAt(t)
+	return ruo
+}
+
+// SetIsPublished sets the "is_published" field.
+func (ruo *RecruitmentUpdateOne) SetIsPublished(b bool) *RecruitmentUpdateOne {
+	ruo.mutation.SetIsPublished(b)
+	return ruo
+}
+
+// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableIsPublished(b *bool) *RecruitmentUpdateOne {
+	if b != nil {
+		ruo.SetIsPublished(*b)
+	}
 	return ruo
 }
 
@@ -997,17 +1127,44 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Column: recruitment.FieldContent,
 		})
 	}
-	if value, ok := ruo.mutation.LocationURL(); ok {
+	if value, ok := ruo.mutation.LocationLat(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeFloat64,
 			Value:  value,
-			Column: recruitment.FieldLocationURL,
+			Column: recruitment.FieldLocationLat,
 		})
 	}
-	if ruo.mutation.LocationURLCleared() {
+	if value, ok := ruo.mutation.AddedLocationLat(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLat,
+		})
+	}
+	if ruo.mutation.LocationLatCleared() {
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: recruitment.FieldLocationURL,
+			Type:   field.TypeFloat64,
+			Column: recruitment.FieldLocationLat,
+		})
+	}
+	if value, ok := ruo.mutation.LocationLng(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+	}
+	if value, ok := ruo.mutation.AddedLocationLng(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: recruitment.FieldLocationLng,
+		})
+	}
+	if ruo.mutation.LocationLngCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Column: recruitment.FieldLocationLng,
 		})
 	}
 	if value, ok := ruo.mutation.Capacity(); ok {
@@ -1035,6 +1192,13 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Type:   field.TypeTime,
 			Value:  value,
 			Column: recruitment.FieldClosingAt,
+		})
+	}
+	if value, ok := ruo.mutation.IsPublished(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: recruitment.FieldIsPublished,
 		})
 	}
 	if ruo.mutation.UserCleared() {
