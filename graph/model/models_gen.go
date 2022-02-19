@@ -22,7 +22,7 @@ type Prefecture struct {
 type Recruitment struct {
 	ID          string       `json:"id"`
 	Title       string       `json:"title"`
-	Content     string       `json:"content"`
+	Content     *string      `json:"content"`
 	Type        Type         `json:"type"`
 	Level       Level        `json:"level"`
 	Place       *string      `json:"place"`
@@ -31,7 +31,7 @@ type Recruitment struct {
 	LocationLng *float64     `json:"locationLng"`
 	IsPublished bool         `json:"isPublished"`
 	Capacity    *int         `json:"capacity"`
-	ClosingAt   time.Time    `json:"closingAt"`
+	ClosingAt   *time.Time   `json:"closingAt"`
 	Competition *Competition `json:"competition"`
 	Prefecture  *Prefecture  `json:"prefecture"`
 	User        *User        `json:"user"`
@@ -49,7 +49,7 @@ type User struct {
 
 type CreateRecruitmentInput struct {
 	Title         string     `json:"title"`
-	Content       string     `json:"content"`
+	Content       *string    `json:"content"`
 	Type          Type       `json:"type"`
 	Level         Level      `json:"level"`
 	Place         *string    `json:"place"`
@@ -58,9 +58,9 @@ type CreateRecruitmentInput struct {
 	LocationLng   *float64   `json:"locationLng"`
 	Capacity      *int       `json:"capacity"`
 	IsPublished   bool       `json:"isPublished"`
-	ClosingAt     time.Time  `json:"closingAt"`
-	CompetitionID string     `json:"competitionId"`
-	PrefectureID  string     `json:"prefectureId"`
+	ClosingAt     *time.Time `json:"closingAt"`
+	CompetitionID *string    `json:"competitionId"`
+	PrefectureID  *string    `json:"prefectureId"`
 }
 
 type CreateUserInput struct {
@@ -210,15 +210,17 @@ func (e Role) MarshalGQL(w io.Writer) {
 type Type string
 
 const (
-	TypeOpponent   Type = "OPPONENT"
-	TypeIndividual Type = "INDIVIDUAL"
-	TypeTeammate   Type = "TEAMMATE"
-	TypeJoining    Type = "JOINING"
-	TypeCoaching   Type = "COACHING"
-	TypeOthers     Type = "OTHERS"
+	TypeUnnecessary Type = "UNNECESSARY"
+	TypeOpponent    Type = "OPPONENT"
+	TypeIndividual  Type = "INDIVIDUAL"
+	TypeTeammate    Type = "TEAMMATE"
+	TypeJoining     Type = "JOINING"
+	TypeCoaching    Type = "COACHING"
+	TypeOthers      Type = "OTHERS"
 )
 
 var AllType = []Type{
+	TypeUnnecessary,
 	TypeOpponent,
 	TypeIndividual,
 	TypeTeammate,
@@ -229,7 +231,7 @@ var AllType = []Type{
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
+	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
 		return true
 	}
 	return false
