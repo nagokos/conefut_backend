@@ -20,12 +20,14 @@ type Recruitment struct {
 	Level         model.Level
 	Place         *string
 	StartAt       *time.Time
-	Content       string
-	LocationURL   *string
+	Content       *string
+	LocationLat   *float64
+	LocationLng   *float64
+	IsPublished   bool
 	Capacity      *int
-	ClosingAt     time.Time
-	CompetitionID string
-	PrefectureID  string
+	ClosingAt     *time.Time
+	CompetitionID *string
+	PrefectureID  *string
 }
 
 func (r Recruitment) CreateRecruitmentValidate() error {
@@ -33,25 +35,25 @@ func (r Recruitment) CreateRecruitmentValidate() error {
 		validation.Field(
 			&r.Title,
 			validation.Required.Error("タイトルを入力してください"),
-			validation.RuneLength(1, 60).Error("エラーです"),
+			validation.RuneLength(1, 60).Error("タイトルは60文字以内で入力してください"),
 		),
-		validation.Field(
-			&r.Type,
-			validation.Required.Error("募集タイプを選択してください"),
-		),
-		validation.Field(
-			&r.Content,
-			validation.Required.Error("募集の詳細を入力してください"),
-			validation.RuneLength(1, 10000).Error("募集の詳細は10000文字以内で入力してください"),
-		),
-		validation.Field(
-			&r.PrefectureID,
-			validation.Required.Error("募集エリアを選択してください"),
-		),
-		validation.Field(
-			&r.CompetitionID,
-			validation.Required.Error("募集競技を選択してください"),
-		),
+		// validation.Field(
+		// 	&r.Type,
+		// 	validation.Required.Error("募集タイプを選択してください"),
+		// ),
+		// validation.Field(
+		// 	&r.Content,
+		// 	validation.Required.Error("募集の詳細を入力してください"),
+		// 	validation.RuneLength(1, 10000).Error("募集の詳細は10000文字以内で入力してください"),
+		// ),
+		// validation.Field(
+		// 	&r.PrefectureID,
+		// 	validation.Required.Error("募集エリアを選択してください"),
+		// ),
+		// validation.Field(
+		// 	&r.CompetitionID,
+		// 	validation.Required.Error("募集競技を選択してください"),
+		// ),
 	)
 }
 
@@ -65,21 +67,20 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		SetLevel(recruitment.Level(strings.ToLower(string(r.Level)))).
 		SetNillableCapacity(r.Capacity).
 		SetNillableStartAt(r.StartAt).
-		SetContent(r.Content).
+		SetNillableContent(r.Content).
 		SetNillablePlace(r.Place).
-		SetNillableLocationURL(r.LocationURL).
-		SetClosingAt(r.ClosingAt).
-		SetCompetitionID(r.CompetitionID).
-		SetPrefectureID(r.PrefectureID).
+		SetNillableLocationLat(r.LocationLat).
+		SetNillableLocationLng(r.LocationLng).
+		SetIsPublished(r.IsPublished).
+		SetNillableClosingAt(r.ClosingAt).
+		SetNillableCompetitionID(r.CompetitionID).
+		SetNillablePrefectureID(r.PrefectureID).
 		SetUserID(currentUser.ID).
 		Save(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintln("recruitment create errors:", err.Error()))
 		return &model.Recruitment{}, err
 	}
-
-	c, _ := res.Competition(ctx)
-	p, _ := res.Prefecture(ctx)
 
 	resRecruitment := &model.Recruitment{
 		ID:          res.ID,
@@ -88,19 +89,13 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		Level:       model.Level(res.Level),
 		Place:       &res.Place,
 		StartAt:     &res.StartAt,
-		Content:     res.Content,
-		LocationURL: &res.LocationURL,
+		Content:     &res.Content,
+		LocationLat: &res.LocationLat,
+		LocationLng: &res.LocationLng,
+		IsPublished: res.IsPublished,
 		Capacity:    &res.Capacity,
-		ClosingAt:   res.ClosingAt,
-		Competition: &model.Competition{
-			ID:   c.ID,
-			Name: c.Name,
-		},
-		Prefecture: &model.Prefecture{
-			ID:   p.ID,
-			Name: p.Name,
-		},
-		User: currentUser,
+		ClosingAt:   &res.ClosingAt,
+		User:        currentUser,
 	}
 
 	return resRecruitment, nil

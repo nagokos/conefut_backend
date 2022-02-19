@@ -855,6 +855,20 @@ func ContentHasSuffix(v string) predicate.Recruitment {
 	})
 }
 
+// ContentIsNil applies the IsNil predicate on the "content" field.
+func ContentIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldContent)))
+	})
+}
+
+// ContentNotNil applies the NotNil predicate on the "content" field.
+func ContentNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldContent)))
+	})
+}
+
 // ContentEqualFold applies the EqualFold predicate on the "content" field.
 func ContentEqualFold(v string) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
@@ -1212,6 +1226,20 @@ func ClosingAtLT(v time.Time) predicate.Recruitment {
 func ClosingAtLTE(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldClosingAt), v))
+	})
+}
+
+// ClosingAtIsNil applies the IsNil predicate on the "closing_at" field.
+func ClosingAtIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldClosingAt)))
+	})
+}
+
+// ClosingAtNotNil applies the NotNil predicate on the "closing_at" field.
+func ClosingAtNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldClosingAt)))
 	})
 }
 

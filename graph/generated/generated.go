@@ -451,6 +451,7 @@ enum EmailVerificationStatus {
 }
 
 enum Type {
+  UNNECESSARY
   OPPONENT
   INDIVIDUAL
   TEAMMATE
@@ -491,7 +492,7 @@ type Competition {
 type Recruitment {
   id: String!
   title: String!
-  content: String!
+  content: String
   type: Type!
   level: Level!
   place: String
@@ -500,9 +501,9 @@ type Recruitment {
   locationLng: Float
   isPublished: Boolean!
   capacity: Int
-  closingAt: DateTime!
-  competition: Competition!
-  prefecture: Prefecture!
+  closingAt: DateTime
+  competition: Competition
+  prefecture: Prefecture
   user: User!
 }
 
@@ -525,7 +526,7 @@ input loginUserInput {
 
 input createRecruitmentInput {
   title: String!
-  content: String!
+  content: String
   type: Type!
   level: Level!
   place: String
@@ -534,9 +535,9 @@ input createRecruitmentInput {
   locationLng: Float
   capacity: Int
   isPublished: Boolean!
-  closingAt: DateTime!
-  competitionId: String!
-  prefectureId: String!
+  closingAt: DateTime
+  competitionId: String
+  prefectureId: String
 }
 
 type Mutation {
@@ -1232,14 +1233,11 @@ func (ec *executionContext) _Recruitment_content(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_type(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -1532,14 +1530,11 @@ func (ec *executionContext) _Recruitment_closingAt(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_competition(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -1567,14 +1562,11 @@ func (ec *executionContext) _Recruitment_competition(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Competition)
 	fc.Result = res
-	return ec.marshalNCompetition2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCompetition(ctx, field.Selections, res)
+	return ec.marshalOCompetition2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCompetition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_prefecture(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -1602,14 +1594,11 @@ func (ec *executionContext) _Recruitment_prefecture(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Prefecture)
 	fc.Result = res
-	return ec.marshalNPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx, field.Selections, res)
+	return ec.marshalOPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_user(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -3039,7 +3028,7 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalNString2string(ctx, v)
+			it.Content, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3111,7 +3100,7 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("closingAt"))
-			it.ClosingAt, err = ec.unmarshalNDateTime2timeᚐTime(ctx, v)
+			it.ClosingAt, err = ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3119,7 +3108,7 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("competitionId"))
-			it.CompetitionID, err = ec.unmarshalNString2string(ctx, v)
+			it.CompetitionID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3127,7 +3116,7 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefectureId"))
-			it.PrefectureID, err = ec.unmarshalNString2string(ctx, v)
+			it.PrefectureID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3414,9 +3403,6 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			}
 		case "content":
 			out.Values[i] = ec._Recruitment_content(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "type":
 			out.Values[i] = ec._Recruitment_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3444,19 +3430,10 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_capacity(ctx, field, obj)
 		case "closingAt":
 			out.Values[i] = ec._Recruitment_closingAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "competition":
 			out.Values[i] = ec._Recruitment_competition(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "prefecture":
 			out.Values[i] = ec._Recruitment_prefecture(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "user":
 			out.Values[i] = ec._Recruitment_user(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3844,21 +3821,6 @@ func (ec *executionContext) marshalNCompetition2ᚖgithubᚗcomᚋnagokosᚋconn
 		return graphql.Null
 	}
 	return ec._Competition(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
-	res, err := model.UnmarshalDateTime(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
-	res := model.MarshalDateTime(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, v interface{}) (model.EmailVerificationStatus, error) {
@@ -4294,6 +4256,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
+func (ec *executionContext) marshalOCompetition2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCompetition(ctx context.Context, sel ast.SelectionSet, v *model.Competition) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Competition(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalODateTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
 	if v == nil {
 		return nil, nil
@@ -4337,6 +4306,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx context.Context, sel ast.SelectionSet, v *model.Prefecture) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Prefecture(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

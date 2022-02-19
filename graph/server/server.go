@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	_ "github.com/99designs/gqlgen/cmd"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -16,6 +17,10 @@ import (
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/logger"
 )
+
+func init() {
+	os.Setenv("TZ", "Asia/Tokyo")
+}
 
 func main() {
 	port := config.Config.Port

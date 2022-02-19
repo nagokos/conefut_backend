@@ -1471,9 +1471,22 @@ func (m *RecruitmentMutation) OldContent(ctx context.Context) (v string, err err
 	return oldValue.Content, nil
 }
 
+// ClearContent clears the value of the "content" field.
+func (m *RecruitmentMutation) ClearContent() {
+	m.content = nil
+	m.clearedFields[recruitment.FieldContent] = struct{}{}
+}
+
+// ContentCleared returns if the "content" field was cleared in this mutation.
+func (m *RecruitmentMutation) ContentCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldContent]
+	return ok
+}
+
 // ResetContent resets all changes to the "content" field.
 func (m *RecruitmentMutation) ResetContent() {
 	m.content = nil
+	delete(m.clearedFields, recruitment.FieldContent)
 }
 
 // SetLocationLat sets the "locationLat" field.
@@ -1717,9 +1730,22 @@ func (m *RecruitmentMutation) OldClosingAt(ctx context.Context) (v time.Time, er
 	return oldValue.ClosingAt, nil
 }
 
+// ClearClosingAt clears the value of the "closing_at" field.
+func (m *RecruitmentMutation) ClearClosingAt() {
+	m.closing_at = nil
+	m.clearedFields[recruitment.FieldClosingAt] = struct{}{}
+}
+
+// ClosingAtCleared returns if the "closing_at" field was cleared in this mutation.
+func (m *RecruitmentMutation) ClosingAtCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldClosingAt]
+	return ok
+}
+
 // ResetClosingAt resets all changes to the "closing_at" field.
 func (m *RecruitmentMutation) ResetClosingAt() {
 	m.closing_at = nil
+	delete(m.clearedFields, recruitment.FieldClosingAt)
 }
 
 // SetIsPublished sets the "is_published" field.
@@ -2181,6 +2207,9 @@ func (m *RecruitmentMutation) ClearedFields() []string {
 	if m.FieldCleared(recruitment.FieldStartAt) {
 		fields = append(fields, recruitment.FieldStartAt)
 	}
+	if m.FieldCleared(recruitment.FieldContent) {
+		fields = append(fields, recruitment.FieldContent)
+	}
 	if m.FieldCleared(recruitment.FieldLocationLat) {
 		fields = append(fields, recruitment.FieldLocationLat)
 	}
@@ -2189,6 +2218,9 @@ func (m *RecruitmentMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(recruitment.FieldCapacity) {
 		fields = append(fields, recruitment.FieldCapacity)
+	}
+	if m.FieldCleared(recruitment.FieldClosingAt) {
+		fields = append(fields, recruitment.FieldClosingAt)
 	}
 	return fields
 }
@@ -2213,6 +2245,9 @@ func (m *RecruitmentMutation) ClearField(name string) error {
 	case recruitment.FieldStartAt:
 		m.ClearStartAt()
 		return nil
+	case recruitment.FieldContent:
+		m.ClearContent()
+		return nil
 	case recruitment.FieldLocationLat:
 		m.ClearLocationLat()
 		return nil
@@ -2221,6 +2256,9 @@ func (m *RecruitmentMutation) ClearField(name string) error {
 		return nil
 	case recruitment.FieldCapacity:
 		m.ClearCapacity()
+		return nil
+	case recruitment.FieldClosingAt:
+		m.ClearClosingAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment nullable field %s", name)

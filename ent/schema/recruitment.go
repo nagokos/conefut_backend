@@ -30,6 +30,7 @@ func (Recruitment) Fields() []ent.Field {
 			}),
 		field.Enum("type").
 			Values(
+				"unnecessary",
 				"opponent",
 				"individual",
 				"teammate",
@@ -37,7 +38,7 @@ func (Recruitment) Fields() []ent.Field {
 				"coaching",
 				"others",
 			).
-			Default("opponent"),
+			Default("unnecessary"),
 		field.Enum("level").
 			Values(
 				"unnecessary",
@@ -58,6 +59,7 @@ func (Recruitment) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(10000)",
 			}).
+			Optional().
 			Comment("募集詳細"),
 		field.Float("locationLat").
 			Optional().
@@ -68,6 +70,7 @@ func (Recruitment) Fields() []ent.Field {
 		field.Int("capacity").
 			Optional(),
 		field.Time("closing_at").
+			Optional().
 			Comment("募集期限"),
 		field.Bool("is_published").
 			Default(false).
@@ -84,11 +87,9 @@ func (Recruitment) Edges() []ent.Edge {
 			Ref("recruitments"),
 		edge.From("prefecture", Prefecture.Type).
 			Unique().
-			Required().
 			Ref("recruitments"),
 		edge.From("competition", Competition.Type).
 			Unique().
-			Required().
 			Ref("recruitments"),
 	}
 }

@@ -16,6 +16,7 @@ enum EmailVerificationStatus {
 }
 
 enum Type {
+  UNNECESSARY
   OPPONENT
   INDIVIDUAL
   TEAMMATE
@@ -56,16 +57,18 @@ type Competition {
 type Recruitment {
   id: String!
   title: String!
-  content: String!
+  content: String
   type: Type!
   level: Level!
   place: String
   startAt: DateTime
-  locationUrl: String
+  locationLat: Float
+  locationLng: Float
+  isPublished: Boolean!
   capacity: Int
-  closingAt: DateTime!
-  competition: Competition!
-  prefecture: Prefecture!
+  closingAt: DateTime
+  competition: Competition
+  prefecture: Prefecture
   user: User!
 }
 
@@ -88,16 +91,18 @@ input loginUserInput {
 
 input createRecruitmentInput {
   title: String!
-  content: String!
+  content: String
   type: Type!
   level: Level!
   place: String
   startAt: DateTime
-  locationUrl: String
+  locationLat: Float
+  locationLng: Float
   capacity: Int
-  closingAt: DateTime!
-  competitionId: String!
-  prefectureId: String!
+  isPublished: Boolean!
+  closingAt: DateTime
+  competitionId: String
+  prefectureId: String
 }
 
 type Mutation {
