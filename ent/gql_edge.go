@@ -33,7 +33,7 @@ func (r *Recruitment) Prefecture(ctx context.Context) (*Prefecture, error) {
 	if IsNotLoaded(err) {
 		result, err = r.QueryPrefecture().Only(ctx)
 	}
-	return result, err
+	return result, MaskNotFound(err)
 }
 
 func (r *Recruitment) Competition(ctx context.Context) (*Competition, error) {
@@ -41,7 +41,7 @@ func (r *Recruitment) Competition(ctx context.Context) (*Competition, error) {
 	if IsNotLoaded(err) {
 		result, err = r.QueryCompetition().Only(ctx)
 	}
-	return result, err
+	return result, MaskNotFound(err)
 }
 
 func (u *User) Recruitments(ctx context.Context) ([]*Recruitment, error) {

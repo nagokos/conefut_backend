@@ -123,6 +123,20 @@ func (ru *RecruitmentUpdate) SetContent(s string) *RecruitmentUpdate {
 	return ru
 }
 
+// SetNillableContent sets the "content" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableContent(s *string) *RecruitmentUpdate {
+	if s != nil {
+		ru.SetContent(*s)
+	}
+	return ru
+}
+
+// ClearContent clears the value of the "content" field.
+func (ru *RecruitmentUpdate) ClearContent() *RecruitmentUpdate {
+	ru.mutation.ClearContent()
+	return ru
+}
+
 // SetLocationLat sets the "locationLat" field.
 func (ru *RecruitmentUpdate) SetLocationLat(f float64) *RecruitmentUpdate {
 	ru.mutation.ResetLocationLat()
@@ -210,6 +224,20 @@ func (ru *RecruitmentUpdate) SetClosingAt(t time.Time) *RecruitmentUpdate {
 	return ru
 }
 
+// SetNillableClosingAt sets the "closing_at" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableClosingAt(t *time.Time) *RecruitmentUpdate {
+	if t != nil {
+		ru.SetClosingAt(*t)
+	}
+	return ru
+}
+
+// ClearClosingAt clears the value of the "closing_at" field.
+func (ru *RecruitmentUpdate) ClearClosingAt() *RecruitmentUpdate {
+	ru.mutation.ClearClosingAt()
+	return ru
+}
+
 // SetIsPublished sets the "is_published" field.
 func (ru *RecruitmentUpdate) SetIsPublished(b bool) *RecruitmentUpdate {
 	ru.mutation.SetIsPublished(b)
@@ -241,6 +269,14 @@ func (ru *RecruitmentUpdate) SetPrefectureID(id string) *RecruitmentUpdate {
 	return ru
 }
 
+// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillablePrefectureID(id *string) *RecruitmentUpdate {
+	if id != nil {
+		ru = ru.SetPrefectureID(*id)
+	}
+	return ru
+}
+
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ru *RecruitmentUpdate) SetPrefecture(p *Prefecture) *RecruitmentUpdate {
 	return ru.SetPrefectureID(p.ID)
@@ -249,6 +285,14 @@ func (ru *RecruitmentUpdate) SetPrefecture(p *Prefecture) *RecruitmentUpdate {
 // SetCompetitionID sets the "competition" edge to the Competition entity by ID.
 func (ru *RecruitmentUpdate) SetCompetitionID(id string) *RecruitmentUpdate {
 	ru.mutation.SetCompetitionID(id)
+	return ru
+}
+
+// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableCompetitionID(id *string) *RecruitmentUpdate {
+	if id != nil {
+		ru = ru.SetCompetitionID(*id)
+	}
 	return ru
 }
 
@@ -374,12 +418,6 @@ func (ru *RecruitmentUpdate) check() error {
 	if _, ok := ru.mutation.UserID(); ru.mutation.UserCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"user\"")
 	}
-	if _, ok := ru.mutation.PrefectureID(); ru.mutation.PrefectureCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"prefecture\"")
-	}
-	if _, ok := ru.mutation.CompetitionID(); ru.mutation.CompetitionCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"competition\"")
-	}
 	return nil
 }
 
@@ -468,6 +506,12 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldContent,
 		})
 	}
+	if ru.mutation.ContentCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: recruitment.FieldContent,
+		})
+	}
 	if value, ok := ru.mutation.LocationLat(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeFloat64,
@@ -532,6 +576,12 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
 			Value:  value,
+			Column: recruitment.FieldClosingAt,
+		})
+	}
+	if ru.mutation.ClosingAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
 			Column: recruitment.FieldClosingAt,
 		})
 	}
@@ -758,6 +808,20 @@ func (ruo *RecruitmentUpdateOne) SetContent(s string) *RecruitmentUpdateOne {
 	return ruo
 }
 
+// SetNillableContent sets the "content" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableContent(s *string) *RecruitmentUpdateOne {
+	if s != nil {
+		ruo.SetContent(*s)
+	}
+	return ruo
+}
+
+// ClearContent clears the value of the "content" field.
+func (ruo *RecruitmentUpdateOne) ClearContent() *RecruitmentUpdateOne {
+	ruo.mutation.ClearContent()
+	return ruo
+}
+
 // SetLocationLat sets the "locationLat" field.
 func (ruo *RecruitmentUpdateOne) SetLocationLat(f float64) *RecruitmentUpdateOne {
 	ruo.mutation.ResetLocationLat()
@@ -845,6 +909,20 @@ func (ruo *RecruitmentUpdateOne) SetClosingAt(t time.Time) *RecruitmentUpdateOne
 	return ruo
 }
 
+// SetNillableClosingAt sets the "closing_at" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableClosingAt(t *time.Time) *RecruitmentUpdateOne {
+	if t != nil {
+		ruo.SetClosingAt(*t)
+	}
+	return ruo
+}
+
+// ClearClosingAt clears the value of the "closing_at" field.
+func (ruo *RecruitmentUpdateOne) ClearClosingAt() *RecruitmentUpdateOne {
+	ruo.mutation.ClearClosingAt()
+	return ruo
+}
+
 // SetIsPublished sets the "is_published" field.
 func (ruo *RecruitmentUpdateOne) SetIsPublished(b bool) *RecruitmentUpdateOne {
 	ruo.mutation.SetIsPublished(b)
@@ -876,6 +954,14 @@ func (ruo *RecruitmentUpdateOne) SetPrefectureID(id string) *RecruitmentUpdateOn
 	return ruo
 }
 
+// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillablePrefectureID(id *string) *RecruitmentUpdateOne {
+	if id != nil {
+		ruo = ruo.SetPrefectureID(*id)
+	}
+	return ruo
+}
+
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ruo *RecruitmentUpdateOne) SetPrefecture(p *Prefecture) *RecruitmentUpdateOne {
 	return ruo.SetPrefectureID(p.ID)
@@ -884,6 +970,14 @@ func (ruo *RecruitmentUpdateOne) SetPrefecture(p *Prefecture) *RecruitmentUpdate
 // SetCompetitionID sets the "competition" edge to the Competition entity by ID.
 func (ruo *RecruitmentUpdateOne) SetCompetitionID(id string) *RecruitmentUpdateOne {
 	ruo.mutation.SetCompetitionID(id)
+	return ruo
+}
+
+// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableCompetitionID(id *string) *RecruitmentUpdateOne {
+	if id != nil {
+		ruo = ruo.SetCompetitionID(*id)
+	}
 	return ruo
 }
 
@@ -1016,12 +1110,6 @@ func (ruo *RecruitmentUpdateOne) check() error {
 	if _, ok := ruo.mutation.UserID(); ruo.mutation.UserCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"user\"")
 	}
-	if _, ok := ruo.mutation.PrefectureID(); ruo.mutation.PrefectureCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"prefecture\"")
-	}
-	if _, ok := ruo.mutation.CompetitionID(); ruo.mutation.CompetitionCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"competition\"")
-	}
 	return nil
 }
 
@@ -1127,6 +1215,12 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Column: recruitment.FieldContent,
 		})
 	}
+	if ruo.mutation.ContentCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: recruitment.FieldContent,
+		})
+	}
 	if value, ok := ruo.mutation.LocationLat(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeFloat64,
@@ -1191,6 +1285,12 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
 			Value:  value,
+			Column: recruitment.FieldClosingAt,
+		})
+	}
+	if ruo.mutation.ClosingAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
 			Column: recruitment.FieldClosingAt,
 		})
 	}

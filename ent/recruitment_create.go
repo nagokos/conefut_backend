@@ -119,6 +119,14 @@ func (rc *RecruitmentCreate) SetContent(s string) *RecruitmentCreate {
 	return rc
 }
 
+// SetNillableContent sets the "content" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableContent(s *string) *RecruitmentCreate {
+	if s != nil {
+		rc.SetContent(*s)
+	}
+	return rc
+}
+
 // SetLocationLat sets the "locationLat" field.
 func (rc *RecruitmentCreate) SetLocationLat(f float64) *RecruitmentCreate {
 	rc.mutation.SetLocationLat(f)
@@ -167,6 +175,14 @@ func (rc *RecruitmentCreate) SetClosingAt(t time.Time) *RecruitmentCreate {
 	return rc
 }
 
+// SetNillableClosingAt sets the "closing_at" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableClosingAt(t *time.Time) *RecruitmentCreate {
+	if t != nil {
+		rc.SetClosingAt(*t)
+	}
+	return rc
+}
+
 // SetIsPublished sets the "is_published" field.
 func (rc *RecruitmentCreate) SetIsPublished(b bool) *RecruitmentCreate {
 	rc.mutation.SetIsPublished(b)
@@ -212,6 +228,14 @@ func (rc *RecruitmentCreate) SetPrefectureID(id string) *RecruitmentCreate {
 	return rc
 }
 
+// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillablePrefectureID(id *string) *RecruitmentCreate {
+	if id != nil {
+		rc = rc.SetPrefectureID(*id)
+	}
+	return rc
+}
+
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (rc *RecruitmentCreate) SetPrefecture(p *Prefecture) *RecruitmentCreate {
 	return rc.SetPrefectureID(p.ID)
@@ -220,6 +244,14 @@ func (rc *RecruitmentCreate) SetPrefecture(p *Prefecture) *RecruitmentCreate {
 // SetCompetitionID sets the "competition" edge to the Competition entity by ID.
 func (rc *RecruitmentCreate) SetCompetitionID(id string) *RecruitmentCreate {
 	rc.mutation.SetCompetitionID(id)
+	return rc
+}
+
+// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableCompetitionID(id *string) *RecruitmentCreate {
+	if id != nil {
+		rc = rc.SetCompetitionID(*id)
+	}
 	return rc
 }
 
@@ -354,16 +386,10 @@ func (rc *RecruitmentCreate) check() error {
 			return &ValidationError{Name: "level", err: fmt.Errorf(`ent: validator failed for field "level": %w`, err)}
 		}
 	}
-	if _, ok := rc.mutation.Content(); !ok {
-		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "content"`)}
-	}
 	if v, ok := rc.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "content": %w`, err)}
 		}
-	}
-	if _, ok := rc.mutation.ClosingAt(); !ok {
-		return &ValidationError{Name: "closing_at", err: errors.New(`ent: missing required field "closing_at"`)}
 	}
 	if _, ok := rc.mutation.IsPublished(); !ok {
 		return &ValidationError{Name: "is_published", err: errors.New(`ent: missing required field "is_published"`)}
@@ -375,12 +401,6 @@ func (rc *RecruitmentCreate) check() error {
 	}
 	if _, ok := rc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New("ent: missing required edge \"user\"")}
-	}
-	if _, ok := rc.mutation.PrefectureID(); !ok {
-		return &ValidationError{Name: "prefecture", err: errors.New("ent: missing required edge \"prefecture\"")}
-	}
-	if _, ok := rc.mutation.CompetitionID(); !ok {
-		return &ValidationError{Name: "competition", err: errors.New("ent: missing required edge \"competition\"")}
 	}
 	return nil
 }

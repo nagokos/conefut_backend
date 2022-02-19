@@ -134,17 +134,18 @@ var (
 // Type defines the type for the "type" enum field.
 type Type string
 
-// TypeOpponent is the default value of the Type enum.
-const DefaultType = TypeOpponent
+// TypeUnnecessary is the default value of the Type enum.
+const DefaultType = TypeUnnecessary
 
 // Type values.
 const (
-	TypeOpponent   Type = "opponent"
-	TypeIndividual Type = "individual"
-	TypeTeammate   Type = "teammate"
-	TypeJoining    Type = "joining"
-	TypeCoaching   Type = "coaching"
-	TypeOthers     Type = "others"
+	TypeUnnecessary Type = "unnecessary"
+	TypeOpponent    Type = "opponent"
+	TypeIndividual  Type = "individual"
+	TypeTeammate    Type = "teammate"
+	TypeJoining     Type = "joining"
+	TypeCoaching    Type = "coaching"
+	TypeOthers      Type = "others"
 )
 
 func (_type Type) String() string {
@@ -154,7 +155,7 @@ func (_type Type) String() string {
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type Type) error {
 	switch _type {
-	case TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
+	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
 		return nil
 	default:
 		return fmt.Errorf("recruitment: invalid enum value for type field: %q", _type)
