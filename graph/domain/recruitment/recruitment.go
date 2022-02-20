@@ -2,11 +2,12 @@ package recruitment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/recruitment"

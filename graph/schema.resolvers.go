@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
