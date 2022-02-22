@@ -11,6 +11,7 @@ import (
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -33,7 +34,7 @@ type Recruitment struct {
 
 func requiredIfUnnecessaryType() validation.RuleFunc {
 	return func(v interface{}) error {
-		if v == model.TypeOpponent {
+		if v == model.TypeUnnecessary {
 			return errors.New("募集タイプを選択してください")
 		}
 		return nil
