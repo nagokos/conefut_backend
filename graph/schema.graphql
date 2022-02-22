@@ -90,7 +90,7 @@ input loginUserInput {
   password: String!
 }
 
-input createRecruitmentInput {
+input recruitmentInput {
   title: String!
   content: String
   type: Type!
@@ -110,6 +110,6 @@ type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
-  createRecruitment(input: createRecruitmentInput!): Recruitment!
+  createRecruitment(input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
 }
