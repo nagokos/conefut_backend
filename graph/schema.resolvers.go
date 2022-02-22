@@ -82,9 +82,9 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 	return res, nil
 }
 
-func (r *mutationResolver) LogoutUser(ctx context.Context) (*bool, error) {
+func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	auth.RemoveAuthCookie(ctx)
-	return nil, nil
+	return true, nil
 }
 
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error) {
