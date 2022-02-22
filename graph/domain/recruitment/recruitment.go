@@ -206,3 +206,53 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 
 	return resRecruitment, nil
 }
+
+func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+	var recruitments []*model.Recruitment
+
+	currentUser := auth.ForContext(ctx)
+
+	res, err := client.User.
+		Query().
+		Where(
+			user.ID(currentUser.ID),
+		).
+		QueryRecruitments().
+		Order(ent.Desc(recruitment.FieldCreatedAt)).
+		All(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("get currentUser recruitment error %s", err.Error()))
+		return recruitments, err
+	}
+
+	for _, recruitment := range res {
+		recruitments = append(recruitments, &model.Recruitment{
+			ID:          recruitment.ID,
+			Title:       recruitment.Title,
+			Type:        model.Type(recruitment.Type),
+			Level:       model.Level(recruitment.Level),
+			IsPublished: recruitment.IsPublished,
+		})
+	}
+
+	return recruitments, nil
+}
+
+func DeleteRecruitment(ctx context.Context, client ent.Client, recruitmentId string) (bool, error) {
+	currentUser := auth.ForContext(ctx)
+
+	res, err := client.Recruitment.
+		Delete().
+		Where(
+			recruitment.HasUserWith(user.ID(currentUser.ID)),
+			recruitment.ID(recruitmentId),
+		).
+		Exec(ctx)
+	if res == 0 {
+		return false, errors.New("募集の削除に失敗しました")
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
