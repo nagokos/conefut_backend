@@ -47,7 +47,18 @@ type User struct {
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
 
-type CreateRecruitmentInput struct {
+type CreateUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginUserInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RecruitmentInput struct {
 	Title         string     `json:"title"`
 	Content       *string    `json:"content"`
 	Type          Type       `json:"type"`
@@ -61,17 +72,6 @@ type CreateRecruitmentInput struct {
 	ClosingAt     *time.Time `json:"closingAt"`
 	CompetitionID *string    `json:"competitionId"`
 	PrefectureID  *string    `json:"prefectureId"`
-}
-
-type CreateUserInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginUserInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type EmailVerificationStatus string

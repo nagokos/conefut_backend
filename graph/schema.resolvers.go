@@ -87,7 +87,7 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error) {
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
