@@ -76,6 +76,7 @@ type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
   getCompetitions: [Competition!]!
+  getCurrentUserRecruitments: [Recruitment!]!
 }
 
 input createUserInput {
@@ -108,6 +109,7 @@ input createRecruitmentInput {
 type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
-  logoutUser: Boolean
+  logoutUser: Boolean!
   createRecruitment(input: createRecruitmentInput!): Recruitment!
+  deleteRecruitment(id: String!): Boolean!
 }

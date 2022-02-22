@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
@@ -82,9 +82,9 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 	return res, nil
 }
 
-func (r *mutationResolver) LogoutUser(ctx context.Context) (*bool, error) {
+func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	auth.RemoveAuthCookie(ctx)
-	return nil, nil
+	return true, nil
 }
 
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error) {
@@ -123,6 +123,14 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Cr
 	return resRecruitment, nil
 }
 
+func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
+	res, err := recruitment.DeleteRecruitment(ctx, *r.client, id)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
 	if err != nil {
@@ -146,6 +154,14 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 		return res, err
 	}
 
+	return res, nil
+}
+
+func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
