@@ -123,6 +123,14 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Cr
 	return resRecruitment, nil
 }
 
+func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
+	res, err := recruitment.DeleteRecruitment(ctx, *r.client, id)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
 	if err != nil {
