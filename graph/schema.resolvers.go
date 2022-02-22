@@ -157,6 +157,14 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 	return res, nil
 }
 
+func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
