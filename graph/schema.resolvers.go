@@ -87,7 +87,7 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error) {
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -161,6 +161,14 @@ func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*mode
 	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
 	if err != nil {
 		return nil, err
+	}
+	return res, nil
+}
+
+func (r *queryResolver) GetEditRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
+	res, err := recruitment.GetEditRecruitment(ctx, *r.client, id)
+	if err != nil {
+		return res, err
 	}
 	return res, nil
 }

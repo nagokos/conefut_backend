@@ -165,6 +165,9 @@ func (r Recruitment) CreateRecruitmentValidate() error {
 
 func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.RecruitmentClient) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
+	if currentUser == nil {
+		return &model.Recruitment{}, errors.New("ログインしてください")
+	}
 
 	res, err := client.
 		Create().
@@ -201,7 +204,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		IsPublished: res.IsPublished,
 		Capacity:    &res.Capacity,
 		ClosingAt:   &res.ClosingAt,
-		User:        currentUser,
 	}
 
 	return resRecruitment, nil
@@ -238,14 +240,64 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 	return recruitments, nil
 }
 
-func DeleteRecruitment(ctx context.Context, client ent.Client, recruitmentId string) (bool, error) {
+func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
+	var prefecture *model.Prefecture
+	var competition *model.Competition
+	res, err := client.Recruitment.
+		Query().
+		Where(recruitment.ID(id)).
+		WithCompetition().
+		WithPrefecture().
+		Only(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("get recruitment error %s", err.Error()))
+		return nil, err
+	}
+
+	if res.Edges.Prefecture != nil {
+		prefecture = &model.Prefecture{
+			ID:   res.Edges.Prefecture.ID,
+			Name: res.Edges.Prefecture.Name,
+		}
+	}
+
+	if res.Edges.Competition != nil {
+		competition = &model.Competition{
+			ID:   res.Edges.Competition.ID,
+			Name: res.Edges.Competition.Name,
+		}
+	}
+
+	resRecruitment := &model.Recruitment{
+		ID:          res.ID,
+		Title:       res.Title,
+		Type:        model.Type(res.Type),
+		Level:       model.Level(res.Level),
+		Place:       &res.Place,
+		StartAt:     &res.StartAt,
+		Content:     &res.Content,
+		LocationLat: &res.LocationLat,
+		LocationLng: &res.LocationLng,
+		IsPublished: res.IsPublished,
+		Capacity:    &res.Capacity,
+		ClosingAt:   &res.ClosingAt,
+		Prefecture:  prefecture,
+		Competition: competition,
+	}
+	return resRecruitment, nil
+}
+
+func DeleteRecruitment(ctx context.Context, client ent.Client, id string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
+	if currentUser == nil {
+		return false, errors.New("ログインしてください")
+	}
 
 	res, err := client.Recruitment.
 		Delete().
 		Where(
 			recruitment.HasUserWith(user.ID(currentUser.ID)),
-			recruitment.ID(recruitmentId),
+			recruitment.ID(id),
 		).
 		Exec(ctx)
 	if res == 0 {

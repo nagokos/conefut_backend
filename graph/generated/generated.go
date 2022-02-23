@@ -50,7 +50,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateRecruitment func(childComplexity int, input model.CreateRecruitmentInput) int
+		CreateRecruitment func(childComplexity int, input model.RecruitmentInput) int
 		CreateUser        func(childComplexity int, input model.CreateUserInput) int
 		DeleteRecruitment func(childComplexity int, id string) int
 		LoginUser         func(childComplexity int, input model.LoginUserInput) int
@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 		GetCompetitions            func(childComplexity int) int
 		GetCurrentUser             func(childComplexity int) int
 		GetCurrentUserRecruitments func(childComplexity int) int
+		GetEditRecruitment         func(childComplexity int, id string) int
 		GetPrefectures             func(childComplexity int) int
 	}
 
@@ -102,7 +103,7 @@ type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error)
 	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error)
 	LogoutUser(ctx context.Context) (bool, error)
-	CreateRecruitment(ctx context.Context, input model.CreateRecruitmentInput) (*model.Recruitment, error)
+	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error)
 	DeleteRecruitment(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
@@ -110,6 +111,7 @@ type QueryResolver interface {
 	GetCurrentUser(ctx context.Context) (*model.User, error)
 	GetCompetitions(ctx context.Context) ([]*model.Competition, error)
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	GetEditRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 }
 
 type executableSchema struct {
@@ -151,7 +153,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRecruitment(childComplexity, args["input"].(model.CreateRecruitmentInput)), true
+		return e.complexity.Mutation.CreateRecruitment(childComplexity, args["input"].(model.RecruitmentInput)), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -230,6 +232,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetCurrentUserRecruitments(childComplexity), true
+
+	case "Query.getEditRecruitment":
+		if e.complexity.Query.GetEditRecruitment == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getEditRecruitment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetEditRecruitment(childComplexity, args["id"].(string)), true
 
 	case "Query.getPrefectures":
 		if e.complexity.Query.GetPrefectures == nil {
@@ -535,6 +549,7 @@ type Query {
   getCurrentUser: User
   getCompetitions: [Competition!]!
   getCurrentUserRecruitments: [Recruitment!]!
+  getEditRecruitment(id: String!): Recruitment!
 }
 
 input createUserInput {
@@ -548,7 +563,7 @@ input loginUserInput {
   password: String!
 }
 
-input createRecruitmentInput {
+input recruitmentInput {
   title: String!
   content: String
   type: Type!
@@ -568,7 +583,7 @@ type Mutation {
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
-  createRecruitment(input: createRecruitmentInput!): Recruitment!
+  createRecruitment(input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
 }
 `, BuiltIn: false},
@@ -582,10 +597,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.CreateRecruitmentInput
+	var arg0 model.RecruitmentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNcreateRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateRecruitmentInput(ctx, tmp)
+		arg0, err = ec.unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -651,6 +666,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getEditRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -921,7 +951,7 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateRecruitment(rctx, args["input"].(model.CreateRecruitmentInput))
+		return ec.resolvers.Mutation().CreateRecruitment(rctx, args["input"].(model.RecruitmentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1185,6 +1215,48 @@ func (ec *executionContext) _Query_getCurrentUserRecruitments(ctx context.Contex
 	res := resTmp.([]*model.Recruitment)
 	fc.Result = res
 	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getEditRecruitment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getEditRecruitment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetEditRecruitment(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Recruitment)
+	fc.Result = res
+	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3127,8 +3199,78 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Context, obj interface{}) (model.CreateRecruitmentInput, error) {
-	var it model.CreateRecruitmentInput
+func (ec *executionContext) unmarshalInputcreateUserInput(ctx context.Context, obj interface{}) (model.CreateUserInput, error) {
+	var it model.CreateUserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputloginUserInput(ctx context.Context, obj interface{}) (model.LoginUserInput, error) {
+	var it model.LoginUserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, obj interface{}) (model.RecruitmentInput, error) {
+	var it model.RecruitmentInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -3237,76 +3379,6 @@ func (ec *executionContext) unmarshalInputcreateRecruitmentInput(ctx context.Con
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefectureId"))
 			it.PrefectureID, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputcreateUserInput(ctx context.Context, obj interface{}) (model.CreateUserInput, error) {
-	var it model.CreateUserInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "email":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "password":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
-			it.Password, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputloginUserInput(ctx context.Context, obj interface{}) (model.LoginUserInput, error) {
-	var it model.LoginUserInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "email":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "password":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
-			it.Password, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3502,6 +3574,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getCurrentUserRecruitments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getEditRecruitment":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getEditRecruitment(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4403,11 +4489,6 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) unmarshalNcreateRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateRecruitmentInput(ctx context.Context, v interface{}) (model.CreateRecruitmentInput, error) {
-	res, err := ec.unmarshalInputcreateRecruitmentInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNcreateUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateUserInput(ctx context.Context, v interface{}) (model.CreateUserInput, error) {
 	res, err := ec.unmarshalInputcreateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4415,6 +4496,11 @@ func (ec *executionContext) unmarshalNcreateUserInput2githubᚗcomᚋnagokosᚋc
 
 func (ec *executionContext) unmarshalNloginUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLoginUserInput(ctx context.Context, v interface{}) (model.LoginUserInput, error) {
 	res, err := ec.unmarshalInputloginUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx context.Context, v interface{}) (model.RecruitmentInput, error) {
+	res, err := ec.unmarshalInputrecruitmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
