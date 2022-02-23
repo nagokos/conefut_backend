@@ -165,6 +165,14 @@ func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*mode
 	return res, nil
 }
 
+func (r *queryResolver) GetEditRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
+	res, err := recruitment.GetEditRecruitment(ctx, *r.client, id)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
