@@ -67,6 +67,7 @@ type Recruitment {
   isPublished: Boolean!
   capacity: Int
   closingAt: DateTime
+  updatedAt: DateTime!
   competition: Competition
   prefecture: Prefecture
   user: User!
@@ -76,6 +77,7 @@ type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
   getCompetitions: [Competition!]!
+  getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getEditRecruitment(id: String!): Recruitment!
 }
@@ -112,5 +114,6 @@ type Mutation {
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
   createRecruitment(input: recruitmentInput!): Recruitment!
+  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
 }

@@ -47,6 +47,7 @@ func main() {
 			Place:     "埼玉スタジアム2002",
 			StartAt:   time.Now().Add(time.Hour * 5),
 			ClosingAt: time.Now().Add(time.Hour * 2),
+			Capacity:  1,
 			Edges: ent.RecruitmentEdges{
 				Competition: comp,
 				Prefecture:  pref,
@@ -68,6 +69,7 @@ func main() {
 			SetNillableContent(&rec.Content).
 			SetNillablePlace(&rec.Place).
 			SetIsPublished(true).
+			SetCapacity(rec.Capacity).
 			SetNillableClosingAt(&rec.ClosingAt).
 			SetNillableCompetitionID(&rec.Edges.Competition.ID).
 			SetNillablePrefectureID(&rec.Edges.Prefecture.ID).

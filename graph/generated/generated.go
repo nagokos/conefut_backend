@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		DeleteRecruitment func(childComplexity int, id string) int
 		LoginUser         func(childComplexity int, input model.LoginUserInput) int
 		LogoutUser        func(childComplexity int) int
+		UpdateRecruitment func(childComplexity int, id string, input model.RecruitmentInput) int
 	}
 
 	Prefecture struct {
@@ -68,6 +69,7 @@ type ComplexityRoot struct {
 		GetCurrentUserRecruitments func(childComplexity int) int
 		GetEditRecruitment         func(childComplexity int, id string) int
 		GetPrefectures             func(childComplexity int) int
+		GetRecruitments            func(childComplexity int) int
 	}
 
 	Recruitment struct {
@@ -85,6 +87,7 @@ type ComplexityRoot struct {
 		StartAt     func(childComplexity int) int
 		Title       func(childComplexity int) int
 		Type        func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 		User        func(childComplexity int) int
 	}
 
@@ -104,12 +107,14 @@ type MutationResolver interface {
 	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error)
 	LogoutUser(ctx context.Context) (bool, error)
 	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error)
+	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
 	DeleteRecruitment(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
 	GetPrefectures(ctx context.Context) ([]*model.Prefecture, error)
 	GetCurrentUser(ctx context.Context) (*model.User, error)
 	GetCompetitions(ctx context.Context) ([]*model.Competition, error)
+	GetRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetEditRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 }
@@ -198,6 +203,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.LogoutUser(childComplexity), true
 
+	case "Mutation.updateRecruitment":
+		if e.complexity.Mutation.UpdateRecruitment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateRecruitment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateRecruitment(childComplexity, args["id"].(string), args["input"].(model.RecruitmentInput)), true
+
 	case "Prefecture.id":
 		if e.complexity.Prefecture.ID == nil {
 			break
@@ -251,6 +268,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetPrefectures(childComplexity), true
+
+	case "Query.getRecruitments":
+		if e.complexity.Query.GetRecruitments == nil {
+			break
+		}
+
+		return e.complexity.Query.GetRecruitments(childComplexity), true
 
 	case "Recruitment.capacity":
 		if e.complexity.Recruitment.Capacity == nil {
@@ -349,6 +373,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Recruitment.Type(childComplexity), true
+
+	case "Recruitment.updatedAt":
+		if e.complexity.Recruitment.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.UpdatedAt(childComplexity), true
 
 	case "Recruitment.user":
 		if e.complexity.Recruitment.User == nil {
@@ -539,6 +570,7 @@ type Recruitment {
   isPublished: Boolean!
   capacity: Int
   closingAt: DateTime
+  updatedAt: DateTime!
   competition: Competition
   prefecture: Prefecture
   user: User!
@@ -548,6 +580,7 @@ type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
   getCompetitions: [Competition!]!
+  getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getEditRecruitment(id: String!): Recruitment!
 }
@@ -584,6 +617,7 @@ type Mutation {
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
   createRecruitment(input: recruitmentInput!): Recruitment!
+  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
 }
 `, BuiltIn: false},
@@ -651,6 +685,30 @@ func (ec *executionContext) field_Mutation_loginUser_args(ctx context.Context, r
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.RecruitmentInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -968,6 +1026,48 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_updateRecruitment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateRecruitment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateRecruitment(rctx, args["id"].(string), args["input"].(model.RecruitmentInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Recruitment)
+	fc.Result = res
+	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_deleteRecruitment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1180,6 +1280,41 @@ func (ec *executionContext) _Query_getCompetitions(ctx context.Context, field gr
 	res := resTmp.([]*model.Competition)
 	fc.Result = res
 	return ec.marshalNCompetition2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCompetitionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetRecruitments(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Recruitment)
+	fc.Result = res
+	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getCurrentUserRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1727,6 +1862,41 @@ func (ec *executionContext) _Recruitment_closingAt(ctx context.Context, field gr
 	res := resTmp.(*time.Time)
 	fc.Result = res
 	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Recruitment_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Recruitment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_competition(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -3463,6 +3633,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "updateRecruitment":
+			out.Values[i] = ec._Mutation_updateRecruitment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "deleteRecruitment":
 			out.Values[i] = ec._Mutation_deleteRecruitment(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -3565,6 +3740,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "getRecruitments":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getRecruitments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "getCurrentUserRecruitments":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3658,6 +3847,11 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_capacity(ctx, field, obj)
 		case "closingAt":
 			out.Values[i] = ec._Recruitment_closingAt(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._Recruitment_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "competition":
 			out.Values[i] = ec._Recruitment_competition(ctx, field, obj)
 		case "prefecture":
@@ -4049,6 +4243,21 @@ func (ec *executionContext) marshalNCompetition2ᚖgithubᚗcomᚋnagokosᚋconn
 		return graphql.Null
 	}
 	return ec._Competition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := model.UnmarshalDateTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := model.MarshalDateTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, v interface{}) (model.EmailVerificationStatus, error) {
