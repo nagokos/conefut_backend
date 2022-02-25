@@ -123,6 +123,43 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 	return resRecruitment, nil
 }
 
+func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
+	rm := recruitment.Recruitment{
+		Title:         input.Title,
+		Type:          input.Type,
+		Content:       input.Content,
+		StartAt:       input.StartAt,
+		Level:         input.Level,
+		Capacity:      input.Capacity,
+		Place:         input.Place,
+		LocationLat:   input.LocationLat,
+		LocationLng:   input.LocationLng,
+		IsPublished:   input.IsPublished,
+		ClosingAt:     input.ClosingAt,
+		CompetitionID: input.CompetitionID,
+		PrefectureID:  input.PrefectureID,
+	}
+
+	err := rm.RecruitmentValidate()
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		errs := err.(validation.Errors)
+
+		for i, errMessage := range errs {
+			utils.NewValidationError(strings.ToLower(i), errMessage.Error()).AddGraphQLError(ctx)
+		}
+		return &model.Recruitment{}, err
+	}
+
+	res, err := rm.UpdateRecruitment(ctx, *r.client, id)
+	if err != nil {
+		logger.Log.Error().Msg(err.Error())
+		return res, err
+	}
+
+	return res, nil
+}
+
 func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
 	res, err := recruitment.DeleteRecruitment(ctx, *r.client, id)
 	if err != nil {
