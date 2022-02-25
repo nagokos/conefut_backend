@@ -295,6 +295,96 @@ func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*mod
 	return resRecruitment, nil
 }
 
+func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+	var resRecruitments []*model.Recruitment
+	res, err := client.Recruitment.
+		Query().
+		Where(recruitment.IsPublished(true)).
+		WithCompetition().
+		WithPrefecture().
+		WithUser().
+		All(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("get recruitments error %s", err.Error()))
+		return []*model.Recruitment{}, err
+	}
+
+	for _, recruitment := range res {
+		resRecruitments = append(resRecruitments, &model.Recruitment{
+			ID:        recruitment.ID,
+			Title:     recruitment.Title,
+			Type:      model.Type(strings.ToUpper(string(recruitment.Type))),
+			Level:     model.Level(strings.ToUpper(string(recruitment.Level))),
+			Content:   &recruitment.Content,
+			StartAt:   &recruitment.StartAt,
+			UpdatedAt: recruitment.UpdatedAt,
+			ClosingAt: &recruitment.ClosingAt,
+			Capacity:  &recruitment.Capacity,
+			Place:     &recruitment.Place,
+			User: &model.User{
+				Name:   recruitment.Edges.User.Name,
+				Avatar: recruitment.Edges.User.Avatar,
+			},
+			Prefecture: &model.Prefecture{
+				Name: recruitment.Edges.Prefecture.Name,
+			},
+			IsPublished: recruitment.IsPublished,
+		})
+	}
+
+	fmt.Println(resRecruitments)
+	return resRecruitments, nil
+}
+
+func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
+	var entRecruitment *ent.Recruitment
+	currentUser := auth.ForContext(ctx)
+	if currentUser == nil {
+		return nil, errors.New("ログインしてください")
+	}
+
+	i, err := client.Recruitment.
+		Update().
+		Where(
+			recruitment.ID(id),
+			recruitment.HasUserWith(user.ID(currentUser.ID)),
+		).
+		SetTitle(r.Title).
+		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
+		SetLevel(recruitment.Level(strings.ToLower(string(r.Level)))).
+		SetNillableCapacity(r.Capacity).
+		SetNillableStartAt(r.StartAt).
+		SetNillableContent(r.Content).
+		SetNillablePlace(r.Place).
+		SetNillableLocationLat(r.LocationLat).
+		SetNillableLocationLng(r.LocationLng).
+		SetIsPublished(r.IsPublished).
+		SetNillableClosingAt(r.ClosingAt).
+		SetNillableCompetitionID(r.CompetitionID).
+		SetNillablePrefectureID(r.PrefectureID).
+		Save(ctx)
+	if i == 0 {
+		return nil, errors.New("募集の更新に失敗しました")
+	}
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
+		return nil, err
+	}
+
+	entRecruitment, err = client.Recruitment.Query().Where(recruitment.ID(id)).Only(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
+		return nil, err
+	}
+
+	resRecruitment := &model.Recruitment{
+		ID:          entRecruitment.ID,
+		Title:       entRecruitment.Title,
+		IsPublished: entRecruitment.IsPublished,
+	}
+	return resRecruitment, nil
+}
+
 func DeleteRecruitment(ctx context.Context, client ent.Client, id string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
