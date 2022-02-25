@@ -114,5 +114,6 @@ type Mutation {
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
   createRecruitment(input: recruitmentInput!): Recruitment!
+  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
 }
