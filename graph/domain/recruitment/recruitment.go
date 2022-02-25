@@ -279,8 +279,8 @@ func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*mod
 	resRecruitment := &model.Recruitment{
 		ID:          res.ID,
 		Title:       res.Title,
-		Type:        model.Type(res.Type),
-		Level:       model.Level(res.Level),
+		Type:        model.Type(strings.ToUpper(string(res.Type))),
+		Level:       model.Level(strings.ToUpper(string(res.Level))),
 		Place:       &res.Place,
 		StartAt:     &res.StartAt,
 		Content:     &res.Content,
