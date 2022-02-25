@@ -67,6 +67,7 @@ type Recruitment {
   isPublished: Boolean!
   capacity: Int
   closingAt: DateTime
+  updatedAt: DateTime!
   competition: Competition
   prefecture: Prefecture
   user: User!
