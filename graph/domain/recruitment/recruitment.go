@@ -67,7 +67,7 @@ func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
 	}
 }
 
-func (r Recruitment) CreateRecruitmentValidate() error {
+func (r Recruitment) RecruitmentValidate() error {
 	return validation.ValidateStruct(&r,
 		validation.Field(
 			&r.Title,
@@ -141,8 +141,14 @@ func (r Recruitment) CreateRecruitmentValidate() error {
 		validation.Field(
 			&r.Capacity,
 			validation.When(r.IsPublished,
-				validation.Required.Error("募集人数は1名以上にしてください"),
-				validation.Min(1).Error("募集人数は1名以上にしてください"),
+				validation.When(
+					r.Type == model.TypeOpponent ||
+						r.Type == model.TypeIndividual ||
+						r.Type == model.TypeTeammate ||
+						r.Type == model.TypeCoaching,
+					validation.Required.Error("募集人数は1名以上にしてください"),
+					validation.Min(1).Error("募集人数は1名以上にしてください"),
+				),
 			),
 		),
 		validation.Field(
@@ -157,7 +163,9 @@ func (r Recruitment) CreateRecruitmentValidate() error {
 			&r.ClosingAt,
 			validation.When(r.IsPublished,
 				validation.Required.Error("募集期限を設定してください"),
-				validation.By(checkWithinTheDeadline(*r.StartAt)),
+				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+					validation.By(checkWithinTheDeadline(*r.StartAt)),
+				),
 			),
 		),
 	)
