@@ -32,6 +32,7 @@ type Recruitment struct {
 	IsPublished bool         `json:"isPublished"`
 	Capacity    *int         `json:"capacity"`
 	ClosingAt   *time.Time   `json:"closingAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
 	Competition *Competition `json:"competition"`
 	Prefecture  *Prefecture  `json:"prefecture"`
 	User        *User        `json:"user"`
