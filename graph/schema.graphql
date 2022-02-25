@@ -77,6 +77,7 @@ type Query {
   getPrefectures: [Prefecture!]!
   getCurrentUser: User
   getCompetitions: [Competition!]!
+  getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getEditRecruitment(id: String!): Recruitment!
 }
