@@ -104,7 +104,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		PrefectureID:  input.PrefectureID,
 	}
 
-	err := rm.CreateRecruitmentValidate()
+	err := rm.RecruitmentValidate()
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintln("recruitment validation errors:", err.Error()))
 		errs := err.(validation.Errors)
