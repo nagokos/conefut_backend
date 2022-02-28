@@ -29,7 +29,7 @@ type Recruitment struct {
 	StartAt     *time.Time   `json:"startAt"`
 	LocationLat *float64     `json:"locationLat"`
 	LocationLng *float64     `json:"locationLng"`
-	IsPublished bool         `json:"isPublished"`
+	Status      Status       `json:"status"`
 	Capacity    *int         `json:"capacity"`
 	ClosingAt   *time.Time   `json:"closingAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
@@ -69,7 +69,7 @@ type RecruitmentInput struct {
 	LocationLat   *float64   `json:"locationLat"`
 	LocationLng   *float64   `json:"locationLng"`
 	Capacity      *int       `json:"capacity"`
-	IsPublished   bool       `json:"isPublished"`
+	Status        Status     `json:"status"`
 	ClosingAt     *time.Time `json:"closingAt"`
 	CompetitionID *string    `json:"competitionId"`
 	PrefectureID  *string    `json:"prefectureId"`
@@ -205,6 +205,49 @@ func (e *Role) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Role) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Status string
+
+const (
+	StatusDraft     Status = "DRAFT"
+	StatusPublished Status = "PUBLISHED"
+	StatusClosed    Status = "CLOSED"
+)
+
+var AllStatus = []Status{
+	StatusDraft,
+	StatusPublished,
+	StatusClosed,
+}
+
+func (e Status) IsValid() bool {
+	switch e {
+	case StatusDraft, StatusPublished, StatusClosed:
+		return true
+	}
+	return false
+}
+
+func (e Status) String() string {
+	return string(e)
+}
+
+func (e *Status) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Status(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Status", str)
+	}
+	return nil
+}
+
+func (e Status) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
