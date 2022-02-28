@@ -98,7 +98,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
-		IsPublished:   input.IsPublished,
+		Status:        input.Status,
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
@@ -134,7 +134,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
-		IsPublished:   input.IsPublished,
+		Status:        input.Status,
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
@@ -202,16 +202,17 @@ func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitme
 	return res, err
 }
 
-func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
+func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context, status model.Status) ([]*model.Recruitment, error) {
+	fmt.Println(strings.ToLower(string(status)))
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client, strings.ToLower(string(status)))
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (r *queryResolver) GetEditRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetEditRecruitment(ctx, *r.client, id)
+func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
+	res, err := recruitment.GetRecruitment(ctx, *r.client, id)
 	if err != nil {
 		return res, err
 	}
