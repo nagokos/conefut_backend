@@ -87,10 +87,6 @@ func init() {
 	recruitmentDescContent := recruitmentFields[5].Descriptor()
 	// recruitment.ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	recruitment.ContentValidator = recruitmentDescContent.Validators[0].(func(string) error)
-	// recruitmentDescIsPublished is the schema descriptor for is_published field.
-	recruitmentDescIsPublished := recruitmentFields[10].Descriptor()
-	// recruitment.DefaultIsPublished holds the default value on creation for the is_published field.
-	recruitment.DefaultIsPublished = recruitmentDescIsPublished.Default.(bool)
 	// recruitmentDescID is the schema descriptor for id field.
 	recruitmentDescID := recruitmentMixinFields0[0].Descriptor()
 	// recruitment.DefaultID holds the default value on creation for the id field.

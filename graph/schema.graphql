@@ -34,6 +34,12 @@ enum Level {
   OPEN
 }
 
+enum Status {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
 type User {
   id: String!
   name: String!
@@ -64,7 +70,7 @@ type Recruitment {
   startAt: DateTime
   locationLat: Float
   locationLng: Float
-  isPublished: Boolean!
+  status: Status!
   capacity: Int
   closingAt: DateTime
   updatedAt: DateTime!
@@ -78,8 +84,8 @@ type Query {
   getCurrentUser: User
   getCompetitions: [Competition!]!
   getRecruitments: [Recruitment!]!
-  getCurrentUserRecruitments: [Recruitment!]!
-  getEditRecruitment(id: String!): Recruitment!
+  getCurrentUserRecruitments(status: Status!): [Recruitment!]!
+  getRecruitment(id: String!): Recruitment!
 }
 
 input createUserInput {
@@ -103,7 +109,7 @@ input recruitmentInput {
   locationLat: Float
   locationLng: Float
   capacity: Int
-  isPublished: Boolean!
+  status: Status!
   closingAt: DateTime
   competitionId: String
   prefectureId: String

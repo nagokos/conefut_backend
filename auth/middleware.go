@@ -120,7 +120,7 @@ func SetAuthCookie(ctx context.Context, token string) {
 		HttpOnly: true,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(time.Hour * 1),
+		Expires:  time.Now().Add(time.Hour * 24),
 	})
 }
 

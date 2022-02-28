@@ -1051,7 +1051,7 @@ type RecruitmentMutation struct {
 	capacity           *int
 	addcapacity        *int
 	closing_at         *time.Time
-	is_published       *bool
+	status             *recruitment.Status
 	clearedFields      map[string]struct{}
 	user               *string
 	cleareduser        bool
@@ -1324,22 +1324,9 @@ func (m *RecruitmentMutation) OldLevel(ctx context.Context) (v recruitment.Level
 	return oldValue.Level, nil
 }
 
-// ClearLevel clears the value of the "level" field.
-func (m *RecruitmentMutation) ClearLevel() {
-	m.level = nil
-	m.clearedFields[recruitment.FieldLevel] = struct{}{}
-}
-
-// LevelCleared returns if the "level" field was cleared in this mutation.
-func (m *RecruitmentMutation) LevelCleared() bool {
-	_, ok := m.clearedFields[recruitment.FieldLevel]
-	return ok
-}
-
 // ResetLevel resets all changes to the "level" field.
 func (m *RecruitmentMutation) ResetLevel() {
 	m.level = nil
-	delete(m.clearedFields, recruitment.FieldLevel)
 }
 
 // SetPlace sets the "place" field.
@@ -1748,40 +1735,40 @@ func (m *RecruitmentMutation) ResetClosingAt() {
 	delete(m.clearedFields, recruitment.FieldClosingAt)
 }
 
-// SetIsPublished sets the "is_published" field.
-func (m *RecruitmentMutation) SetIsPublished(b bool) {
-	m.is_published = &b
+// SetStatus sets the "status" field.
+func (m *RecruitmentMutation) SetStatus(r recruitment.Status) {
+	m.status = &r
 }
 
-// IsPublished returns the value of the "is_published" field in the mutation.
-func (m *RecruitmentMutation) IsPublished() (r bool, exists bool) {
-	v := m.is_published
+// Status returns the value of the "status" field in the mutation.
+func (m *RecruitmentMutation) Status() (r recruitment.Status, exists bool) {
+	v := m.status
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIsPublished returns the old "is_published" field's value of the Recruitment entity.
+// OldStatus returns the old "status" field's value of the Recruitment entity.
 // If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RecruitmentMutation) OldIsPublished(ctx context.Context) (v bool, err error) {
+func (m *RecruitmentMutation) OldStatus(ctx context.Context) (v recruitment.Status, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldIsPublished is only allowed on UpdateOne operations")
+		return v, fmt.Errorf("OldStatus is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldIsPublished requires an ID field in the mutation")
+		return v, fmt.Errorf("OldStatus requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsPublished: %w", err)
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
 	}
-	return oldValue.IsPublished, nil
+	return oldValue.Status, nil
 }
 
-// ResetIsPublished resets all changes to the "is_published" field.
-func (m *RecruitmentMutation) ResetIsPublished() {
-	m.is_published = nil
+// ResetStatus resets all changes to the "status" field.
+func (m *RecruitmentMutation) ResetStatus() {
+	m.status = nil
 }
 
 // SetUserID sets the "user" edge to the User entity by id.
@@ -1957,8 +1944,8 @@ func (m *RecruitmentMutation) Fields() []string {
 	if m.closing_at != nil {
 		fields = append(fields, recruitment.FieldClosingAt)
 	}
-	if m.is_published != nil {
-		fields = append(fields, recruitment.FieldIsPublished)
+	if m.status != nil {
+		fields = append(fields, recruitment.FieldStatus)
 	}
 	return fields
 }
@@ -1992,8 +1979,8 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.Capacity()
 	case recruitment.FieldClosingAt:
 		return m.ClosingAt()
-	case recruitment.FieldIsPublished:
-		return m.IsPublished()
+	case recruitment.FieldStatus:
+		return m.Status()
 	}
 	return nil, false
 }
@@ -2027,8 +2014,8 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldCapacity(ctx)
 	case recruitment.FieldClosingAt:
 		return m.OldClosingAt(ctx)
-	case recruitment.FieldIsPublished:
-		return m.OldIsPublished(ctx)
+	case recruitment.FieldStatus:
+		return m.OldStatus(ctx)
 	}
 	return nil, fmt.Errorf("unknown Recruitment field %s", name)
 }
@@ -2122,12 +2109,12 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetClosingAt(v)
 		return nil
-	case recruitment.FieldIsPublished:
-		v, ok := value.(bool)
+	case recruitment.FieldStatus:
+		v, ok := value.(recruitment.Status)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIsPublished(v)
+		m.SetStatus(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)
@@ -2198,9 +2185,6 @@ func (m *RecruitmentMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *RecruitmentMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(recruitment.FieldLevel) {
-		fields = append(fields, recruitment.FieldLevel)
-	}
 	if m.FieldCleared(recruitment.FieldPlace) {
 		fields = append(fields, recruitment.FieldPlace)
 	}
@@ -2236,9 +2220,6 @@ func (m *RecruitmentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *RecruitmentMutation) ClearField(name string) error {
 	switch name {
-	case recruitment.FieldLevel:
-		m.ClearLevel()
-		return nil
 	case recruitment.FieldPlace:
 		m.ClearPlace()
 		return nil
@@ -2304,8 +2285,8 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 	case recruitment.FieldClosingAt:
 		m.ResetClosingAt()
 		return nil
-	case recruitment.FieldIsPublished:
-		m.ResetIsPublished()
+	case recruitment.FieldStatus:
+		m.ResetStatus()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)

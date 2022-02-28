@@ -163,13 +163,6 @@ func ClosingAt(v time.Time) predicate.Recruitment {
 	})
 }
 
-// IsPublished applies equality check predicate on the "is_published" field. It's identical to IsPublishedEQ.
-func IsPublished(v bool) predicate.Recruitment {
-	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldIsPublished), v))
-	})
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
@@ -526,20 +519,6 @@ func LevelNotIn(vs ...Level) predicate.Recruitment {
 			return
 		}
 		s.Where(sql.NotIn(s.C(FieldLevel), v...))
-	})
-}
-
-// LevelIsNil applies the IsNil predicate on the "level" field.
-func LevelIsNil() predicate.Recruitment {
-	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.IsNull(s.C(FieldLevel)))
-	})
-}
-
-// LevelNotNil applies the NotNil predicate on the "level" field.
-func LevelNotNil() predicate.Recruitment {
-	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.NotNull(s.C(FieldLevel)))
 	})
 }
 
@@ -1243,17 +1222,51 @@ func ClosingAtNotNil() predicate.Recruitment {
 	})
 }
 
-// IsPublishedEQ applies the EQ predicate on the "is_published" field.
-func IsPublishedEQ(v bool) predicate.Recruitment {
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v Status) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldIsPublished), v))
+		s.Where(sql.EQ(s.C(FieldStatus), v))
 	})
 }
 
-// IsPublishedNEQ applies the NEQ predicate on the "is_published" field.
-func IsPublishedNEQ(v bool) predicate.Recruitment {
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v Status) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldIsPublished), v))
+		s.Where(sql.NEQ(s.C(FieldStatus), v))
+	})
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...Status) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldStatus), v...))
+	})
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...Status) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldStatus), v...))
 	})
 }
 

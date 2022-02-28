@@ -47,9 +47,9 @@ type Recruitment struct {
 	// ClosingAt holds the value of the "closing_at" field.
 	// 募集期限
 	ClosingAt time.Time `json:"closing_at,omitempty"`
-	// IsPublished holds the value of the "is_published" field.
-	// 公開済みかどうか
-	IsPublished bool `json:"is_published,omitempty"`
+	// Status holds the value of the "status" field.
+	// 募集のステータス
+	Status recruitment.Status `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the RecruitmentQuery when eager-loading is set.
 	Edges          RecruitmentEdges `json:"edges"`
@@ -118,13 +118,11 @@ func (*Recruitment) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case recruitment.FieldIsPublished:
-			values[i] = new(sql.NullBool)
 		case recruitment.FieldLocationLat, recruitment.FieldLocationLng:
 			values[i] = new(sql.NullFloat64)
 		case recruitment.FieldCapacity:
 			values[i] = new(sql.NullInt64)
-		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent:
+		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldStatus:
 			values[i] = new(sql.NullString)
 		case recruitment.FieldCreatedAt, recruitment.FieldUpdatedAt, recruitment.FieldStartAt, recruitment.FieldClosingAt:
 			values[i] = new(sql.NullTime)
@@ -227,11 +225,11 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 			} else if value.Valid {
 				r.ClosingAt = value.Time
 			}
-		case recruitment.FieldIsPublished:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_published", values[i])
+		case recruitment.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				r.IsPublished = value.Bool
+				r.Status = recruitment.Status(value.String)
 			}
 		case recruitment.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -321,8 +319,8 @@ func (r *Recruitment) String() string {
 	builder.WriteString(fmt.Sprintf("%v", r.Capacity))
 	builder.WriteString(", closing_at=")
 	builder.WriteString(r.ClosingAt.Format(time.ANSIC))
-	builder.WriteString(", is_published=")
-	builder.WriteString(fmt.Sprintf("%v", r.IsPublished))
+	builder.WriteString(", status=")
+	builder.WriteString(fmt.Sprintf("%v", r.Status))
 	builder.WriteByte(')')
 	return builder.String()
 }

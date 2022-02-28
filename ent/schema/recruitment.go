@@ -48,8 +48,7 @@ func (Recruitment) Fields() []ent.Field {
 				"expert",
 				"open",
 			).
-			Default("unnecessary").
-			Optional(),
+			Default("unnecessary"),
 		field.String("place").
 			Optional(),
 		field.Time("start_at").
@@ -72,9 +71,14 @@ func (Recruitment) Fields() []ent.Field {
 		field.Time("closing_at").
 			Optional().
 			Comment("募集期限"),
-		field.Bool("is_published").
-			Default(false).
-			Comment("公開済みかどうか"),
+		field.Enum("status").
+			Values(
+				"draft",
+				"published",
+				"closed",
+			).
+			Default("draft").
+			Comment("募集のステータス"),
 	}
 }
 

@@ -38,8 +38,8 @@ const (
 	FieldCapacity = "capacity"
 	// FieldClosingAt holds the string denoting the closing_at field in the database.
 	FieldClosingAt = "closing_at"
-	// FieldIsPublished holds the string denoting the is_published field in the database.
-	FieldIsPublished = "is_published"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
@@ -86,7 +86,7 @@ var Columns = []string{
 	FieldLocationLng,
 	FieldCapacity,
 	FieldClosingAt,
-	FieldIsPublished,
+	FieldStatus,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "recruitments"
@@ -123,8 +123,6 @@ var (
 	TitleValidator func(string) error
 	// ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	ContentValidator func(string) error
-	// DefaultIsPublished holds the default value on creation for the "is_published" field.
-	DefaultIsPublished bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -192,6 +190,33 @@ func LevelValidator(l Level) error {
 	}
 }
 
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusDraft is the default value of the Status enum.
+const DefaultStatus = StatusDraft
+
+// Status values.
+const (
+	StatusDraft     Status = "draft"
+	StatusPublished Status = "published"
+	StatusClosed    Status = "closed"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusDraft, StatusPublished, StatusClosed:
+		return nil
+	default:
+		return fmt.Errorf("recruitment: invalid enum value for status field: %q", s)
+	}
+}
+
 // MarshalGQL implements graphql.Marshaler interface.
 func (_type Type) MarshalGQL(w io.Writer) {
 	io.WriteString(w, strconv.Quote(_type.String()))
@@ -224,6 +249,24 @@ func (l *Level) UnmarshalGQL(val interface{}) error {
 	*l = Level(str)
 	if err := LevelValidator(*l); err != nil {
 		return fmt.Errorf("%s is not a valid Level", str)
+	}
+	return nil
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (s Status) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(s.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (s *Status) UnmarshalGQL(val interface{}) error {
+	str, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("enum %T must be a string", val)
+	}
+	*s = Status(str)
+	if err := StatusValidator(*s); err != nil {
+		return fmt.Errorf("%s is not a valid Status", str)
 	}
 	return nil
 }

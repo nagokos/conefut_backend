@@ -237,12 +237,12 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "closing_at",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(r.IsPublished); err != nil {
+	if buf, err = json.Marshal(r.Status); err != nil {
 		return nil, err
 	}
 	node.Fields[12] = &Field{
-		Type:  "bool",
-		Name:  "is_published",
+		Type:  "recruitment.Status",
+		Name:  "status",
 		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{

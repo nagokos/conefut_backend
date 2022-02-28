@@ -10,6 +10,7 @@ import (
 
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -68,7 +69,7 @@ func main() {
 			SetNillableStartAt(&rec.StartAt).
 			SetNillableContent(&rec.Content).
 			SetNillablePlace(&rec.Place).
-			SetIsPublished(true).
+			SetStatus(recruitment.StatusPublished).
 			SetCapacity(rec.Capacity).
 			SetNillableClosingAt(&rec.ClosingAt).
 			SetNillableCompetitionID(&rec.Edges.Competition.ID).
