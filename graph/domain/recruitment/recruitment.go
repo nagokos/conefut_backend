@@ -25,7 +25,7 @@ type Recruitment struct {
 	Content       *string
 	LocationLat   *float64
 	LocationLng   *float64
-	IsPublished   bool
+	Status        model.Status
 	Capacity      *int
 	ClosingAt     *time.Time
 	CompetitionID *string
@@ -76,7 +76,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		),
 		validation.Field(
 			&r.CompetitionID,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集競技を選択してください"),
 			),
 		),
@@ -91,26 +91,26 @@ func (r Recruitment) RecruitmentValidate() error {
 				model.TypeCoaching,
 				model.TypeOthers,
 			),
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.By(requiredIfUnnecessaryType()),
 			),
 		),
 		validation.Field(
 			&r.Content,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集の詳細を入力してください"),
 				validation.RuneLength(1, 10000).Error("募集の詳細は10000文字以内で入力してください"),
 			).Else(validation.RuneLength(0, 10000).Error("募集の詳細は10000文字以内で入力してください")),
 		),
 		validation.Field(
 			&r.PrefectureID,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集エリアを選択してください"),
 			),
 		),
 		validation.Field(
 			&r.Place,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
 					validation.Required.Error("会場名を入力してください"),
 				),
@@ -127,7 +127,7 @@ func (r Recruitment) RecruitmentValidate() error {
 				model.LevelExpert,
 				model.LevelOpen,
 			).Error("選択肢の中から選んでください"),
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.When(
 					r.Type == model.TypeOpponent ||
 						r.Type == model.TypeIndividual ||
@@ -140,7 +140,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		),
 		validation.Field(
 			&r.Capacity,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.When(
 					r.Type == model.TypeOpponent ||
 						r.Type == model.TypeIndividual ||
@@ -153,7 +153,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		),
 		validation.Field(
 			&r.StartAt,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
 					validation.Required.Error("開催日時を設定してください"),
 				),
@@ -161,7 +161,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		),
 		validation.Field(
 			&r.ClosingAt,
-			validation.When(r.IsPublished,
+			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集期限を設定してください"),
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
 					validation.By(checkWithinTheDeadline(*r.StartAt)),
@@ -188,7 +188,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		SetNillablePlace(r.Place).
 		SetNillableLocationLat(r.LocationLat).
 		SetNillableLocationLng(r.LocationLng).
-		SetIsPublished(r.IsPublished).
+		SetStatus(recruitment.Status(strings.ToLower(string(r.Status)))).
 		SetNillableClosingAt(r.ClosingAt).
 		SetNillableCompetitionID(r.CompetitionID).
 		SetNillablePrefectureID(r.PrefectureID).
@@ -209,15 +209,18 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		Content:     &res.Content,
 		LocationLat: &res.LocationLat,
 		LocationLng: &res.LocationLng,
-		IsPublished: res.IsPublished,
+		Status:      model.Status(res.Status),
 		Capacity:    &res.Capacity,
 		ClosingAt:   &res.ClosingAt,
+		User:        &model.User{},
 	}
+
+	fmt.Println(*resRecruitment)
 
 	return resRecruitment, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, client ent.Client, status string) ([]*model.Recruitment, error) {
 	var recruitments []*model.Recruitment
 
 	currentUser := auth.ForContext(ctx)
@@ -228,6 +231,7 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 			user.ID(currentUser.ID),
 		).
 		QueryRecruitments().
+		Where(recruitment.StatusEQ(recruitment.Status(status))).
 		Order(ent.Desc(recruitment.FieldCreatedAt)).
 		All(ctx)
 	if err != nil {
@@ -237,25 +241,28 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 
 	for _, recruitment := range res {
 		recruitments = append(recruitments, &model.Recruitment{
-			ID:          recruitment.ID,
-			Title:       recruitment.Title,
-			Type:        model.Type(recruitment.Type),
-			Level:       model.Level(recruitment.Level),
-			IsPublished: recruitment.IsPublished,
+			ID:     recruitment.ID,
+			Title:  recruitment.Title,
+			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
+			Level:  model.Level(strings.ToUpper(string(recruitment.Level))),
+			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
 		})
 	}
 
 	return recruitments, nil
 }
 
-func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
+func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
 	var prefecture *model.Prefecture
 	var competition *model.Competition
+	var user *model.User
+
 	res, err := client.Recruitment.
 		Query().
 		Where(recruitment.ID(id)).
 		WithCompetition().
 		WithPrefecture().
+		WithUser().
 		Only(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("get recruitment error %s", err.Error()))
@@ -276,6 +283,14 @@ func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*mod
 		}
 	}
 
+	if res.Edges.User != nil {
+		user = &model.User{
+			ID:     res.Edges.User.ID,
+			Name:   res.Edges.User.Name,
+			Avatar: res.Edges.User.Avatar,
+		}
+	}
+
 	resRecruitment := &model.Recruitment{
 		ID:          res.ID,
 		Title:       res.Title,
@@ -286,11 +301,13 @@ func GetEditRecruitment(ctx context.Context, client ent.Client, id string) (*mod
 		Content:     &res.Content,
 		LocationLat: &res.LocationLat,
 		LocationLng: &res.LocationLng,
-		IsPublished: res.IsPublished,
+		Status:      model.Status(strings.ToUpper(string(res.Status))),
 		Capacity:    &res.Capacity,
 		ClosingAt:   &res.ClosingAt,
 		Prefecture:  prefecture,
 		Competition: competition,
+		UpdatedAt:   res.UpdatedAt,
+		User:        user,
 	}
 	return resRecruitment, nil
 }
@@ -299,7 +316,7 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 	var resRecruitments []*model.Recruitment
 	res, err := client.Recruitment.
 		Query().
-		Where(recruitment.IsPublished(true)).
+		Where(recruitment.StatusEQ("published")).
 		WithCompetition().
 		WithPrefecture().
 		WithUser().
@@ -328,7 +345,7 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 			Prefecture: &model.Prefecture{
 				Name: recruitment.Edges.Prefecture.Name,
 			},
-			IsPublished: recruitment.IsPublished,
+			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
 		})
 	}
 
@@ -358,7 +375,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		SetNillablePlace(r.Place).
 		SetNillableLocationLat(r.LocationLat).
 		SetNillableLocationLng(r.LocationLng).
-		SetIsPublished(r.IsPublished).
+		SetStatus(recruitment.Status(strings.ToLower(string(r.Status)))).
 		SetNillableClosingAt(r.ClosingAt).
 		SetNillableCompetitionID(r.CompetitionID).
 		SetNillablePrefectureID(r.PrefectureID).
@@ -378,9 +395,9 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 	}
 
 	resRecruitment := &model.Recruitment{
-		ID:          entRecruitment.ID,
-		Title:       entRecruitment.Title,
-		IsPublished: entRecruitment.IsPublished,
+		ID:     entRecruitment.ID,
+		Title:  entRecruitment.Title,
+		Status: model.Status(strings.ToUpper(string(entRecruitment.Status))),
 	}
 	return resRecruitment, nil
 }
