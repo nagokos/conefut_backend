@@ -71,12 +71,6 @@ func (ru *RecruitmentUpdate) SetNillableLevel(r *recruitment.Level) *Recruitment
 	return ru
 }
 
-// ClearLevel clears the value of the "level" field.
-func (ru *RecruitmentUpdate) ClearLevel() *RecruitmentUpdate {
-	ru.mutation.ClearLevel()
-	return ru
-}
-
 // SetPlace sets the "place" field.
 func (ru *RecruitmentUpdate) SetPlace(s string) *RecruitmentUpdate {
 	ru.mutation.SetPlace(s)
@@ -238,16 +232,16 @@ func (ru *RecruitmentUpdate) ClearClosingAt() *RecruitmentUpdate {
 	return ru
 }
 
-// SetIsPublished sets the "is_published" field.
-func (ru *RecruitmentUpdate) SetIsPublished(b bool) *RecruitmentUpdate {
-	ru.mutation.SetIsPublished(b)
+// SetStatus sets the "status" field.
+func (ru *RecruitmentUpdate) SetStatus(r recruitment.Status) *RecruitmentUpdate {
+	ru.mutation.SetStatus(r)
 	return ru
 }
 
-// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillableIsPublished(b *bool) *RecruitmentUpdate {
-	if b != nil {
-		ru.SetIsPublished(*b)
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableStatus(r *recruitment.Status) *RecruitmentUpdate {
+	if r != nil {
+		ru.SetStatus(*r)
 	}
 	return ru
 }
@@ -415,6 +409,11 @@ func (ru *RecruitmentUpdate) check() error {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
 		}
 	}
+	if v, ok := ru.mutation.Status(); ok {
+		if err := recruitment.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+		}
+	}
 	if _, ok := ru.mutation.UserID(); ru.mutation.UserCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"user\"")
 	}
@@ -464,12 +463,6 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeEnum,
 			Value:  value,
-			Column: recruitment.FieldLevel,
-		})
-	}
-	if ru.mutation.LevelCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
 			Column: recruitment.FieldLevel,
 		})
 	}
@@ -585,11 +578,11 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: recruitment.FieldClosingAt,
 		})
 	}
-	if value, ok := ru.mutation.IsPublished(); ok {
+	if value, ok := ru.mutation.Status(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeBool,
+			Type:   field.TypeEnum,
 			Value:  value,
-			Column: recruitment.FieldIsPublished,
+			Column: recruitment.FieldStatus,
 		})
 	}
 	if ru.mutation.UserCleared() {
@@ -756,12 +749,6 @@ func (ruo *RecruitmentUpdateOne) SetNillableLevel(r *recruitment.Level) *Recruit
 	return ruo
 }
 
-// ClearLevel clears the value of the "level" field.
-func (ruo *RecruitmentUpdateOne) ClearLevel() *RecruitmentUpdateOne {
-	ruo.mutation.ClearLevel()
-	return ruo
-}
-
 // SetPlace sets the "place" field.
 func (ruo *RecruitmentUpdateOne) SetPlace(s string) *RecruitmentUpdateOne {
 	ruo.mutation.SetPlace(s)
@@ -923,16 +910,16 @@ func (ruo *RecruitmentUpdateOne) ClearClosingAt() *RecruitmentUpdateOne {
 	return ruo
 }
 
-// SetIsPublished sets the "is_published" field.
-func (ruo *RecruitmentUpdateOne) SetIsPublished(b bool) *RecruitmentUpdateOne {
-	ruo.mutation.SetIsPublished(b)
+// SetStatus sets the "status" field.
+func (ruo *RecruitmentUpdateOne) SetStatus(r recruitment.Status) *RecruitmentUpdateOne {
+	ruo.mutation.SetStatus(r)
 	return ruo
 }
 
-// SetNillableIsPublished sets the "is_published" field if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillableIsPublished(b *bool) *RecruitmentUpdateOne {
-	if b != nil {
-		ruo.SetIsPublished(*b)
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableStatus(r *recruitment.Status) *RecruitmentUpdateOne {
+	if r != nil {
+		ruo.SetStatus(*r)
 	}
 	return ruo
 }
@@ -1107,6 +1094,11 @@ func (ruo *RecruitmentUpdateOne) check() error {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
 		}
 	}
+	if v, ok := ruo.mutation.Status(); ok {
+		if err := recruitment.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+		}
+	}
 	if _, ok := ruo.mutation.UserID(); ruo.mutation.UserCleared() && !ok {
 		return errors.New("ent: clearing a required unique edge \"user\"")
 	}
@@ -1173,12 +1165,6 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeEnum,
 			Value:  value,
-			Column: recruitment.FieldLevel,
-		})
-	}
-	if ruo.mutation.LevelCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
 			Column: recruitment.FieldLevel,
 		})
 	}
@@ -1294,11 +1280,11 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Column: recruitment.FieldClosingAt,
 		})
 	}
-	if value, ok := ruo.mutation.IsPublished(); ok {
+	if value, ok := ruo.mutation.Status(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeBool,
+			Type:   field.TypeEnum,
 			Value:  value,
-			Column: recruitment.FieldIsPublished,
+			Column: recruitment.FieldStatus,
 		})
 	}
 	if ruo.mutation.UserCleared() {
