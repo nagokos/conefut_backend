@@ -46,5 +46,7 @@ func (Stock) Edges() []ent.Edge {
 func (Stock) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "recruitment_id").Unique(),
+		index.Fields("user_id"),
+		index.Fields("recruitment_id"),
 	}
 }
