@@ -55,16 +55,45 @@ func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
 		var err error
 		switch s := v.(type) {
 		case *time.Time:
-			difference := start.Sub(*s).Minutes()
+			difference := start.Sub(*s)
 			fmt.Println(difference)
-			if difference < 60 {
-				err = errors.New("募集期限は開催日時の1時間以上前に設定してください")
+			if difference < 0 {
+				err = errors.New("募集期限は開催日時よりも前に設定してください")
 			} else {
 				err = nil
 			}
 		}
 		return err
 	}
+}
+
+func beforeNowStart(v interface{}) error {
+	var err error
+	switch t := v.(type) {
+	case *time.Time:
+		difference := time.Since(*t).Minutes()
+		fmt.Println(difference)
+		if difference >= 1 {
+			err = errors.New("開催日時は現在以降に設定してください")
+		} else {
+			err = nil
+		}
+	}
+	return err
+}
+
+func beforeNowClosing(v interface{}) error {
+	var err error
+	switch t := v.(type) {
+	case *time.Time:
+		difference := time.Since(*t).Minutes()
+		if difference >= 1 {
+			err = errors.New("募集期限は現在以降に設定してください")
+		} else {
+			err = nil
+		}
+	}
+	return err
 }
 
 func (r Recruitment) RecruitmentValidate() error {
@@ -155,6 +184,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			&r.StartAt,
 			validation.When(r.Status == model.StatusPublished,
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+					validation.By(beforeNowStart),
 					validation.Required.Error("開催日時を設定してください"),
 				),
 			),
@@ -164,6 +194,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集期限を設定してください"),
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+					validation.By(beforeNowClosing),
 					validation.By(checkWithinTheDeadline(*r.StartAt)),
 				),
 			),
