@@ -260,8 +260,11 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 			user.ID(currentUser.ID),
 		).
 		QueryRecruitments().
-		Where(recruitment.StatusEQ(recruitment.Status(status))).
-		Order(ent.Desc(recruitment.FieldCreatedAt)).
+		WithCompetition().
+		Order(
+			ent.Desc(recruitment.FieldStatus),
+			ent.Desc(recruitment.FieldUpdatedAt),
+		).
 		All(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("get currentUser recruitment error %s", err.Error()))
@@ -269,12 +272,19 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 	}
 
 	for _, recruitment := range res {
+		var compName string
+		if recruitment.Edges.Competition != nil {
+			compName = recruitment.Edges.Competition.Name
+		}
 		recruitments = append(recruitments, &model.Recruitment{
 			ID:     recruitment.ID,
 			Title:  recruitment.Title,
 			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
 			Level:  model.Level(strings.ToUpper(string(recruitment.Level))),
 			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
+			Competition: &model.Competition{
+				Name: compName,
+			},
 		})
 	}
 
@@ -345,7 +355,10 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 	var resRecruitments []*model.Recruitment
 	res, err := client.Recruitment.
 		Query().
-		Where(recruitment.StatusEQ("published")).
+		Where(
+			recruitment.StatusEQ(recruitment.StatusPublished),
+			recruitment.ClosingAtGT(time.Now().Local()),
+		).
 		WithCompetition().
 		WithPrefecture().
 		WithUser().
