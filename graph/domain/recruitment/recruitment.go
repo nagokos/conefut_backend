@@ -251,7 +251,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 	return resRecruitment, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, client ent.Client, status string) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
 	var recruitments []*model.Recruitment
 
 	currentUser := auth.ForContext(ctx)
