@@ -84,7 +84,7 @@ type Query {
   getCurrentUser: User
   getCompetitions: [Competition!]!
   getRecruitments: [Recruitment!]!
-  getCurrentUserRecruitments(status: Status!): [Recruitment!]!
+  getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
 }
 
