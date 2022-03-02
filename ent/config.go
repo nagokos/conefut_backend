@@ -27,6 +27,7 @@ type hooks struct {
 	Competition []ent.Hook
 	Prefecture  []ent.Hook
 	Recruitment []ent.Hook
+	Stock       []ent.Hook
 	User        []ent.Hook
 }
 

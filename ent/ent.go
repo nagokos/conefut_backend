@@ -11,6 +11,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -35,6 +36,7 @@ func columnChecker(table string) func(string) error {
 		competition.Table: competition.ValidColumn,
 		prefecture.Table:  prefecture.ValidColumn,
 		recruitment.Table: recruitment.ValidColumn,
+		stock.Table:       stock.ValidColumn,
 		user.Table:        user.ValidColumn,
 	}
 	check, ok := checks[table]

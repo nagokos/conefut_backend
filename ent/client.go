@@ -12,6 +12,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -30,6 +31,8 @@ type Client struct {
 	Prefecture *PrefectureClient
 	// Recruitment is the client for interacting with the Recruitment builders.
 	Recruitment *RecruitmentClient
+	// Stock is the client for interacting with the Stock builders.
+	Stock *StockClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -48,6 +51,7 @@ func (c *Client) init() {
 	c.Competition = NewCompetitionClient(c.config)
 	c.Prefecture = NewPrefectureClient(c.config)
 	c.Recruitment = NewRecruitmentClient(c.config)
+	c.Stock = NewStockClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -85,6 +89,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
 		Recruitment: NewRecruitmentClient(cfg),
+		Stock:       NewStockClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -107,6 +112,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
 		Recruitment: NewRecruitmentClient(cfg),
+		Stock:       NewStockClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -140,6 +146,7 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Competition.Use(hooks...)
 	c.Prefecture.Use(hooks...)
 	c.Recruitment.Use(hooks...)
+	c.Stock.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -440,6 +447,22 @@ func (c *RecruitmentClient) GetX(ctx context.Context, id string) *Recruitment {
 	return obj
 }
 
+// QueryStocks queries the stocks edge of a Recruitment.
+func (c *RecruitmentClient) QueryStocks(r *Recruitment) *StockQuery {
+	query := &StockQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(stock.Table, stock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.StocksTable, recruitment.StocksColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryUser queries the user edge of a Recruitment.
 func (c *RecruitmentClient) QueryUser(r *Recruitment) *UserQuery {
 	query := &UserQuery{config: c.config}
@@ -491,6 +514,128 @@ func (c *RecruitmentClient) QueryCompetition(r *Recruitment) *CompetitionQuery {
 // Hooks returns the client hooks.
 func (c *RecruitmentClient) Hooks() []Hook {
 	return c.hooks.Recruitment
+}
+
+// StockClient is a client for the Stock schema.
+type StockClient struct {
+	config
+}
+
+// NewStockClient returns a client for the Stock from the given config.
+func NewStockClient(c config) *StockClient {
+	return &StockClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stock.Hooks(f(g(h())))`.
+func (c *StockClient) Use(hooks ...Hook) {
+	c.hooks.Stock = append(c.hooks.Stock, hooks...)
+}
+
+// Create returns a create builder for Stock.
+func (c *StockClient) Create() *StockCreate {
+	mutation := newStockMutation(c.config, OpCreate)
+	return &StockCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Stock entities.
+func (c *StockClient) CreateBulk(builders ...*StockCreate) *StockCreateBulk {
+	return &StockCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Stock.
+func (c *StockClient) Update() *StockUpdate {
+	mutation := newStockMutation(c.config, OpUpdate)
+	return &StockUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StockClient) UpdateOne(s *Stock) *StockUpdateOne {
+	mutation := newStockMutation(c.config, OpUpdateOne, withStock(s))
+	return &StockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StockClient) UpdateOneID(id string) *StockUpdateOne {
+	mutation := newStockMutation(c.config, OpUpdateOne, withStockID(id))
+	return &StockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Stock.
+func (c *StockClient) Delete() *StockDelete {
+	mutation := newStockMutation(c.config, OpDelete)
+	return &StockDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *StockClient) DeleteOne(s *Stock) *StockDeleteOne {
+	return c.DeleteOneID(s.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *StockClient) DeleteOneID(id string) *StockDeleteOne {
+	builder := c.Delete().Where(stock.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StockDeleteOne{builder}
+}
+
+// Query returns a query builder for Stock.
+func (c *StockClient) Query() *StockQuery {
+	return &StockQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Stock entity by its id.
+func (c *StockClient) Get(ctx context.Context, id string) (*Stock, error) {
+	return c.Query().Where(stock.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StockClient) GetX(ctx context.Context, id string) *Stock {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Stock.
+func (c *StockClient) QueryUser(s *Stock) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(stock.Table, stock.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, stock.UserTable, stock.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRecruitment queries the recruitment edge of a Stock.
+func (c *StockClient) QueryRecruitment(s *Stock) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(stock.Table, stock.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, stock.RecruitmentTable, stock.RecruitmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StockClient) Hooks() []Hook {
+	return c.hooks.Stock
 }
 
 // UserClient is a client for the User schema.
@@ -587,6 +732,22 @@ func (c *UserClient) QueryRecruitments(u *User) *RecruitmentQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(recruitment.Table, recruitment.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.RecruitmentsTable, user.RecruitmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryStocks queries the stocks edge of a User.
+func (c *UserClient) QueryStocks(u *User) *StockQuery {
+	query := &StockQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(stock.Table, stock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.StocksTable, user.StocksColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil

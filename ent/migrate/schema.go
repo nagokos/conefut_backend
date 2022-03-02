@@ -80,6 +80,41 @@ var (
 			},
 		},
 	}
+	// StocksColumns holds the columns for the "stocks" table.
+	StocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeString, Nullable: true},
+	}
+	// StocksTable holds the schema information for the "stocks" table.
+	StocksTable = &schema.Table{
+		Name:       "stocks",
+		Columns:    StocksColumns,
+		PrimaryKey: []*schema.Column{StocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "stocks_recruitments_stocks",
+				Columns:    []*schema.Column{StocksColumns[3]},
+				RefColumns: []*schema.Column{RecruitmentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "stocks_users_stocks",
+				Columns:    []*schema.Column{StocksColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "stock_user_id_recruitment_id",
+				Unique:  true,
+				Columns: []*schema.Column{StocksColumns[4], StocksColumns[3]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -114,6 +149,7 @@ var (
 		CompetitionsTable,
 		PrefecturesTable,
 		RecruitmentsTable,
+		StocksTable,
 		UsersTable,
 	}
 )
@@ -122,4 +158,6 @@ func init() {
 	RecruitmentsTable.ForeignKeys[0].RefTable = CompetitionsTable
 	RecruitmentsTable.ForeignKeys[1].RefTable = PrefecturesTable
 	RecruitmentsTable.ForeignKeys[2].RefTable = UsersTable
+	StocksTable.ForeignKeys[0].RefTable = RecruitmentsTable
+	StocksTable.ForeignKeys[1].RefTable = UsersTable
 }

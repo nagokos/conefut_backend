@@ -15,5 +15,8 @@ type Prefecture func(*sql.Selector)
 // Recruitment is the predicate function for recruitment builders.
 type Recruitment func(*sql.Selector)
 
+// Stock is the predicate function for stock builders.
+type Stock func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

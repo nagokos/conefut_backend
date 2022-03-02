@@ -13,6 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -209,6 +210,21 @@ func (rc *RecruitmentCreate) SetNillableID(s *string) *RecruitmentCreate {
 		rc.SetID(*s)
 	}
 	return rc
+}
+
+// AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
+func (rc *RecruitmentCreate) AddStockIDs(ids ...string) *RecruitmentCreate {
+	rc.mutation.AddStockIDs(ids...)
+	return rc
+}
+
+// AddStocks adds the "stocks" edges to the Stock entity.
+func (rc *RecruitmentCreate) AddStocks(s ...*Stock) *RecruitmentCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return rc.AddStockIDs(ids...)
 }
 
 // SetUserID sets the "user" edge to the User entity by ID.
@@ -545,6 +561,25 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			Column: recruitment.FieldStatus,
 		})
 		_node.Status = value
+	}
+	if nodes := rc.mutation.StocksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := rc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

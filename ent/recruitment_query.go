@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -15,6 +16,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -28,6 +30,7 @@ type RecruitmentQuery struct {
 	fields     []string
 	predicates []predicate.Recruitment
 	// eager-loading edges.
+	withStocks      *StockQuery
 	withUser        *UserQuery
 	withPrefecture  *PrefectureQuery
 	withCompetition *CompetitionQuery
@@ -66,6 +69,28 @@ func (rq *RecruitmentQuery) Unique(unique bool) *RecruitmentQuery {
 func (rq *RecruitmentQuery) Order(o ...OrderFunc) *RecruitmentQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryStocks chains the current query on the "stocks" edge.
+func (rq *RecruitmentQuery) QueryStocks() *StockQuery {
+	query := &StockQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(stock.Table, stock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.StocksTable, recruitment.StocksColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryUser chains the current query on the "user" edge.
@@ -315,6 +340,7 @@ func (rq *RecruitmentQuery) Clone() *RecruitmentQuery {
 		offset:          rq.offset,
 		order:           append([]OrderFunc{}, rq.order...),
 		predicates:      append([]predicate.Recruitment{}, rq.predicates...),
+		withStocks:      rq.withStocks.Clone(),
 		withUser:        rq.withUser.Clone(),
 		withPrefecture:  rq.withPrefecture.Clone(),
 		withCompetition: rq.withCompetition.Clone(),
@@ -322,6 +348,17 @@ func (rq *RecruitmentQuery) Clone() *RecruitmentQuery {
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
+}
+
+// WithStocks tells the query-builder to eager-load the nodes that are connected to
+// the "stocks" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithStocks(opts ...func(*StockQuery)) *RecruitmentQuery {
+	query := &StockQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withStocks = query
+	return rq
 }
 
 // WithUser tells the query-builder to eager-load the nodes that are connected to
@@ -423,7 +460,8 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 		nodes       = []*Recruitment{}
 		withFKs     = rq.withFKs
 		_spec       = rq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
+			rq.withStocks != nil,
 			rq.withUser != nil,
 			rq.withPrefecture != nil,
 			rq.withCompetition != nil,
@@ -453,6 +491,31 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+
+	if query := rq.withStocks; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*Recruitment)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Stocks = []*Stock{}
+		}
+		query.Where(predicate.Stock(func(s *sql.Selector) {
+			s.Where(sql.InValues(recruitment.StocksColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.RecruitmentID
+			node, ok := nodeids[fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "recruitment_id" returned %v for node %v`, fk, n.ID)
+			}
+			node.Edges.Stocks = append(node.Edges.Stocks, n)
+		}
 	}
 
 	if query := rq.withUser; query != nil {

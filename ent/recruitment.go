@@ -60,6 +60,8 @@ type Recruitment struct {
 
 // RecruitmentEdges holds the relations/edges for other nodes in the graph.
 type RecruitmentEdges struct {
+	// Stocks holds the value of the stocks edge.
+	Stocks []*Stock `json:"stocks,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
 	// Prefecture holds the value of the prefecture edge.
@@ -68,13 +70,22 @@ type RecruitmentEdges struct {
 	Competition *Competition `json:"competition,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
+}
+
+// StocksOrErr returns the Stocks value or an error if the edge
+// was not loaded in eager-loading.
+func (e RecruitmentEdges) StocksOrErr() ([]*Stock, error) {
+	if e.loadedTypes[0] {
+		return e.Stocks, nil
+	}
+	return nil, &NotLoadedError{edge: "stocks"}
 }
 
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.User == nil {
 			// The edge user was loaded in eager-loading,
 			// but was not found.
@@ -88,7 +99,7 @@ func (e RecruitmentEdges) UserOrErr() (*User, error) {
 // PrefectureOrErr returns the Prefecture value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		if e.Prefecture == nil {
 			// The edge prefecture was loaded in eager-loading,
 			// but was not found.
@@ -102,7 +113,7 @@ func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
 // CompetitionOrErr returns the Competition value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) CompetitionOrErr() (*Competition, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		if e.Competition == nil {
 			// The edge competition was loaded in eager-loading,
 			// but was not found.
@@ -255,6 +266,11 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 		}
 	}
 	return nil
+}
+
+// QueryStocks queries the "stocks" edge of the Recruitment entity.
+func (r *Recruitment) QueryStocks() *StockQuery {
+	return (&RecruitmentClient{config: r.config}).QueryStocks(r)
 }
 
 // QueryUser queries the "user" edge of the Recruitment entity.

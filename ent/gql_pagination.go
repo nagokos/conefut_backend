@@ -17,6 +17,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/vmihailenco/msgpack/v5"
@@ -913,6 +914,233 @@ func (r *Recruitment) ToEdge(order *RecruitmentOrder) *RecruitmentEdge {
 	return &RecruitmentEdge{
 		Node:   r,
 		Cursor: order.Field.toCursor(r),
+	}
+}
+
+// StockEdge is the edge representation of Stock.
+type StockEdge struct {
+	Node   *Stock `json:"node"`
+	Cursor Cursor `json:"cursor"`
+}
+
+// StockConnection is the connection containing edges to Stock.
+type StockConnection struct {
+	Edges      []*StockEdge `json:"edges"`
+	PageInfo   PageInfo     `json:"pageInfo"`
+	TotalCount int          `json:"totalCount"`
+}
+
+// StockPaginateOption enables pagination customization.
+type StockPaginateOption func(*stockPager) error
+
+// WithStockOrder configures pagination ordering.
+func WithStockOrder(order *StockOrder) StockPaginateOption {
+	if order == nil {
+		order = DefaultStockOrder
+	}
+	o := *order
+	return func(pager *stockPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultStockOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithStockFilter configures pagination filter.
+func WithStockFilter(filter func(*StockQuery) (*StockQuery, error)) StockPaginateOption {
+	return func(pager *stockPager) error {
+		if filter == nil {
+			return errors.New("StockQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type stockPager struct {
+	order  *StockOrder
+	filter func(*StockQuery) (*StockQuery, error)
+}
+
+func newStockPager(opts []StockPaginateOption) (*stockPager, error) {
+	pager := &stockPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultStockOrder
+	}
+	return pager, nil
+}
+
+func (p *stockPager) applyFilter(query *StockQuery) (*StockQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *stockPager) toCursor(s *Stock) Cursor {
+	return p.order.Field.toCursor(s)
+}
+
+func (p *stockPager) applyCursors(query *StockQuery, after, before *Cursor) *StockQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultStockOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *stockPager) applyOrder(query *StockQuery, reverse bool) *StockQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultStockOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultStockOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Stock.
+func (s *StockQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...StockPaginateOption,
+) (*StockConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newStockPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if s, err = pager.applyFilter(s); err != nil {
+		return nil, err
+	}
+
+	conn := &StockConnection{Edges: []*StockEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := s.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := s.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	s = pager.applyCursors(s, after, before)
+	s = pager.applyOrder(s, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		s = s.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		s = s.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := s.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Stock
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Stock {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Stock {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*StockEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &StockEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// StockOrderField defines the ordering field of Stock.
+type StockOrderField struct {
+	field    string
+	toCursor func(*Stock) Cursor
+}
+
+// StockOrder defines the ordering of Stock.
+type StockOrder struct {
+	Direction OrderDirection   `json:"direction"`
+	Field     *StockOrderField `json:"field"`
+}
+
+// DefaultStockOrder is the default ordering of Stock.
+var DefaultStockOrder = &StockOrder{
+	Direction: OrderDirectionAsc,
+	Field: &StockOrderField{
+		field: stock.FieldID,
+		toCursor: func(s *Stock) Cursor {
+			return Cursor{ID: s.ID}
+		},
+	},
+}
+
+// ToEdge converts Stock into StockEdge.
+func (s *Stock) ToEdge(order *StockOrder) *StockEdge {
+	if order == nil {
+		order = DefaultStockOrder
+	}
+	return &StockEdge{
+		Node:   s,
+		Cursor: order.Field.toCursor(s),
 	}
 }
 

@@ -20,6 +20,14 @@ func (pr *Prefecture) Recruitments(ctx context.Context) ([]*Recruitment, error) 
 	return result, err
 }
 
+func (r *Recruitment) Stocks(ctx context.Context) ([]*Stock, error) {
+	result, err := r.Edges.StocksOrErr()
+	if IsNotLoaded(err) {
+		result, err = r.QueryStocks().All(ctx)
+	}
+	return result, err
+}
+
 func (r *Recruitment) User(ctx context.Context) (*User, error) {
 	result, err := r.Edges.UserOrErr()
 	if IsNotLoaded(err) {
@@ -44,10 +52,34 @@ func (r *Recruitment) Competition(ctx context.Context) (*Competition, error) {
 	return result, MaskNotFound(err)
 }
 
+func (s *Stock) User(ctx context.Context) (*User, error) {
+	result, err := s.Edges.UserOrErr()
+	if IsNotLoaded(err) {
+		result, err = s.QueryUser().Only(ctx)
+	}
+	return result, err
+}
+
+func (s *Stock) Recruitment(ctx context.Context) (*Recruitment, error) {
+	result, err := s.Edges.RecruitmentOrErr()
+	if IsNotLoaded(err) {
+		result, err = s.QueryRecruitment().Only(ctx)
+	}
+	return result, err
+}
+
 func (u *User) Recruitments(ctx context.Context) ([]*Recruitment, error) {
 	result, err := u.Edges.RecruitmentsOrErr()
 	if IsNotLoaded(err) {
 		result, err = u.QueryRecruitments().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) Stocks(ctx context.Context) ([]*Stock, error) {
+	result, err := u.Edges.StocksOrErr()
+	if IsNotLoaded(err) {
+		result, err = u.QueryStocks().All(ctx)
 	}
 	return result, err
 }

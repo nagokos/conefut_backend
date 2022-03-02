@@ -40,6 +40,8 @@ const (
 	FieldLastSignInAt = "last_sign_in_at"
 	// EdgeRecruitments holds the string denoting the recruitments edge name in mutations.
 	EdgeRecruitments = "recruitments"
+	// EdgeStocks holds the string denoting the stocks edge name in mutations.
+	EdgeStocks = "stocks"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// RecruitmentsTable is the table that holds the recruitments relation/edge.
@@ -49,6 +51,13 @@ const (
 	RecruitmentsInverseTable = "recruitments"
 	// RecruitmentsColumn is the table column denoting the recruitments relation/edge.
 	RecruitmentsColumn = "user_id"
+	// StocksTable is the table that holds the stocks relation/edge.
+	StocksTable = "stocks"
+	// StocksInverseTable is the table name for the Stock entity.
+	// It exists in this package in order to avoid circular dependency with the "stock" package.
+	StocksInverseTable = "stocks"
+	// StocksColumn is the table column denoting the stocks relation/edge.
+	StocksColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
