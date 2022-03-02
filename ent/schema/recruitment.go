@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/validation"
@@ -85,6 +86,11 @@ func (Recruitment) Fields() []ent.Field {
 // Edges of the Recruitment.
 func (Recruitment) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("stocks", Stock.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}).
+			StorageKey(edge.Column("recruitment_id")),
 		edge.From("user", User.Type).
 			Unique().
 			Required().
