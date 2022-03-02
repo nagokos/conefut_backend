@@ -202,9 +202,8 @@ func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitme
 	return res, err
 }
 
-func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context, status model.Status) ([]*model.Recruitment, error) {
-	fmt.Println(strings.ToLower(string(status)))
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client, strings.ToLower(string(status)))
+func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
 	if err != nil {
 		return nil, err
 	}
