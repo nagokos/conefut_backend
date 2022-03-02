@@ -34,7 +34,6 @@ type RecruitmentQuery struct {
 	withUser        *UserQuery
 	withPrefecture  *PrefectureQuery
 	withCompetition *CompetitionQuery
-	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -458,7 +457,6 @@ func (rq *RecruitmentQuery) prepareQuery(ctx context.Context) error {
 func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) {
 	var (
 		nodes       = []*Recruitment{}
-		withFKs     = rq.withFKs
 		_spec       = rq.querySpec()
 		loadedTypes = [4]bool{
 			rq.withStocks != nil,
@@ -467,12 +465,6 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 			rq.withCompetition != nil,
 		}
 	)
-	if rq.withUser != nil || rq.withPrefecture != nil || rq.withCompetition != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, recruitment.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Recruitment{config: rq.config}
 		nodes = append(nodes, node)
@@ -522,10 +514,7 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 		ids := make([]string, 0, len(nodes))
 		nodeids := make(map[string][]*Recruitment)
 		for i := range nodes {
-			if nodes[i].user_id == nil {
-				continue
-			}
-			fk := *nodes[i].user_id
+			fk := nodes[i].UserID
 			if _, ok := nodeids[fk]; !ok {
 				ids = append(ids, fk)
 			}
@@ -551,10 +540,7 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 		ids := make([]string, 0, len(nodes))
 		nodeids := make(map[string][]*Recruitment)
 		for i := range nodes {
-			if nodes[i].prefecture_id == nil {
-				continue
-			}
-			fk := *nodes[i].prefecture_id
+			fk := nodes[i].PrefectureID
 			if _, ok := nodeids[fk]; !ok {
 				ids = append(ids, fk)
 			}
@@ -580,10 +566,7 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 		ids := make([]string, 0, len(nodes))
 		nodeids := make(map[string][]*Recruitment)
 		for i := range nodes {
-			if nodes[i].competition_id == nil {
-				continue
-			}
-			fk := *nodes[i].competition_id
+			fk := nodes[i].CompetitionID
 			if _, ok := nodeids[fk]; !ok {
 				ids = append(ids, fk)
 			}

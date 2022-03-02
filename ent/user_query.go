@@ -419,7 +419,6 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 			nodeids[nodes[i].ID] = nodes[i]
 			nodes[i].Edges.Recruitments = []*Recruitment{}
 		}
-		query.withFKs = true
 		query.Where(predicate.Recruitment(func(s *sql.Selector) {
 			s.Where(sql.InValues(user.RecruitmentsColumn, fks...))
 		}))
@@ -428,13 +427,10 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.user_id
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			fk := n.UserID
+			node, ok := nodeids[fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 			}
 			node.Edges.Recruitments = append(node.Edges.Recruitments, n)
 		}

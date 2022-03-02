@@ -138,7 +138,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     r.ID,
 		Type:   "Recruitment",
-		Fields: make([]*Field, 13),
+		Fields: make([]*Field, 16),
 		Edges:  make([]*Edge, 4),
 	}
 	var buf []byte
@@ -244,6 +244,30 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	node.Fields[12] = &Field{
 		Type:  "recruitment.Status",
 		Name:  "status",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.PrefectureID); err != nil {
+		return nil, err
+	}
+	node.Fields[13] = &Field{
+		Type:  "string",
+		Name:  "prefecture_id",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.CompetitionID); err != nil {
+		return nil, err
+	}
+	node.Fields[14] = &Field{
+		Type:  "string",
+		Name:  "competition_id",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(r.UserID); err != nil {
+		return nil, err
+	}
+	node.Fields[15] = &Field{
+		Type:  "string",
+		Name:  "user_id",
 		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{

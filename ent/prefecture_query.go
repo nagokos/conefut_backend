@@ -382,7 +382,6 @@ func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 			nodeids[nodes[i].ID] = nodes[i]
 			nodes[i].Edges.Recruitments = []*Recruitment{}
 		}
-		query.withFKs = true
 		query.Where(predicate.Recruitment(func(s *sql.Selector) {
 			s.Where(sql.InValues(prefecture.RecruitmentsColumn, fks...))
 		}))
@@ -391,13 +390,10 @@ func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.prefecture_id
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "prefecture_id" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			fk := n.PrefectureID
+			node, ok := nodeids[fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "prefecture_id" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "prefecture_id" returned %v for node %v`, fk, n.ID)
 			}
 			node.Edges.Recruitments = append(node.Edges.Recruitments, n)
 		}

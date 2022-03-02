@@ -247,6 +247,52 @@ func (ru *RecruitmentUpdate) SetNillableStatus(r *recruitment.Status) *Recruitme
 	return ru
 }
 
+// SetPrefectureID sets the "prefecture_id" field.
+func (ru *RecruitmentUpdate) SetPrefectureID(s string) *RecruitmentUpdate {
+	ru.mutation.SetPrefectureID(s)
+	return ru
+}
+
+// SetNillablePrefectureID sets the "prefecture_id" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillablePrefectureID(s *string) *RecruitmentUpdate {
+	if s != nil {
+		ru.SetPrefectureID(*s)
+	}
+	return ru
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (ru *RecruitmentUpdate) ClearPrefectureID() *RecruitmentUpdate {
+	ru.mutation.ClearPrefectureID()
+	return ru
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (ru *RecruitmentUpdate) SetCompetitionID(s string) *RecruitmentUpdate {
+	ru.mutation.SetCompetitionID(s)
+	return ru
+}
+
+// SetNillableCompetitionID sets the "competition_id" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableCompetitionID(s *string) *RecruitmentUpdate {
+	if s != nil {
+		ru.SetCompetitionID(*s)
+	}
+	return ru
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (ru *RecruitmentUpdate) ClearCompetitionID() *RecruitmentUpdate {
+	ru.mutation.ClearCompetitionID()
+	return ru
+}
+
+// SetUserID sets the "user_id" field.
+func (ru *RecruitmentUpdate) SetUserID(s string) *RecruitmentUpdate {
+	ru.mutation.SetUserID(s)
+	return ru
+}
+
 // AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
 func (ru *RecruitmentUpdate) AddStockIDs(ids ...string) *RecruitmentUpdate {
 	ru.mutation.AddStockIDs(ids...)
@@ -262,48 +308,14 @@ func (ru *RecruitmentUpdate) AddStocks(s ...*Stock) *RecruitmentUpdate {
 	return ru.AddStockIDs(ids...)
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (ru *RecruitmentUpdate) SetUserID(id string) *RecruitmentUpdate {
-	ru.mutation.SetUserID(id)
-	return ru
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (ru *RecruitmentUpdate) SetUser(u *User) *RecruitmentUpdate {
 	return ru.SetUserID(u.ID)
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
-func (ru *RecruitmentUpdate) SetPrefectureID(id string) *RecruitmentUpdate {
-	ru.mutation.SetPrefectureID(id)
-	return ru
-}
-
-// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillablePrefectureID(id *string) *RecruitmentUpdate {
-	if id != nil {
-		ru = ru.SetPrefectureID(*id)
-	}
-	return ru
-}
-
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ru *RecruitmentUpdate) SetPrefecture(p *Prefecture) *RecruitmentUpdate {
 	return ru.SetPrefectureID(p.ID)
-}
-
-// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
-func (ru *RecruitmentUpdate) SetCompetitionID(id string) *RecruitmentUpdate {
-	ru.mutation.SetCompetitionID(id)
-	return ru
-}
-
-// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillableCompetitionID(id *string) *RecruitmentUpdate {
-	if id != nil {
-		ru = ru.SetCompetitionID(*id)
-	}
-	return ru
 }
 
 // SetCompetition sets the "competition" edge to the Competition entity.
@@ -1015,6 +1027,52 @@ func (ruo *RecruitmentUpdateOne) SetNillableStatus(r *recruitment.Status) *Recru
 	return ruo
 }
 
+// SetPrefectureID sets the "prefecture_id" field.
+func (ruo *RecruitmentUpdateOne) SetPrefectureID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetPrefectureID(s)
+	return ruo
+}
+
+// SetNillablePrefectureID sets the "prefecture_id" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillablePrefectureID(s *string) *RecruitmentUpdateOne {
+	if s != nil {
+		ruo.SetPrefectureID(*s)
+	}
+	return ruo
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (ruo *RecruitmentUpdateOne) ClearPrefectureID() *RecruitmentUpdateOne {
+	ruo.mutation.ClearPrefectureID()
+	return ruo
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (ruo *RecruitmentUpdateOne) SetCompetitionID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetCompetitionID(s)
+	return ruo
+}
+
+// SetNillableCompetitionID sets the "competition_id" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableCompetitionID(s *string) *RecruitmentUpdateOne {
+	if s != nil {
+		ruo.SetCompetitionID(*s)
+	}
+	return ruo
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (ruo *RecruitmentUpdateOne) ClearCompetitionID() *RecruitmentUpdateOne {
+	ruo.mutation.ClearCompetitionID()
+	return ruo
+}
+
+// SetUserID sets the "user_id" field.
+func (ruo *RecruitmentUpdateOne) SetUserID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetUserID(s)
+	return ruo
+}
+
 // AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
 func (ruo *RecruitmentUpdateOne) AddStockIDs(ids ...string) *RecruitmentUpdateOne {
 	ruo.mutation.AddStockIDs(ids...)
@@ -1030,48 +1088,14 @@ func (ruo *RecruitmentUpdateOne) AddStocks(s ...*Stock) *RecruitmentUpdateOne {
 	return ruo.AddStockIDs(ids...)
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (ruo *RecruitmentUpdateOne) SetUserID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetUserID(id)
-	return ruo
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (ruo *RecruitmentUpdateOne) SetUser(u *User) *RecruitmentUpdateOne {
 	return ruo.SetUserID(u.ID)
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
-func (ruo *RecruitmentUpdateOne) SetPrefectureID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetPrefectureID(id)
-	return ruo
-}
-
-// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillablePrefectureID(id *string) *RecruitmentUpdateOne {
-	if id != nil {
-		ruo = ruo.SetPrefectureID(*id)
-	}
-	return ruo
-}
-
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ruo *RecruitmentUpdateOne) SetPrefecture(p *Prefecture) *RecruitmentUpdateOne {
 	return ruo.SetPrefectureID(p.ID)
-}
-
-// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
-func (ruo *RecruitmentUpdateOne) SetCompetitionID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetCompetitionID(id)
-	return ruo
-}
-
-// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillableCompetitionID(id *string) *RecruitmentUpdateOne {
-	if id != nil {
-		ruo = ruo.SetCompetitionID(*id)
-	}
-	return ruo
 }
 
 // SetCompetition sets the "competition" edge to the Competition entity.

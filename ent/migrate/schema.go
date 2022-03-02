@@ -79,6 +79,23 @@ var (
 				OnDelete:   schema.Cascade,
 			},
 		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "recruitment_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[16]},
+			},
+			{
+				Name:    "recruitment_prefecture_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[15]},
+			},
+			{
+				Name:    "recruitment_competition_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[14]},
+			},
+		},
 	}
 	// StocksColumns holds the columns for the "stocks" table.
 	StocksColumns = []*schema.Column{
@@ -112,6 +129,16 @@ var (
 				Name:    "stock_user_id_recruitment_id",
 				Unique:  true,
 				Columns: []*schema.Column{StocksColumns[4], StocksColumns[3]},
+			},
+			{
+				Name:    "stock_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{StocksColumns[4]},
+			},
+			{
+				Name:    "stock_recruitment_id",
+				Unique:  false,
+				Columns: []*schema.Column{StocksColumns[3]},
 			},
 		},
 	}

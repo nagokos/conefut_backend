@@ -163,6 +163,27 @@ func ClosingAt(v time.Time) predicate.Recruitment {
 	})
 }
 
+// PrefectureID applies equality check predicate on the "prefecture_id" field. It's identical to PrefectureIDEQ.
+func PrefectureID(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPrefectureID), v))
+	})
+}
+
+// CompetitionID applies equality check predicate on the "competition_id" field. It's identical to CompetitionIDEQ.
+func CompetitionID(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldCompetitionID), v))
+	})
+}
+
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldUserID), v))
+	})
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {
@@ -1267,6 +1288,367 @@ func StatusNotIn(vs ...Status) predicate.Recruitment {
 			return
 		}
 		s.Where(sql.NotIn(s.C(FieldStatus), v...))
+	})
+}
+
+// PrefectureIDEQ applies the EQ predicate on the "prefecture_id" field.
+func PrefectureIDEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDNEQ applies the NEQ predicate on the "prefecture_id" field.
+func PrefectureIDNEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDIn applies the In predicate on the "prefecture_id" field.
+func PrefectureIDIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldPrefectureID), v...))
+	})
+}
+
+// PrefectureIDNotIn applies the NotIn predicate on the "prefecture_id" field.
+func PrefectureIDNotIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldPrefectureID), v...))
+	})
+}
+
+// PrefectureIDGT applies the GT predicate on the "prefecture_id" field.
+func PrefectureIDGT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDGTE applies the GTE predicate on the "prefecture_id" field.
+func PrefectureIDGTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDLT applies the LT predicate on the "prefecture_id" field.
+func PrefectureIDLT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDLTE applies the LTE predicate on the "prefecture_id" field.
+func PrefectureIDLTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDContains applies the Contains predicate on the "prefecture_id" field.
+func PrefectureIDContains(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDHasPrefix applies the HasPrefix predicate on the "prefecture_id" field.
+func PrefectureIDHasPrefix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDHasSuffix applies the HasSuffix predicate on the "prefecture_id" field.
+func PrefectureIDHasSuffix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDIsNil applies the IsNil predicate on the "prefecture_id" field.
+func PrefectureIDIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldPrefectureID)))
+	})
+}
+
+// PrefectureIDNotNil applies the NotNil predicate on the "prefecture_id" field.
+func PrefectureIDNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldPrefectureID)))
+	})
+}
+
+// PrefectureIDEqualFold applies the EqualFold predicate on the "prefecture_id" field.
+func PrefectureIDEqualFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldPrefectureID), v))
+	})
+}
+
+// PrefectureIDContainsFold applies the ContainsFold predicate on the "prefecture_id" field.
+func PrefectureIDContainsFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldPrefectureID), v))
+	})
+}
+
+// CompetitionIDEQ applies the EQ predicate on the "competition_id" field.
+func CompetitionIDEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDNEQ applies the NEQ predicate on the "competition_id" field.
+func CompetitionIDNEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDIn applies the In predicate on the "competition_id" field.
+func CompetitionIDIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldCompetitionID), v...))
+	})
+}
+
+// CompetitionIDNotIn applies the NotIn predicate on the "competition_id" field.
+func CompetitionIDNotIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldCompetitionID), v...))
+	})
+}
+
+// CompetitionIDGT applies the GT predicate on the "competition_id" field.
+func CompetitionIDGT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDGTE applies the GTE predicate on the "competition_id" field.
+func CompetitionIDGTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDLT applies the LT predicate on the "competition_id" field.
+func CompetitionIDLT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDLTE applies the LTE predicate on the "competition_id" field.
+func CompetitionIDLTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDContains applies the Contains predicate on the "competition_id" field.
+func CompetitionIDContains(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDHasPrefix applies the HasPrefix predicate on the "competition_id" field.
+func CompetitionIDHasPrefix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDHasSuffix applies the HasSuffix predicate on the "competition_id" field.
+func CompetitionIDHasSuffix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDIsNil applies the IsNil predicate on the "competition_id" field.
+func CompetitionIDIsNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldCompetitionID)))
+	})
+}
+
+// CompetitionIDNotNil applies the NotNil predicate on the "competition_id" field.
+func CompetitionIDNotNil() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldCompetitionID)))
+	})
+}
+
+// CompetitionIDEqualFold applies the EqualFold predicate on the "competition_id" field.
+func CompetitionIDEqualFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldCompetitionID), v))
+	})
+}
+
+// CompetitionIDContainsFold applies the ContainsFold predicate on the "competition_id" field.
+func CompetitionIDContainsFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldCompetitionID), v))
+	})
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldUserID), v...))
+	})
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...string) predicate.Recruitment {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Recruitment(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldUserID), v...))
+	})
+}
+
+// UserIDGT applies the GT predicate on the "user_id" field.
+func UserIDGT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDGTE applies the GTE predicate on the "user_id" field.
+func UserIDGTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDLT applies the LT predicate on the "user_id" field.
+func UserIDLT(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDLTE applies the LTE predicate on the "user_id" field.
+func UserIDLTE(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDContains applies the Contains predicate on the "user_id" field.
+func UserIDContains(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDHasPrefix applies the HasPrefix predicate on the "user_id" field.
+func UserIDHasPrefix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDHasSuffix applies the HasSuffix predicate on the "user_id" field.
+func UserIDHasSuffix(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDEqualFold applies the EqualFold predicate on the "user_id" field.
+func UserIDEqualFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldUserID), v))
+	})
+}
+
+// UserIDContainsFold applies the ContainsFold predicate on the "user_id" field.
+func UserIDContainsFold(v string) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldUserID), v))
 	})
 }
 

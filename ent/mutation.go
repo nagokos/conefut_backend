@@ -1776,6 +1776,140 @@ func (m *RecruitmentMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetPrefectureID sets the "prefecture_id" field.
+func (m *RecruitmentMutation) SetPrefectureID(s string) {
+	m.prefecture = &s
+}
+
+// PrefectureID returns the value of the "prefecture_id" field in the mutation.
+func (m *RecruitmentMutation) PrefectureID() (r string, exists bool) {
+	v := m.prefecture
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrefectureID returns the old "prefecture_id" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldPrefectureID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldPrefectureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldPrefectureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrefectureID: %w", err)
+	}
+	return oldValue.PrefectureID, nil
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (m *RecruitmentMutation) ClearPrefectureID() {
+	m.prefecture = nil
+	m.clearedFields[recruitment.FieldPrefectureID] = struct{}{}
+}
+
+// PrefectureIDCleared returns if the "prefecture_id" field was cleared in this mutation.
+func (m *RecruitmentMutation) PrefectureIDCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldPrefectureID]
+	return ok
+}
+
+// ResetPrefectureID resets all changes to the "prefecture_id" field.
+func (m *RecruitmentMutation) ResetPrefectureID() {
+	m.prefecture = nil
+	delete(m.clearedFields, recruitment.FieldPrefectureID)
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (m *RecruitmentMutation) SetCompetitionID(s string) {
+	m.competition = &s
+}
+
+// CompetitionID returns the value of the "competition_id" field in the mutation.
+func (m *RecruitmentMutation) CompetitionID() (r string, exists bool) {
+	v := m.competition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompetitionID returns the old "competition_id" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldCompetitionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCompetitionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCompetitionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompetitionID: %w", err)
+	}
+	return oldValue.CompetitionID, nil
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (m *RecruitmentMutation) ClearCompetitionID() {
+	m.competition = nil
+	m.clearedFields[recruitment.FieldCompetitionID] = struct{}{}
+}
+
+// CompetitionIDCleared returns if the "competition_id" field was cleared in this mutation.
+func (m *RecruitmentMutation) CompetitionIDCleared() bool {
+	_, ok := m.clearedFields[recruitment.FieldCompetitionID]
+	return ok
+}
+
+// ResetCompetitionID resets all changes to the "competition_id" field.
+func (m *RecruitmentMutation) ResetCompetitionID() {
+	m.competition = nil
+	delete(m.clearedFields, recruitment.FieldCompetitionID)
+}
+
+// SetUserID sets the "user_id" field.
+func (m *RecruitmentMutation) SetUserID(s string) {
+	m.user = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *RecruitmentMutation) UserID() (r string, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Recruitment entity.
+// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RecruitmentMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *RecruitmentMutation) ResetUserID() {
+	m.user = nil
+}
+
 // AddStockIDs adds the "stocks" edge to the Stock entity by ids.
 func (m *RecruitmentMutation) AddStockIDs(ids ...string) {
 	if m.stocks == nil {
@@ -1830,11 +1964,6 @@ func (m *RecruitmentMutation) ResetStocks() {
 	m.removedstocks = nil
 }
 
-// SetUserID sets the "user" edge to the User entity by id.
-func (m *RecruitmentMutation) SetUserID(id string) {
-	m.user = &id
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *RecruitmentMutation) ClearUser() {
 	m.cleareduser = true
@@ -1843,14 +1972,6 @@ func (m *RecruitmentMutation) ClearUser() {
 // UserCleared reports if the "user" edge to the User entity was cleared.
 func (m *RecruitmentMutation) UserCleared() bool {
 	return m.cleareduser
-}
-
-// UserID returns the "user" edge ID in the mutation.
-func (m *RecruitmentMutation) UserID() (id string, exists bool) {
-	if m.user != nil {
-		return *m.user, true
-	}
-	return
 }
 
 // UserIDs returns the "user" edge IDs in the mutation.
@@ -1869,11 +1990,6 @@ func (m *RecruitmentMutation) ResetUser() {
 	m.cleareduser = false
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by id.
-func (m *RecruitmentMutation) SetPrefectureID(id string) {
-	m.prefecture = &id
-}
-
 // ClearPrefecture clears the "prefecture" edge to the Prefecture entity.
 func (m *RecruitmentMutation) ClearPrefecture() {
 	m.clearedprefecture = true
@@ -1881,15 +1997,7 @@ func (m *RecruitmentMutation) ClearPrefecture() {
 
 // PrefectureCleared reports if the "prefecture" edge to the Prefecture entity was cleared.
 func (m *RecruitmentMutation) PrefectureCleared() bool {
-	return m.clearedprefecture
-}
-
-// PrefectureID returns the "prefecture" edge ID in the mutation.
-func (m *RecruitmentMutation) PrefectureID() (id string, exists bool) {
-	if m.prefecture != nil {
-		return *m.prefecture, true
-	}
-	return
+	return m.PrefectureIDCleared() || m.clearedprefecture
 }
 
 // PrefectureIDs returns the "prefecture" edge IDs in the mutation.
@@ -1908,11 +2016,6 @@ func (m *RecruitmentMutation) ResetPrefecture() {
 	m.clearedprefecture = false
 }
 
-// SetCompetitionID sets the "competition" edge to the Competition entity by id.
-func (m *RecruitmentMutation) SetCompetitionID(id string) {
-	m.competition = &id
-}
-
 // ClearCompetition clears the "competition" edge to the Competition entity.
 func (m *RecruitmentMutation) ClearCompetition() {
 	m.clearedcompetition = true
@@ -1920,15 +2023,7 @@ func (m *RecruitmentMutation) ClearCompetition() {
 
 // CompetitionCleared reports if the "competition" edge to the Competition entity was cleared.
 func (m *RecruitmentMutation) CompetitionCleared() bool {
-	return m.clearedcompetition
-}
-
-// CompetitionID returns the "competition" edge ID in the mutation.
-func (m *RecruitmentMutation) CompetitionID() (id string, exists bool) {
-	if m.competition != nil {
-		return *m.competition, true
-	}
-	return
+	return m.CompetitionIDCleared() || m.clearedcompetition
 }
 
 // CompetitionIDs returns the "competition" edge IDs in the mutation.
@@ -1966,7 +2061,7 @@ func (m *RecruitmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecruitmentMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 16)
 	if m.created_at != nil {
 		fields = append(fields, recruitment.FieldCreatedAt)
 	}
@@ -2006,6 +2101,15 @@ func (m *RecruitmentMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, recruitment.FieldStatus)
 	}
+	if m.prefecture != nil {
+		fields = append(fields, recruitment.FieldPrefectureID)
+	}
+	if m.competition != nil {
+		fields = append(fields, recruitment.FieldCompetitionID)
+	}
+	if m.user != nil {
+		fields = append(fields, recruitment.FieldUserID)
+	}
 	return fields
 }
 
@@ -2040,6 +2144,12 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.ClosingAt()
 	case recruitment.FieldStatus:
 		return m.Status()
+	case recruitment.FieldPrefectureID:
+		return m.PrefectureID()
+	case recruitment.FieldCompetitionID:
+		return m.CompetitionID()
+	case recruitment.FieldUserID:
+		return m.UserID()
 	}
 	return nil, false
 }
@@ -2075,6 +2185,12 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldClosingAt(ctx)
 	case recruitment.FieldStatus:
 		return m.OldStatus(ctx)
+	case recruitment.FieldPrefectureID:
+		return m.OldPrefectureID(ctx)
+	case recruitment.FieldCompetitionID:
+		return m.OldCompetitionID(ctx)
+	case recruitment.FieldUserID:
+		return m.OldUserID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Recruitment field %s", name)
 }
@@ -2175,6 +2291,27 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case recruitment.FieldPrefectureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrefectureID(v)
+		return nil
+	case recruitment.FieldCompetitionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompetitionID(v)
+		return nil
+	case recruitment.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)
 }
@@ -2265,6 +2402,12 @@ func (m *RecruitmentMutation) ClearedFields() []string {
 	if m.FieldCleared(recruitment.FieldClosingAt) {
 		fields = append(fields, recruitment.FieldClosingAt)
 	}
+	if m.FieldCleared(recruitment.FieldPrefectureID) {
+		fields = append(fields, recruitment.FieldPrefectureID)
+	}
+	if m.FieldCleared(recruitment.FieldCompetitionID) {
+		fields = append(fields, recruitment.FieldCompetitionID)
+	}
 	return fields
 }
 
@@ -2299,6 +2442,12 @@ func (m *RecruitmentMutation) ClearField(name string) error {
 		return nil
 	case recruitment.FieldClosingAt:
 		m.ClearClosingAt()
+		return nil
+	case recruitment.FieldPrefectureID:
+		m.ClearPrefectureID()
+		return nil
+	case recruitment.FieldCompetitionID:
+		m.ClearCompetitionID()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment nullable field %s", name)
@@ -2346,6 +2495,15 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 		return nil
 	case recruitment.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case recruitment.FieldPrefectureID:
+		m.ResetPrefectureID()
+		return nil
+	case recruitment.FieldCompetitionID:
+		m.ResetCompetitionID()
+		return nil
+	case recruitment.FieldUserID:
+		m.ResetUserID()
 		return nil
 	}
 	return fmt.Errorf("unknown Recruitment field %s", name)
