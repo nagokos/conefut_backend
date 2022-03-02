@@ -66,7 +66,7 @@ type ComplexityRoot struct {
 	Query struct {
 		GetCompetitions            func(childComplexity int) int
 		GetCurrentUser             func(childComplexity int) int
-		GetCurrentUserRecruitments func(childComplexity int, status model.Status) int
+		GetCurrentUserRecruitments func(childComplexity int) int
 		GetPrefectures             func(childComplexity int) int
 		GetRecruitment             func(childComplexity int, id string) int
 		GetRecruitments            func(childComplexity int) int
@@ -115,7 +115,7 @@ type QueryResolver interface {
 	GetCurrentUser(ctx context.Context) (*model.User, error)
 	GetCompetitions(ctx context.Context) ([]*model.Competition, error)
 	GetRecruitments(ctx context.Context) ([]*model.Recruitment, error)
-	GetCurrentUserRecruitments(ctx context.Context, status model.Status) ([]*model.Recruitment, error)
+	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 }
 
@@ -248,12 +248,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_getCurrentUserRecruitments_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.GetCurrentUserRecruitments(childComplexity, args["status"].(model.Status)), true
+		return e.complexity.Query.GetCurrentUserRecruitments(childComplexity), true
 
 	case "Query.getPrefectures":
 		if e.complexity.Query.GetPrefectures == nil {
@@ -592,7 +587,7 @@ type Query {
   getCurrentUser: User
   getCompetitions: [Competition!]!
   getRecruitments: [Recruitment!]!
-  getCurrentUserRecruitments(status: Status!): [Recruitment!]!
+  getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
 }
 
@@ -735,21 +730,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getCurrentUserRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.Status
-	if tmp, ok := rawArgs["status"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-		arg0, err = ec.unmarshalNStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐStatus(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["status"] = arg0
 	return args, nil
 }
 
@@ -1359,16 +1339,9 @@ func (ec *executionContext) _Query_getCurrentUserRecruitments(ctx context.Contex
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getCurrentUserRecruitments_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetCurrentUserRecruitments(rctx, args["status"].(model.Status))
+		return ec.resolvers.Query().GetCurrentUserRecruitments(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
