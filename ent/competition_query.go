@@ -382,7 +382,6 @@ func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) 
 			nodeids[nodes[i].ID] = nodes[i]
 			nodes[i].Edges.Recruitments = []*Recruitment{}
 		}
-		query.withFKs = true
 		query.Where(predicate.Recruitment(func(s *sql.Selector) {
 			s.Where(sql.InValues(competition.RecruitmentsColumn, fks...))
 		}))
@@ -391,13 +390,10 @@ func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) 
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.competition_id
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "competition_id" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			fk := n.CompetitionID
+			node, ok := nodeids[fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "competition_id" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "competition_id" returned %v for node %v`, fk, n.ID)
 			}
 			node.Edges.Recruitments = append(node.Edges.Recruitments, n)
 		}

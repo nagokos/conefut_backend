@@ -50,16 +50,21 @@ type Recruitment struct {
 	// Status holds the value of the "status" field.
 	// 募集のステータス
 	Status recruitment.Status `json:"status,omitempty"`
+	// PrefectureID holds the value of the "prefecture_id" field.
+	PrefectureID string `json:"prefecture_id,omitempty"`
+	// CompetitionID holds the value of the "competition_id" field.
+	CompetitionID string `json:"competition_id,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID string `json:"user_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the RecruitmentQuery when eager-loading is set.
-	Edges          RecruitmentEdges `json:"edges"`
-	competition_id *string
-	prefecture_id  *string
-	user_id        *string
+	Edges RecruitmentEdges `json:"edges"`
 }
 
 // RecruitmentEdges holds the relations/edges for other nodes in the graph.
 type RecruitmentEdges struct {
+	// Stocks holds the value of the stocks edge.
+	Stocks []*Stock `json:"stocks,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
 	// Prefecture holds the value of the prefecture edge.
@@ -68,13 +73,22 @@ type RecruitmentEdges struct {
 	Competition *Competition `json:"competition,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
+}
+
+// StocksOrErr returns the Stocks value or an error if the edge
+// was not loaded in eager-loading.
+func (e RecruitmentEdges) StocksOrErr() ([]*Stock, error) {
+	if e.loadedTypes[0] {
+		return e.Stocks, nil
+	}
+	return nil, &NotLoadedError{edge: "stocks"}
 }
 
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.User == nil {
 			// The edge user was loaded in eager-loading,
 			// but was not found.
@@ -88,7 +102,7 @@ func (e RecruitmentEdges) UserOrErr() (*User, error) {
 // PrefectureOrErr returns the Prefecture value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		if e.Prefecture == nil {
 			// The edge prefecture was loaded in eager-loading,
 			// but was not found.
@@ -102,7 +116,7 @@ func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
 // CompetitionOrErr returns the Competition value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) CompetitionOrErr() (*Competition, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		if e.Competition == nil {
 			// The edge competition was loaded in eager-loading,
 			// but was not found.
@@ -122,16 +136,10 @@ func (*Recruitment) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullFloat64)
 		case recruitment.FieldCapacity:
 			values[i] = new(sql.NullInt64)
-		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldStatus:
+		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldStatus, recruitment.FieldPrefectureID, recruitment.FieldCompetitionID, recruitment.FieldUserID:
 			values[i] = new(sql.NullString)
 		case recruitment.FieldCreatedAt, recruitment.FieldUpdatedAt, recruitment.FieldStartAt, recruitment.FieldClosingAt:
 			values[i] = new(sql.NullTime)
-		case recruitment.ForeignKeys[0]: // competition_id
-			values[i] = new(sql.NullString)
-		case recruitment.ForeignKeys[1]: // prefecture_id
-			values[i] = new(sql.NullString)
-		case recruitment.ForeignKeys[2]: // user_id
-			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Recruitment", columns[i])
 		}
@@ -231,30 +239,32 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 			} else if value.Valid {
 				r.Status = recruitment.Status(value.String)
 			}
-		case recruitment.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field competition_id", values[i])
-			} else if value.Valid {
-				r.competition_id = new(string)
-				*r.competition_id = value.String
-			}
-		case recruitment.ForeignKeys[1]:
+		case recruitment.FieldPrefectureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field prefecture_id", values[i])
 			} else if value.Valid {
-				r.prefecture_id = new(string)
-				*r.prefecture_id = value.String
+				r.PrefectureID = value.String
 			}
-		case recruitment.ForeignKeys[2]:
+		case recruitment.FieldCompetitionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field competition_id", values[i])
+			} else if value.Valid {
+				r.CompetitionID = value.String
+			}
+		case recruitment.FieldUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				r.user_id = new(string)
-				*r.user_id = value.String
+				r.UserID = value.String
 			}
 		}
 	}
 	return nil
+}
+
+// QueryStocks queries the "stocks" edge of the Recruitment entity.
+func (r *Recruitment) QueryStocks() *StockQuery {
+	return (&RecruitmentClient{config: r.config}).QueryStocks(r)
 }
 
 // QueryUser queries the "user" edge of the Recruitment entity.
@@ -321,6 +331,12 @@ func (r *Recruitment) String() string {
 	builder.WriteString(r.ClosingAt.Format(time.ANSIC))
 	builder.WriteString(", status=")
 	builder.WriteString(fmt.Sprintf("%v", r.Status))
+	builder.WriteString(", prefecture_id=")
+	builder.WriteString(r.PrefectureID)
+	builder.WriteString(", competition_id=")
+	builder.WriteString(r.CompetitionID)
+	builder.WriteString(", user_id=")
+	builder.WriteString(r.UserID)
 	builder.WriteByte(')')
 	return builder.String()
 }

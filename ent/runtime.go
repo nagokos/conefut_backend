@@ -9,6 +9,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/schema"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -93,6 +94,29 @@ func init() {
 	recruitment.DefaultID = recruitmentDescID.Default.(func() string)
 	// recruitment.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	recruitment.IDValidator = recruitmentDescID.Validators[0].(func(string) error)
+	stockMixin := schema.Stock{}.Mixin()
+	stockMixinFields0 := stockMixin[0].Fields()
+	_ = stockMixinFields0
+	stockMixinFields1 := stockMixin[1].Fields()
+	_ = stockMixinFields1
+	stockFields := schema.Stock{}.Fields()
+	_ = stockFields
+	// stockDescCreatedAt is the schema descriptor for created_at field.
+	stockDescCreatedAt := stockMixinFields1[0].Descriptor()
+	// stock.DefaultCreatedAt holds the default value on creation for the created_at field.
+	stock.DefaultCreatedAt = stockDescCreatedAt.Default.(func() time.Time)
+	// stockDescUpdatedAt is the schema descriptor for updated_at field.
+	stockDescUpdatedAt := stockMixinFields1[1].Descriptor()
+	// stock.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	stock.DefaultUpdatedAt = stockDescUpdatedAt.Default.(func() time.Time)
+	// stock.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	stock.UpdateDefaultUpdatedAt = stockDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// stockDescID is the schema descriptor for id field.
+	stockDescID := stockMixinFields0[0].Descriptor()
+	// stock.DefaultID holds the default value on creation for the id field.
+	stock.DefaultID = stockDescID.Default.(func() string)
+	// stock.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	stock.IDValidator = stockDescID.Validators[0].(func(string) error)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0

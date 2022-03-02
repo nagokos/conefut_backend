@@ -45,6 +45,18 @@ func (r *RecruitmentQuery) collectField(ctx *graphql.OperationContext, field gra
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (s *StockQuery) CollectFields(ctx context.Context, satisfies ...string) *StockQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		s = s.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return s
+}
+
+func (s *StockQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *StockQuery {
+	return s
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (u *UserQuery) CollectFields(ctx context.Context, satisfies ...string) *UserQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		u = u.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)

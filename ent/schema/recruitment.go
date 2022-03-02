@@ -3,8 +3,10 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/nagokos/connefut_backend/ent/validation"
 )
 
@@ -79,21 +81,42 @@ func (Recruitment) Fields() []ent.Field {
 			).
 			Default("draft").
 			Comment("募集のステータス"),
+		field.String("prefecture_id").
+			Optional(),
+		field.String("competition_id").
+			Optional(),
+		field.String("user_id"),
 	}
 }
 
 // Edges of the Recruitment.
 func (Recruitment) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("stocks", Stock.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}).
+			StorageKey(edge.Column("recruitment_id")),
 		edge.From("user", User.Type).
 			Unique().
+			Field("user_id").
 			Required().
 			Ref("recruitments"),
 		edge.From("prefecture", Prefecture.Type).
 			Unique().
+			Field("prefecture_id").
 			Ref("recruitments"),
 		edge.From("competition", Competition.Type).
 			Unique().
+			Field("competition_id").
 			Ref("recruitments"),
+	}
+}
+
+func (Recruitment) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("user_id"),
+		index.Fields("prefecture_id"),
+		index.Fields("competition_id"),
 	}
 }

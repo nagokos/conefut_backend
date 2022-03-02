@@ -13,6 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -197,6 +198,40 @@ func (rc *RecruitmentCreate) SetNillableStatus(r *recruitment.Status) *Recruitme
 	return rc
 }
 
+// SetPrefectureID sets the "prefecture_id" field.
+func (rc *RecruitmentCreate) SetPrefectureID(s string) *RecruitmentCreate {
+	rc.mutation.SetPrefectureID(s)
+	return rc
+}
+
+// SetNillablePrefectureID sets the "prefecture_id" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillablePrefectureID(s *string) *RecruitmentCreate {
+	if s != nil {
+		rc.SetPrefectureID(*s)
+	}
+	return rc
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (rc *RecruitmentCreate) SetCompetitionID(s string) *RecruitmentCreate {
+	rc.mutation.SetCompetitionID(s)
+	return rc
+}
+
+// SetNillableCompetitionID sets the "competition_id" field if the given value is not nil.
+func (rc *RecruitmentCreate) SetNillableCompetitionID(s *string) *RecruitmentCreate {
+	if s != nil {
+		rc.SetCompetitionID(*s)
+	}
+	return rc
+}
+
+// SetUserID sets the "user_id" field.
+func (rc *RecruitmentCreate) SetUserID(s string) *RecruitmentCreate {
+	rc.mutation.SetUserID(s)
+	return rc
+}
+
 // SetID sets the "id" field.
 func (rc *RecruitmentCreate) SetID(s string) *RecruitmentCreate {
 	rc.mutation.SetID(s)
@@ -211,10 +246,19 @@ func (rc *RecruitmentCreate) SetNillableID(s *string) *RecruitmentCreate {
 	return rc
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (rc *RecruitmentCreate) SetUserID(id string) *RecruitmentCreate {
-	rc.mutation.SetUserID(id)
+// AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
+func (rc *RecruitmentCreate) AddStockIDs(ids ...string) *RecruitmentCreate {
+	rc.mutation.AddStockIDs(ids...)
 	return rc
+}
+
+// AddStocks adds the "stocks" edges to the Stock entity.
+func (rc *RecruitmentCreate) AddStocks(s ...*Stock) *RecruitmentCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return rc.AddStockIDs(ids...)
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -222,37 +266,9 @@ func (rc *RecruitmentCreate) SetUser(u *User) *RecruitmentCreate {
 	return rc.SetUserID(u.ID)
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
-func (rc *RecruitmentCreate) SetPrefectureID(id string) *RecruitmentCreate {
-	rc.mutation.SetPrefectureID(id)
-	return rc
-}
-
-// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
-func (rc *RecruitmentCreate) SetNillablePrefectureID(id *string) *RecruitmentCreate {
-	if id != nil {
-		rc = rc.SetPrefectureID(*id)
-	}
-	return rc
-}
-
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (rc *RecruitmentCreate) SetPrefecture(p *Prefecture) *RecruitmentCreate {
 	return rc.SetPrefectureID(p.ID)
-}
-
-// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
-func (rc *RecruitmentCreate) SetCompetitionID(id string) *RecruitmentCreate {
-	rc.mutation.SetCompetitionID(id)
-	return rc
-}
-
-// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
-func (rc *RecruitmentCreate) SetNillableCompetitionID(id *string) *RecruitmentCreate {
-	if id != nil {
-		rc = rc.SetCompetitionID(*id)
-	}
-	return rc
 }
 
 // SetCompetition sets the "competition" edge to the Competition entity.
@@ -402,6 +418,9 @@ func (rc *RecruitmentCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "status": %w`, err)}
 		}
 	}
+	if _, ok := rc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "user_id"`)}
+	}
 	if v, ok := rc.mutation.ID(); ok {
 		if err := recruitment.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
@@ -546,6 +565,25 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		})
 		_node.Status = value
 	}
+	if nodes := rc.mutation.StocksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := rc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -563,7 +601,7 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_id = &nodes[0]
+		_node.UserID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := rc.mutation.PrefectureIDs(); len(nodes) > 0 {
@@ -583,7 +621,7 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.prefecture_id = &nodes[0]
+		_node.PrefectureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := rc.mutation.CompetitionIDs(); len(nodes) > 0 {
@@ -603,7 +641,7 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.competition_id = &nodes[0]
+		_node.CompetitionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

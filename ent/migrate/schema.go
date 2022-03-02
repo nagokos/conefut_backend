@@ -79,6 +79,68 @@ var (
 				OnDelete:   schema.Cascade,
 			},
 		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "recruitment_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[16]},
+			},
+			{
+				Name:    "recruitment_prefecture_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[15]},
+			},
+			{
+				Name:    "recruitment_competition_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentsColumns[14]},
+			},
+		},
+	}
+	// StocksColumns holds the columns for the "stocks" table.
+	StocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeString, Nullable: true},
+	}
+	// StocksTable holds the schema information for the "stocks" table.
+	StocksTable = &schema.Table{
+		Name:       "stocks",
+		Columns:    StocksColumns,
+		PrimaryKey: []*schema.Column{StocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "stocks_recruitments_stocks",
+				Columns:    []*schema.Column{StocksColumns[3]},
+				RefColumns: []*schema.Column{RecruitmentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "stocks_users_stocks",
+				Columns:    []*schema.Column{StocksColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "stock_user_id_recruitment_id",
+				Unique:  true,
+				Columns: []*schema.Column{StocksColumns[4], StocksColumns[3]},
+			},
+			{
+				Name:    "stock_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{StocksColumns[4]},
+			},
+			{
+				Name:    "stock_recruitment_id",
+				Unique:  false,
+				Columns: []*schema.Column{StocksColumns[3]},
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -114,6 +176,7 @@ var (
 		CompetitionsTable,
 		PrefecturesTable,
 		RecruitmentsTable,
+		StocksTable,
 		UsersTable,
 	}
 )
@@ -122,4 +185,6 @@ func init() {
 	RecruitmentsTable.ForeignKeys[0].RefTable = CompetitionsTable
 	RecruitmentsTable.ForeignKeys[1].RefTable = PrefecturesTable
 	RecruitmentsTable.ForeignKeys[2].RefTable = UsersTable
+	StocksTable.ForeignKeys[0].RefTable = RecruitmentsTable
+	StocksTable.ForeignKeys[1].RefTable = UsersTable
 }

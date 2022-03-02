@@ -40,6 +40,14 @@ const (
 	FieldClosingAt = "closing_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldPrefectureID holds the string denoting the prefecture_id field in the database.
+	FieldPrefectureID = "prefecture_id"
+	// FieldCompetitionID holds the string denoting the competition_id field in the database.
+	FieldCompetitionID = "competition_id"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
+	// EdgeStocks holds the string denoting the stocks edge name in mutations.
+	EdgeStocks = "stocks"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
@@ -48,6 +56,13 @@ const (
 	EdgeCompetition = "competition"
 	// Table holds the table name of the recruitment in the database.
 	Table = "recruitments"
+	// StocksTable is the table that holds the stocks relation/edge.
+	StocksTable = "stocks"
+	// StocksInverseTable is the table name for the Stock entity.
+	// It exists in this package in order to avoid circular dependency with the "stock" package.
+	StocksInverseTable = "stocks"
+	// StocksColumn is the table column denoting the stocks relation/edge.
+	StocksColumn = "recruitment_id"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "recruitments"
 	// UserInverseTable is the table name for the User entity.
@@ -87,25 +102,15 @@ var Columns = []string{
 	FieldCapacity,
 	FieldClosingAt,
 	FieldStatus,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "recruitments"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"competition_id",
-	"prefecture_id",
-	"user_id",
+	FieldPrefectureID,
+	FieldCompetitionID,
+	FieldUserID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}

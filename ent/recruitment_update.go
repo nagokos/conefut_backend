@@ -15,6 +15,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -246,10 +247,65 @@ func (ru *RecruitmentUpdate) SetNillableStatus(r *recruitment.Status) *Recruitme
 	return ru
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (ru *RecruitmentUpdate) SetUserID(id string) *RecruitmentUpdate {
-	ru.mutation.SetUserID(id)
+// SetPrefectureID sets the "prefecture_id" field.
+func (ru *RecruitmentUpdate) SetPrefectureID(s string) *RecruitmentUpdate {
+	ru.mutation.SetPrefectureID(s)
 	return ru
+}
+
+// SetNillablePrefectureID sets the "prefecture_id" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillablePrefectureID(s *string) *RecruitmentUpdate {
+	if s != nil {
+		ru.SetPrefectureID(*s)
+	}
+	return ru
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (ru *RecruitmentUpdate) ClearPrefectureID() *RecruitmentUpdate {
+	ru.mutation.ClearPrefectureID()
+	return ru
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (ru *RecruitmentUpdate) SetCompetitionID(s string) *RecruitmentUpdate {
+	ru.mutation.SetCompetitionID(s)
+	return ru
+}
+
+// SetNillableCompetitionID sets the "competition_id" field if the given value is not nil.
+func (ru *RecruitmentUpdate) SetNillableCompetitionID(s *string) *RecruitmentUpdate {
+	if s != nil {
+		ru.SetCompetitionID(*s)
+	}
+	return ru
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (ru *RecruitmentUpdate) ClearCompetitionID() *RecruitmentUpdate {
+	ru.mutation.ClearCompetitionID()
+	return ru
+}
+
+// SetUserID sets the "user_id" field.
+func (ru *RecruitmentUpdate) SetUserID(s string) *RecruitmentUpdate {
+	ru.mutation.SetUserID(s)
+	return ru
+}
+
+// AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
+func (ru *RecruitmentUpdate) AddStockIDs(ids ...string) *RecruitmentUpdate {
+	ru.mutation.AddStockIDs(ids...)
+	return ru
+}
+
+// AddStocks adds the "stocks" edges to the Stock entity.
+func (ru *RecruitmentUpdate) AddStocks(s ...*Stock) *RecruitmentUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return ru.AddStockIDs(ids...)
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -257,37 +313,9 @@ func (ru *RecruitmentUpdate) SetUser(u *User) *RecruitmentUpdate {
 	return ru.SetUserID(u.ID)
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
-func (ru *RecruitmentUpdate) SetPrefectureID(id string) *RecruitmentUpdate {
-	ru.mutation.SetPrefectureID(id)
-	return ru
-}
-
-// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillablePrefectureID(id *string) *RecruitmentUpdate {
-	if id != nil {
-		ru = ru.SetPrefectureID(*id)
-	}
-	return ru
-}
-
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ru *RecruitmentUpdate) SetPrefecture(p *Prefecture) *RecruitmentUpdate {
 	return ru.SetPrefectureID(p.ID)
-}
-
-// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
-func (ru *RecruitmentUpdate) SetCompetitionID(id string) *RecruitmentUpdate {
-	ru.mutation.SetCompetitionID(id)
-	return ru
-}
-
-// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillableCompetitionID(id *string) *RecruitmentUpdate {
-	if id != nil {
-		ru = ru.SetCompetitionID(*id)
-	}
-	return ru
 }
 
 // SetCompetition sets the "competition" edge to the Competition entity.
@@ -298,6 +326,27 @@ func (ru *RecruitmentUpdate) SetCompetition(c *Competition) *RecruitmentUpdate {
 // Mutation returns the RecruitmentMutation object of the builder.
 func (ru *RecruitmentUpdate) Mutation() *RecruitmentMutation {
 	return ru.mutation
+}
+
+// ClearStocks clears all "stocks" edges to the Stock entity.
+func (ru *RecruitmentUpdate) ClearStocks() *RecruitmentUpdate {
+	ru.mutation.ClearStocks()
+	return ru
+}
+
+// RemoveStockIDs removes the "stocks" edge to Stock entities by IDs.
+func (ru *RecruitmentUpdate) RemoveStockIDs(ids ...string) *RecruitmentUpdate {
+	ru.mutation.RemoveStockIDs(ids...)
+	return ru
+}
+
+// RemoveStocks removes "stocks" edges to Stock entities.
+func (ru *RecruitmentUpdate) RemoveStocks(s ...*Stock) *RecruitmentUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return ru.RemoveStockIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -584,6 +633,60 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Value:  value,
 			Column: recruitment.FieldStatus,
 		})
+	}
+	if ru.mutation.StocksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedStocksIDs(); len(nodes) > 0 && !ru.mutation.StocksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.StocksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if ru.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -924,10 +1027,65 @@ func (ruo *RecruitmentUpdateOne) SetNillableStatus(r *recruitment.Status) *Recru
 	return ruo
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (ruo *RecruitmentUpdateOne) SetUserID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetUserID(id)
+// SetPrefectureID sets the "prefecture_id" field.
+func (ruo *RecruitmentUpdateOne) SetPrefectureID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetPrefectureID(s)
 	return ruo
+}
+
+// SetNillablePrefectureID sets the "prefecture_id" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillablePrefectureID(s *string) *RecruitmentUpdateOne {
+	if s != nil {
+		ruo.SetPrefectureID(*s)
+	}
+	return ruo
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (ruo *RecruitmentUpdateOne) ClearPrefectureID() *RecruitmentUpdateOne {
+	ruo.mutation.ClearPrefectureID()
+	return ruo
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (ruo *RecruitmentUpdateOne) SetCompetitionID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetCompetitionID(s)
+	return ruo
+}
+
+// SetNillableCompetitionID sets the "competition_id" field if the given value is not nil.
+func (ruo *RecruitmentUpdateOne) SetNillableCompetitionID(s *string) *RecruitmentUpdateOne {
+	if s != nil {
+		ruo.SetCompetitionID(*s)
+	}
+	return ruo
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (ruo *RecruitmentUpdateOne) ClearCompetitionID() *RecruitmentUpdateOne {
+	ruo.mutation.ClearCompetitionID()
+	return ruo
+}
+
+// SetUserID sets the "user_id" field.
+func (ruo *RecruitmentUpdateOne) SetUserID(s string) *RecruitmentUpdateOne {
+	ruo.mutation.SetUserID(s)
+	return ruo
+}
+
+// AddStockIDs adds the "stocks" edge to the Stock entity by IDs.
+func (ruo *RecruitmentUpdateOne) AddStockIDs(ids ...string) *RecruitmentUpdateOne {
+	ruo.mutation.AddStockIDs(ids...)
+	return ruo
+}
+
+// AddStocks adds the "stocks" edges to the Stock entity.
+func (ruo *RecruitmentUpdateOne) AddStocks(s ...*Stock) *RecruitmentUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return ruo.AddStockIDs(ids...)
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -935,37 +1093,9 @@ func (ruo *RecruitmentUpdateOne) SetUser(u *User) *RecruitmentUpdateOne {
 	return ruo.SetUserID(u.ID)
 }
 
-// SetPrefectureID sets the "prefecture" edge to the Prefecture entity by ID.
-func (ruo *RecruitmentUpdateOne) SetPrefectureID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetPrefectureID(id)
-	return ruo
-}
-
-// SetNillablePrefectureID sets the "prefecture" edge to the Prefecture entity by ID if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillablePrefectureID(id *string) *RecruitmentUpdateOne {
-	if id != nil {
-		ruo = ruo.SetPrefectureID(*id)
-	}
-	return ruo
-}
-
 // SetPrefecture sets the "prefecture" edge to the Prefecture entity.
 func (ruo *RecruitmentUpdateOne) SetPrefecture(p *Prefecture) *RecruitmentUpdateOne {
 	return ruo.SetPrefectureID(p.ID)
-}
-
-// SetCompetitionID sets the "competition" edge to the Competition entity by ID.
-func (ruo *RecruitmentUpdateOne) SetCompetitionID(id string) *RecruitmentUpdateOne {
-	ruo.mutation.SetCompetitionID(id)
-	return ruo
-}
-
-// SetNillableCompetitionID sets the "competition" edge to the Competition entity by ID if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillableCompetitionID(id *string) *RecruitmentUpdateOne {
-	if id != nil {
-		ruo = ruo.SetCompetitionID(*id)
-	}
-	return ruo
 }
 
 // SetCompetition sets the "competition" edge to the Competition entity.
@@ -976,6 +1106,27 @@ func (ruo *RecruitmentUpdateOne) SetCompetition(c *Competition) *RecruitmentUpda
 // Mutation returns the RecruitmentMutation object of the builder.
 func (ruo *RecruitmentUpdateOne) Mutation() *RecruitmentMutation {
 	return ruo.mutation
+}
+
+// ClearStocks clears all "stocks" edges to the Stock entity.
+func (ruo *RecruitmentUpdateOne) ClearStocks() *RecruitmentUpdateOne {
+	ruo.mutation.ClearStocks()
+	return ruo
+}
+
+// RemoveStockIDs removes the "stocks" edge to Stock entities by IDs.
+func (ruo *RecruitmentUpdateOne) RemoveStockIDs(ids ...string) *RecruitmentUpdateOne {
+	ruo.mutation.RemoveStockIDs(ids...)
+	return ruo
+}
+
+// RemoveStocks removes "stocks" edges to Stock entities.
+func (ruo *RecruitmentUpdateOne) RemoveStocks(s ...*Stock) *RecruitmentUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return ruo.RemoveStockIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -1286,6 +1437,60 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Value:  value,
 			Column: recruitment.FieldStatus,
 		})
+	}
+	if ruo.mutation.StocksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedStocksIDs(); len(nodes) > 0 && !ruo.mutation.StocksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.StocksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.StocksTable,
+			Columns: []string{recruitment.StocksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if ruo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
