@@ -55,16 +55,43 @@ func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
 		var err error
 		switch s := v.(type) {
 		case *time.Time:
-			difference := start.Sub(*s).Minutes()
-			fmt.Println(difference)
-			if difference < 60 {
-				err = errors.New("募集期限は開催日時の1時間以上前に設定してください")
+			difference := start.Sub(*s)
+			if difference < 0 {
+				err = errors.New("募集期限は開催日時よりも前に設定してください")
 			} else {
 				err = nil
 			}
 		}
 		return err
 	}
+}
+
+func beforeNowStart(v interface{}) error {
+	var err error
+	switch t := v.(type) {
+	case *time.Time:
+		difference := time.Since(*t).Minutes()
+		if difference >= 1 {
+			err = errors.New("開催日時は現在以降に設定してください")
+		} else {
+			err = nil
+		}
+	}
+	return err
+}
+
+func beforeNowClosing(v interface{}) error {
+	var err error
+	switch t := v.(type) {
+	case *time.Time:
+		difference := time.Since(*t).Minutes()
+		if difference >= 1 {
+			err = errors.New("募集期限は現在以降に設定してください")
+		} else {
+			err = nil
+		}
+	}
+	return err
 }
 
 func (r Recruitment) RecruitmentValidate() error {
@@ -155,6 +182,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			&r.StartAt,
 			validation.When(r.Status == model.StatusPublished,
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+					validation.By(beforeNowStart),
 					validation.Required.Error("開催日時を設定してください"),
 				),
 			),
@@ -164,6 +192,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集期限を設定してください"),
 				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+					validation.By(beforeNowClosing),
 					validation.By(checkWithinTheDeadline(*r.StartAt)),
 				),
 			),
@@ -220,7 +249,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 	return resRecruitment, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, client ent.Client, status string) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
 	var recruitments []*model.Recruitment
 
 	currentUser := auth.ForContext(ctx)
@@ -231,8 +260,11 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client, status s
 			user.ID(currentUser.ID),
 		).
 		QueryRecruitments().
-		Where(recruitment.StatusEQ(recruitment.Status(status))).
-		Order(ent.Desc(recruitment.FieldCreatedAt)).
+		WithCompetition().
+		Order(
+			ent.Desc(recruitment.FieldStatus),
+			ent.Desc(recruitment.FieldUpdatedAt),
+		).
 		All(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("get currentUser recruitment error %s", err.Error()))
@@ -240,12 +272,19 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client, status s
 	}
 
 	for _, recruitment := range res {
+		var compName string
+		if recruitment.Edges.Competition != nil {
+			compName = recruitment.Edges.Competition.Name
+		}
 		recruitments = append(recruitments, &model.Recruitment{
 			ID:     recruitment.ID,
 			Title:  recruitment.Title,
 			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
 			Level:  model.Level(strings.ToUpper(string(recruitment.Level))),
 			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
+			Competition: &model.Competition{
+				Name: compName,
+			},
 		})
 	}
 
@@ -316,7 +355,10 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 	var resRecruitments []*model.Recruitment
 	res, err := client.Recruitment.
 		Query().
-		Where(recruitment.StatusEQ("published")).
+		Where(
+			recruitment.StatusEQ(recruitment.StatusPublished),
+			recruitment.ClosingAtGT(time.Now().Local()),
+		).
 		WithCompetition().
 		WithPrefecture().
 		WithUser().
