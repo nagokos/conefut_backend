@@ -56,7 +56,6 @@ func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
 		switch s := v.(type) {
 		case *time.Time:
 			difference := start.Sub(*s)
-			fmt.Println(difference)
 			if difference < 0 {
 				err = errors.New("募集期限は開催日時よりも前に設定してください")
 			} else {
@@ -72,7 +71,6 @@ func beforeNowStart(v interface{}) error {
 	switch t := v.(type) {
 	case *time.Time:
 		difference := time.Since(*t).Minutes()
-		fmt.Println(difference)
 		if difference >= 1 {
 			err = errors.New("開催日時は現在以降に設定してください")
 		} else {
