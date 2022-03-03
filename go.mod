@@ -16,7 +16,7 @@ require (
 	github.com/rs/xid v1.3.0
 	github.com/rs/zerolog v1.26.1
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
-	github.com/vektah/gqlparser/v2 v2.3.1
+	github.com/vektah/gqlparser/v2 v2.4.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e
 	golang.org/x/text v0.3.7
