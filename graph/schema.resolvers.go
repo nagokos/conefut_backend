@@ -13,6 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
+	"github.com/nagokos/connefut_backend/graph/domain/stock"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -168,6 +169,22 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bo
 	return res, nil
 }
 
+func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
+	_, err := stock.CreateStock(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string) (bool, error) {
+	_, err := stock.DeleteStock(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
 	if err != nil {
@@ -214,6 +231,22 @@ func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.R
 	res, err := recruitment.GetRecruitment(ctx, *r.client, id)
 	if err != nil {
 		return res, err
+	}
+	return res, nil
+}
+
+func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
+	res, err := stock.CheckStocked(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return false, err
+	}
+	return res, nil
+}
+
+func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID string) (int, error) {
+	res, err := stock.GetStockedCount(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return 0, err
 	}
 	return res, nil
 }
