@@ -51,8 +51,10 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateRecruitment func(childComplexity int, input model.RecruitmentInput) int
+		CreateStock       func(childComplexity int, recruitmentID string) int
 		CreateUser        func(childComplexity int, input model.CreateUserInput) int
 		DeleteRecruitment func(childComplexity int, id string) int
+		DeleteStock       func(childComplexity int, recruitmentID string) int
 		LoginUser         func(childComplexity int, input model.LoginUserInput) int
 		LogoutUser        func(childComplexity int) int
 		UpdateRecruitment func(childComplexity int, id string, input model.RecruitmentInput) int
@@ -64,12 +66,14 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		CheckStocked               func(childComplexity int, recruitmentID string) int
 		GetCompetitions            func(childComplexity int) int
 		GetCurrentUser             func(childComplexity int) int
 		GetCurrentUserRecruitments func(childComplexity int) int
 		GetPrefectures             func(childComplexity int) int
 		GetRecruitment             func(childComplexity int, id string) int
 		GetRecruitments            func(childComplexity int) int
+		GetStockedCount            func(childComplexity int, recruitmentID string) int
 	}
 
 	Recruitment struct {
@@ -109,6 +113,8 @@ type MutationResolver interface {
 	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error)
 	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
 	DeleteRecruitment(ctx context.Context, id string) (bool, error)
+	CreateStock(ctx context.Context, recruitmentID string) (bool, error)
+	DeleteStock(ctx context.Context, recruitmentID string) (bool, error)
 }
 type QueryResolver interface {
 	GetPrefectures(ctx context.Context) ([]*model.Prefecture, error)
@@ -117,6 +123,8 @@ type QueryResolver interface {
 	GetRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
+	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
+	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
 }
 
 type executableSchema struct {
@@ -160,6 +168,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateRecruitment(childComplexity, args["input"].(model.RecruitmentInput)), true
 
+	case "Mutation.createStock":
+		if e.complexity.Mutation.CreateStock == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createStock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateStock(childComplexity, args["recruitmentId"].(string)), true
+
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -183,6 +203,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteRecruitment(childComplexity, args["id"].(string)), true
+
+	case "Mutation.deleteStock":
+		if e.complexity.Mutation.DeleteStock == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteStock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteStock(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Mutation.loginUser":
 		if e.complexity.Mutation.LoginUser == nil {
@@ -228,6 +260,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Prefecture.Name(childComplexity), true
+
+	case "Query.checkStocked":
+		if e.complexity.Query.CheckStocked == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkStocked_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CheckStocked(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Query.getCompetitions":
 		if e.complexity.Query.GetCompetitions == nil {
@@ -275,6 +319,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetRecruitments(childComplexity), true
+
+	case "Query.getStockedCount":
+		if e.complexity.Query.GetStockedCount == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getStockedCount_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetStockedCount(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Recruitment.capacity":
 		if e.complexity.Recruitment.Capacity == nil {
@@ -589,6 +645,8 @@ type Query {
   getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
+  checkStocked(recruitmentId: String!): Boolean!
+  getStockedCount(recruitmentId: String!): Int!
 }
 
 input createUserInput {
@@ -625,6 +683,8 @@ type Mutation {
   createRecruitment(input: recruitmentInput!): Recruitment!
   updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
+  createStock(recruitmentId: String!): Boolean!
+  deleteStock(recruitmentId: String!): Boolean!
 }
 `, BuiltIn: false},
 }
@@ -646,6 +706,21 @@ func (ec *executionContext) field_Mutation_createRecruitment_args(ctx context.Co
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
 	return args, nil
 }
 
@@ -676,6 +751,21 @@ func (ec *executionContext) field_Mutation_deleteRecruitment_args(ctx context.Co
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
 	return args, nil
 }
 
@@ -733,6 +823,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_checkStocked_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -745,6 +850,21 @@ func (ec *executionContext) field_Query_getRecruitment_args(ctx context.Context,
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getStockedCount_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
 	return args, nil
 }
 
@@ -1116,6 +1236,90 @@ func (ec *executionContext) _Mutation_deleteRecruitment(ctx context.Context, fie
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_createStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createStock_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateStock(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteStock_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteStock(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Prefecture_id(ctx context.Context, field graphql.CollectedField, obj *model.Prefecture) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1398,6 +1602,90 @@ func (ec *executionContext) _Query_getRecruitment(ctx context.Context, field gra
 	res := resTmp.(*model.Recruitment)
 	fc.Result = res
 	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_checkStocked_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckStocked(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getStockedCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getStockedCount_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetStockedCount(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3649,6 +3937,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createStock":
+			out.Values[i] = ec._Mutation_createStock(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteStock":
+			out.Values[i] = ec._Mutation_deleteStock(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3783,6 +4081,34 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getRecruitment(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "checkStocked":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkStocked(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getStockedCount":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getStockedCount(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4274,6 +4600,21 @@ func (ec *executionContext) unmarshalNEmailVerificationStatus2githubᚗcomᚋnag
 
 func (ec *executionContext) marshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, sel ast.SelectionSet, v model.EmailVerificationStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNLevel2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLevel(ctx context.Context, v interface{}) (model.Level, error) {

@@ -86,6 +86,8 @@ type Query {
   getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
+  checkStocked(recruitmentId: String!): Boolean!
+  getStockedCount(recruitmentId: String!): Int!
 }
 
 input createUserInput {
@@ -122,4 +124,6 @@ type Mutation {
   createRecruitment(input: recruitmentInput!): Recruitment!
   updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
+  createStock(recruitmentId: String!): Boolean!
+  deleteStock(recruitmentId: String!): Boolean!
 }
