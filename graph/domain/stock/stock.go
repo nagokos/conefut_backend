@@ -77,6 +77,10 @@ func GetStockedCount(ctx context.Context, client ent.Client, recId string) (int,
 func CheckStocked(ctx context.Context, client ent.Client, recId string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 
+	if currentUser == nil {
+		return false, nil
+	}
+
 	res, err := client.Stock.
 		Query().
 		Where(
