@@ -145,9 +145,8 @@ const (
 	TypeUnnecessary Type = "unnecessary"
 	TypeOpponent    Type = "opponent"
 	TypeIndividual  Type = "individual"
-	TypeTeammate    Type = "teammate"
+	TypeMember      Type = "member"
 	TypeJoining     Type = "joining"
-	TypeCoaching    Type = "coaching"
 	TypeOthers      Type = "others"
 )
 
@@ -158,7 +157,7 @@ func (_type Type) String() string {
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type Type) error {
 	switch _type {
-	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
+	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeMember, TypeJoining, TypeOthers:
 		return nil
 	default:
 		return fmt.Errorf("recruitment: invalid enum value for type field: %q", _type)

@@ -113,9 +113,8 @@ func (r Recruitment) RecruitmentValidate() error {
 				model.TypeUnnecessary,
 				model.TypeOpponent,
 				model.TypeIndividual,
-				model.TypeTeammate,
+				model.TypeMember,
 				model.TypeJoining,
-				model.TypeCoaching,
 				model.TypeOthers,
 			),
 			validation.When(r.Status == model.StatusPublished,
@@ -158,9 +157,7 @@ func (r Recruitment) RecruitmentValidate() error {
 				validation.When(
 					r.Type == model.TypeOpponent ||
 						r.Type == model.TypeIndividual ||
-						r.Type == model.TypeTeammate ||
-						r.Type == model.TypeJoining ||
-						r.Type == model.TypeCoaching,
+						r.Type == model.TypeJoining,
 					validation.By(requiredIfUnnecessaryLevel()),
 				),
 			),
@@ -170,9 +167,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			validation.When(r.Status == model.StatusPublished,
 				validation.When(
 					r.Type == model.TypeOpponent ||
-						r.Type == model.TypeIndividual ||
-						r.Type == model.TypeTeammate ||
-						r.Type == model.TypeCoaching,
+						r.Type == model.TypeIndividual,
 					validation.Required.Error("募集人数は1名以上にしてください"),
 					validation.Min(1).Error("募集人数は1名以上にしてください"),
 				),

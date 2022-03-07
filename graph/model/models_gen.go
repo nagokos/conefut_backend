@@ -257,9 +257,8 @@ const (
 	TypeUnnecessary Type = "UNNECESSARY"
 	TypeOpponent    Type = "OPPONENT"
 	TypeIndividual  Type = "INDIVIDUAL"
-	TypeTeammate    Type = "TEAMMATE"
+	TypeMember      Type = "MEMBER"
 	TypeJoining     Type = "JOINING"
-	TypeCoaching    Type = "COACHING"
 	TypeOthers      Type = "OTHERS"
 )
 
@@ -267,15 +266,14 @@ var AllType = []Type{
 	TypeUnnecessary,
 	TypeOpponent,
 	TypeIndividual,
-	TypeTeammate,
+	TypeMember,
 	TypeJoining,
-	TypeCoaching,
 	TypeOthers,
 }
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeTeammate, TypeJoining, TypeCoaching, TypeOthers:
+	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeMember, TypeJoining, TypeOthers:
 		return true
 	}
 	return false
