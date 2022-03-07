@@ -40,16 +40,6 @@ func (Recruitment) Fields() []ent.Field {
 				"others",
 			).
 			Default("unnecessary"),
-		field.Enum("level").
-			Values(
-				"unnecessary",
-				"enjoy",
-				"beginner",
-				"middle",
-				"expert",
-				"open",
-			).
-			Default("unnecessary"),
 		field.String("place").
 			Optional(),
 		field.Time("start_at").
