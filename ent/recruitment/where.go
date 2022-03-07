@@ -495,54 +495,6 @@ func TypeNotIn(vs ...Type) predicate.Recruitment {
 	})
 }
 
-// LevelEQ applies the EQ predicate on the "level" field.
-func LevelEQ(v Level) predicate.Recruitment {
-	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldLevel), v))
-	})
-}
-
-// LevelNEQ applies the NEQ predicate on the "level" field.
-func LevelNEQ(v Level) predicate.Recruitment {
-	return predicate.Recruitment(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldLevel), v))
-	})
-}
-
-// LevelIn applies the In predicate on the "level" field.
-func LevelIn(vs ...Level) predicate.Recruitment {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Recruitment(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.In(s.C(FieldLevel), v...))
-	})
-}
-
-// LevelNotIn applies the NotIn predicate on the "level" field.
-func LevelNotIn(vs ...Level) predicate.Recruitment {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Recruitment(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.NotIn(s.C(FieldLevel), v...))
-	})
-}
-
 // PlaceEQ applies the EQ predicate on the "place" field.
 func PlaceEQ(v string) predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {

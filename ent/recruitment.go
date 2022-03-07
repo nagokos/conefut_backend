@@ -27,8 +27,6 @@ type Recruitment struct {
 	Title string `json:"title,omitempty"`
 	// Type holds the value of the "type" field.
 	Type recruitment.Type `json:"type,omitempty"`
-	// Level holds the value of the "level" field.
-	Level recruitment.Level `json:"level,omitempty"`
 	// Place holds the value of the "place" field.
 	Place string `json:"place,omitempty"`
 	// StartAt holds the value of the "start_at" field.
@@ -136,7 +134,7 @@ func (*Recruitment) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullFloat64)
 		case recruitment.FieldCapacity:
 			values[i] = new(sql.NullInt64)
-		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldLevel, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldStatus, recruitment.FieldPrefectureID, recruitment.FieldCompetitionID, recruitment.FieldUserID:
+		case recruitment.FieldID, recruitment.FieldTitle, recruitment.FieldType, recruitment.FieldPlace, recruitment.FieldContent, recruitment.FieldStatus, recruitment.FieldPrefectureID, recruitment.FieldCompetitionID, recruitment.FieldUserID:
 			values[i] = new(sql.NullString)
 		case recruitment.FieldCreatedAt, recruitment.FieldUpdatedAt, recruitment.FieldStartAt, recruitment.FieldClosingAt:
 			values[i] = new(sql.NullTime)
@@ -184,12 +182,6 @@ func (r *Recruitment) assignValues(columns []string, values []interface{}) error
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
 				r.Type = recruitment.Type(value.String)
-			}
-		case recruitment.FieldLevel:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field level", values[i])
-			} else if value.Valid {
-				r.Level = recruitment.Level(value.String)
 			}
 		case recruitment.FieldPlace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -313,8 +305,6 @@ func (r *Recruitment) String() string {
 	builder.WriteString(r.Title)
 	builder.WriteString(", type=")
 	builder.WriteString(fmt.Sprintf("%v", r.Type))
-	builder.WriteString(", level=")
-	builder.WriteString(fmt.Sprintf("%v", r.Level))
 	builder.WriteString(", place=")
 	builder.WriteString(r.Place)
 	builder.WriteString(", start_at=")

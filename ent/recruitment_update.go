@@ -58,20 +58,6 @@ func (ru *RecruitmentUpdate) SetNillableType(r *recruitment.Type) *RecruitmentUp
 	return ru
 }
 
-// SetLevel sets the "level" field.
-func (ru *RecruitmentUpdate) SetLevel(r recruitment.Level) *RecruitmentUpdate {
-	ru.mutation.SetLevel(r)
-	return ru
-}
-
-// SetNillableLevel sets the "level" field if the given value is not nil.
-func (ru *RecruitmentUpdate) SetNillableLevel(r *recruitment.Level) *RecruitmentUpdate {
-	if r != nil {
-		ru.SetLevel(*r)
-	}
-	return ru
-}
-
 // SetPlace sets the "place" field.
 func (ru *RecruitmentUpdate) SetPlace(s string) *RecruitmentUpdate {
 	ru.mutation.SetPlace(s)
@@ -448,11 +434,6 @@ func (ru *RecruitmentUpdate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
 		}
 	}
-	if v, ok := ru.mutation.Level(); ok {
-		if err := recruitment.LevelValidator(v); err != nil {
-			return &ValidationError{Name: "level", err: fmt.Errorf("ent: validator failed for field \"level\": %w", err)}
-		}
-	}
 	if v, ok := ru.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
@@ -506,13 +487,6 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: recruitment.FieldType,
-		})
-	}
-	if value, ok := ru.mutation.Level(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  value,
-			Column: recruitment.FieldLevel,
 		})
 	}
 	if value, ok := ru.mutation.Place(); ok {
@@ -834,20 +808,6 @@ func (ruo *RecruitmentUpdateOne) SetType(r recruitment.Type) *RecruitmentUpdateO
 func (ruo *RecruitmentUpdateOne) SetNillableType(r *recruitment.Type) *RecruitmentUpdateOne {
 	if r != nil {
 		ruo.SetType(*r)
-	}
-	return ruo
-}
-
-// SetLevel sets the "level" field.
-func (ruo *RecruitmentUpdateOne) SetLevel(r recruitment.Level) *RecruitmentUpdateOne {
-	ruo.mutation.SetLevel(r)
-	return ruo
-}
-
-// SetNillableLevel sets the "level" field if the given value is not nil.
-func (ruo *RecruitmentUpdateOne) SetNillableLevel(r *recruitment.Level) *RecruitmentUpdateOne {
-	if r != nil {
-		ruo.SetLevel(*r)
 	}
 	return ruo
 }
@@ -1235,11 +1195,6 @@ func (ruo *RecruitmentUpdateOne) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
 		}
 	}
-	if v, ok := ruo.mutation.Level(); ok {
-		if err := recruitment.LevelValidator(v); err != nil {
-			return &ValidationError{Name: "level", err: fmt.Errorf("ent: validator failed for field \"level\": %w", err)}
-		}
-	}
 	if v, ok := ruo.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
@@ -1310,13 +1265,6 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: recruitment.FieldType,
-		})
-	}
-	if value, ok := ruo.mutation.Level(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  value,
-			Column: recruitment.FieldLevel,
 		})
 	}
 	if value, ok := ruo.mutation.Place(); ok {

@@ -22,8 +22,6 @@ const (
 	FieldTitle = "title"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldLevel holds the string denoting the level field in the database.
-	FieldLevel = "level"
 	// FieldPlace holds the string denoting the place field in the database.
 	FieldPlace = "place"
 	// FieldStartAt holds the string denoting the start_at field in the database.
@@ -93,7 +91,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTitle,
 	FieldType,
-	FieldLevel,
 	FieldPlace,
 	FieldStartAt,
 	FieldContent,
@@ -164,36 +161,6 @@ func TypeValidator(_type Type) error {
 	}
 }
 
-// Level defines the type for the "level" enum field.
-type Level string
-
-// LevelUnnecessary is the default value of the Level enum.
-const DefaultLevel = LevelUnnecessary
-
-// Level values.
-const (
-	LevelUnnecessary Level = "unnecessary"
-	LevelEnjoy       Level = "enjoy"
-	LevelBeginner    Level = "beginner"
-	LevelMiddle      Level = "middle"
-	LevelExpert      Level = "expert"
-	LevelOpen        Level = "open"
-)
-
-func (l Level) String() string {
-	return string(l)
-}
-
-// LevelValidator is a validator for the "level" field enum values. It is called by the builders before save.
-func LevelValidator(l Level) error {
-	switch l {
-	case LevelUnnecessary, LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
-		return nil
-	default:
-		return fmt.Errorf("recruitment: invalid enum value for level field: %q", l)
-	}
-}
-
 // Status defines the type for the "status" enum field.
 type Status string
 
@@ -235,24 +202,6 @@ func (_type *Type) UnmarshalGQL(val interface{}) error {
 	*_type = Type(str)
 	if err := TypeValidator(*_type); err != nil {
 		return fmt.Errorf("%s is not a valid Type", str)
-	}
-	return nil
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (l Level) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(l.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (l *Level) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*l = Level(str)
-	if err := LevelValidator(*l); err != nil {
-		return fmt.Errorf("%s is not a valid Level", str)
 	}
 	return nil
 }

@@ -72,20 +72,6 @@ func (rc *RecruitmentCreate) SetNillableType(r *recruitment.Type) *RecruitmentCr
 	return rc
 }
 
-// SetLevel sets the "level" field.
-func (rc *RecruitmentCreate) SetLevel(r recruitment.Level) *RecruitmentCreate {
-	rc.mutation.SetLevel(r)
-	return rc
-}
-
-// SetNillableLevel sets the "level" field if the given value is not nil.
-func (rc *RecruitmentCreate) SetNillableLevel(r *recruitment.Level) *RecruitmentCreate {
-	if r != nil {
-		rc.SetLevel(*r)
-	}
-	return rc
-}
-
 // SetPlace sets the "place" field.
 func (rc *RecruitmentCreate) SetPlace(s string) *RecruitmentCreate {
 	rc.mutation.SetPlace(s)
@@ -359,10 +345,6 @@ func (rc *RecruitmentCreate) defaults() {
 		v := recruitment.DefaultType
 		rc.mutation.SetType(v)
 	}
-	if _, ok := rc.mutation.Level(); !ok {
-		v := recruitment.DefaultLevel
-		rc.mutation.SetLevel(v)
-	}
 	if _, ok := rc.mutation.Status(); !ok {
 		v := recruitment.DefaultStatus
 		rc.mutation.SetStatus(v)
@@ -395,14 +377,6 @@ func (rc *RecruitmentCreate) check() error {
 	if v, ok := rc.mutation.GetType(); ok {
 		if err := recruitment.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "type": %w`, err)}
-		}
-	}
-	if _, ok := rc.mutation.Level(); !ok {
-		return &ValidationError{Name: "level", err: errors.New(`ent: missing required field "level"`)}
-	}
-	if v, ok := rc.mutation.Level(); ok {
-		if err := recruitment.LevelValidator(v); err != nil {
-			return &ValidationError{Name: "level", err: fmt.Errorf(`ent: validator failed for field "level": %w`, err)}
 		}
 	}
 	if v, ok := rc.mutation.Content(); ok {
@@ -492,14 +466,6 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			Column: recruitment.FieldType,
 		})
 		_node.Type = value
-	}
-	if value, ok := rc.mutation.Level(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  value,
-			Column: recruitment.FieldLevel,
-		})
-		_node.Level = value
 	}
 	if value, ok := rc.mutation.Place(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
