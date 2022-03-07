@@ -24,15 +24,6 @@ enum Type {
   OTHERS
 }
 
-enum Level {
-  UNNECESSARY
-  ENJOY
-  BEGINNER
-  MIDDLE
-  EXPERT
-  OPEN
-}
-
 enum Status {
   DRAFT
   PUBLISHED
@@ -64,7 +55,6 @@ type Recruitment {
   title: String!
   content: String
   type: Type!
-  level: Level!
   place: String
   startAt: DateTime
   locationLat: Float
@@ -104,7 +94,6 @@ input recruitmentInput {
   title: String!
   content: String
   type: Type!
-  level: Level!
   place: String
   startAt: DateTime
   locationLat: Float
