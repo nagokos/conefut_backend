@@ -24,7 +24,6 @@ type Recruitment struct {
 	Title       string       `json:"title"`
 	Content     *string      `json:"content"`
 	Type        Type         `json:"type"`
-	Level       Level        `json:"level"`
 	Place       *string      `json:"place"`
 	StartAt     *time.Time   `json:"startAt"`
 	LocationLat *float64     `json:"locationLat"`
@@ -63,7 +62,6 @@ type RecruitmentInput struct {
 	Title         string     `json:"title"`
 	Content       *string    `json:"content"`
 	Type          Type       `json:"type"`
-	Level         Level      `json:"level"`
 	Place         *string    `json:"place"`
 	StartAt       *time.Time `json:"startAt"`
 	LocationLat   *float64   `json:"locationLat"`
@@ -115,55 +113,6 @@ func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type Level string
-
-const (
-	LevelUnnecessary Level = "UNNECESSARY"
-	LevelEnjoy       Level = "ENJOY"
-	LevelBeginner    Level = "BEGINNER"
-	LevelMiddle      Level = "MIDDLE"
-	LevelExpert      Level = "EXPERT"
-	LevelOpen        Level = "OPEN"
-)
-
-var AllLevel = []Level{
-	LevelUnnecessary,
-	LevelEnjoy,
-	LevelBeginner,
-	LevelMiddle,
-	LevelExpert,
-	LevelOpen,
-}
-
-func (e Level) IsValid() bool {
-	switch e {
-	case LevelUnnecessary, LevelEnjoy, LevelBeginner, LevelMiddle, LevelExpert, LevelOpen:
-		return true
-	}
-	return false
-}
-
-func (e Level) String() string {
-	return string(e)
-}
-
-func (e *Level) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Level(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Level", str)
-	}
-	return nil
-}
-
-func (e Level) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
