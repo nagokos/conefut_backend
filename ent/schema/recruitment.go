@@ -35,9 +35,8 @@ func (Recruitment) Fields() []ent.Field {
 				"unnecessary",
 				"opponent",
 				"individual",
-				"teammate",
+				"member",
 				"joining",
-				"coaching",
 				"others",
 			).
 			Default("unnecessary"),
