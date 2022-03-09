@@ -85,7 +85,7 @@ func init() {
 	// recruitment.TitleValidator is a validator for the "title" field. It is called by the builders before save.
 	recruitment.TitleValidator = recruitmentDescTitle.Validators[0].(func(string) error)
 	// recruitmentDescContent is the schema descriptor for content field.
-	recruitmentDescContent := recruitmentFields[5].Descriptor()
+	recruitmentDescContent := recruitmentFields[4].Descriptor()
 	// recruitment.ContentValidator is a validator for the "content" field. It is called by the builders before save.
 	recruitment.ContentValidator = recruitmentDescContent.Validators[0].(func(string) error)
 	// recruitmentDescID is the schema descriptor for id field.

@@ -19,7 +19,6 @@ import (
 type Recruitment struct {
 	Title         string
 	Type          model.Type
-	Level         model.Level
 	Place         *string
 	StartAt       *time.Time
 	Content       *string
@@ -36,15 +35,6 @@ func requiredIfUnnecessaryType() validation.RuleFunc {
 	return func(v interface{}) error {
 		if v == model.TypeUnnecessary {
 			return errors.New("募集タイプを選択してください")
-		}
-		return nil
-	}
-}
-
-func requiredIfUnnecessaryLevel() validation.RuleFunc {
-	return func(v interface{}) error {
-		if v == model.LevelUnnecessary {
-			return errors.New("レベルを選択してください")
 		}
 		return nil
 	}
@@ -143,26 +133,6 @@ func (r Recruitment) RecruitmentValidate() error {
 			),
 		),
 		validation.Field(
-			&r.Level,
-			validation.Required.Error("レベルを選択してください"),
-			validation.In(
-				model.LevelUnnecessary,
-				model.LevelEnjoy,
-				model.LevelBeginner,
-				model.LevelMiddle,
-				model.LevelExpert,
-				model.LevelOpen,
-			).Error("選択肢の中から選んでください"),
-			validation.When(r.Status == model.StatusPublished,
-				validation.When(
-					r.Type == model.TypeOpponent ||
-						r.Type == model.TypeIndividual ||
-						r.Type == model.TypeJoining,
-					validation.By(requiredIfUnnecessaryLevel()),
-				),
-			),
-		),
-		validation.Field(
 			&r.Capacity,
 			validation.When(r.Status == model.StatusPublished,
 				validation.When(
@@ -205,7 +175,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		Create().
 		SetTitle(r.Title).
 		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
-		SetLevel(recruitment.Level(strings.ToLower(string(r.Level)))).
 		SetNillableCapacity(r.Capacity).
 		SetNillableStartAt(r.StartAt).
 		SetNillableContent(r.Content).
@@ -227,7 +196,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		ID:          res.ID,
 		Title:       res.Title,
 		Type:        model.Type(res.Type),
-		Level:       model.Level(res.Level),
 		Place:       &res.Place,
 		StartAt:     &res.StartAt,
 		Content:     &res.Content,
@@ -275,7 +243,6 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 			ID:     recruitment.ID,
 			Title:  recruitment.Title,
 			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
-			Level:  model.Level(strings.ToUpper(string(recruitment.Level))),
 			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
 			Competition: &model.Competition{
 				Name: compName,
@@ -329,7 +296,6 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		ID:          res.ID,
 		Title:       res.Title,
 		Type:        model.Type(strings.ToUpper(string(res.Type))),
-		Level:       model.Level(strings.ToUpper(string(res.Level))),
 		Place:       &res.Place,
 		StartAt:     &res.StartAt,
 		Content:     &res.Content,
@@ -368,7 +334,6 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 			ID:        recruitment.ID,
 			Title:     recruitment.Title,
 			Type:      model.Type(strings.ToUpper(string(recruitment.Type))),
-			Level:     model.Level(strings.ToUpper(string(recruitment.Level))),
 			Content:   &recruitment.Content,
 			StartAt:   &recruitment.StartAt,
 			UpdatedAt: recruitment.UpdatedAt,
@@ -403,9 +368,11 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 			recruitment.ID(id),
 			recruitment.HasUserWith(user.ID(currentUser.ID)),
 		).
+		ClearCapacity().
+		ClearLocationLat().
+		ClearLocationLng().
 		SetTitle(r.Title).
 		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
-		SetLevel(recruitment.Level(strings.ToLower(string(r.Level)))).
 		SetNillableCapacity(r.Capacity).
 		SetNillableStartAt(r.StartAt).
 		SetNillableContent(r.Content).

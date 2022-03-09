@@ -1042,7 +1042,6 @@ type RecruitmentMutation struct {
 	updated_at         *time.Time
 	title              *string
 	_type              *recruitment.Type
-	level              *recruitment.Level
 	place              *string
 	start_at           *time.Time
 	content            *string
@@ -1296,42 +1295,6 @@ func (m *RecruitmentMutation) OldType(ctx context.Context) (v recruitment.Type, 
 // ResetType resets all changes to the "type" field.
 func (m *RecruitmentMutation) ResetType() {
 	m._type = nil
-}
-
-// SetLevel sets the "level" field.
-func (m *RecruitmentMutation) SetLevel(r recruitment.Level) {
-	m.level = &r
-}
-
-// Level returns the value of the "level" field in the mutation.
-func (m *RecruitmentMutation) Level() (r recruitment.Level, exists bool) {
-	v := m.level
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLevel returns the old "level" field's value of the Recruitment entity.
-// If the Recruitment object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RecruitmentMutation) OldLevel(ctx context.Context) (v recruitment.Level, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLevel is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLevel requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLevel: %w", err)
-	}
-	return oldValue.Level, nil
-}
-
-// ResetLevel resets all changes to the "level" field.
-func (m *RecruitmentMutation) ResetLevel() {
-	m.level = nil
 }
 
 // SetPlace sets the "place" field.
@@ -2061,7 +2024,7 @@ func (m *RecruitmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RecruitmentMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, recruitment.FieldCreatedAt)
 	}
@@ -2073,9 +2036,6 @@ func (m *RecruitmentMutation) Fields() []string {
 	}
 	if m._type != nil {
 		fields = append(fields, recruitment.FieldType)
-	}
-	if m.level != nil {
-		fields = append(fields, recruitment.FieldLevel)
 	}
 	if m.place != nil {
 		fields = append(fields, recruitment.FieldPlace)
@@ -2126,8 +2086,6 @@ func (m *RecruitmentMutation) Field(name string) (ent.Value, bool) {
 		return m.Title()
 	case recruitment.FieldType:
 		return m.GetType()
-	case recruitment.FieldLevel:
-		return m.Level()
 	case recruitment.FieldPlace:
 		return m.Place()
 	case recruitment.FieldStartAt:
@@ -2167,8 +2125,6 @@ func (m *RecruitmentMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldTitle(ctx)
 	case recruitment.FieldType:
 		return m.OldType(ctx)
-	case recruitment.FieldLevel:
-		return m.OldLevel(ctx)
 	case recruitment.FieldPlace:
 		return m.OldPlace(ctx)
 	case recruitment.FieldStartAt:
@@ -2227,13 +2183,6 @@ func (m *RecruitmentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
-		return nil
-	case recruitment.FieldLevel:
-		v, ok := value.(recruitment.Level)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLevel(v)
 		return nil
 	case recruitment.FieldPlace:
 		v, ok := value.(string)
@@ -2468,9 +2417,6 @@ func (m *RecruitmentMutation) ResetField(name string) error {
 		return nil
 	case recruitment.FieldType:
 		m.ResetType()
-		return nil
-	case recruitment.FieldLevel:
-		m.ResetLevel()
 		return nil
 	case recruitment.FieldPlace:
 		m.ResetPlace()

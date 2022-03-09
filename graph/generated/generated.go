@@ -82,7 +82,6 @@ type ComplexityRoot struct {
 		Competition func(childComplexity int) int
 		Content     func(childComplexity int) int
 		ID          func(childComplexity int) int
-		Level       func(childComplexity int) int
 		LocationLat func(childComplexity int) int
 		LocationLng func(childComplexity int) int
 		Place       func(childComplexity int) int
@@ -367,13 +366,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.ID(childComplexity), true
 
-	case "Recruitment.level":
-		if e.complexity.Recruitment.Level == nil {
-			break
-		}
-
-		return e.complexity.Recruitment.Level(childComplexity), true
-
 	case "Recruitment.locationLat":
 		if e.complexity.Recruitment.LocationLat == nil {
 			break
@@ -583,15 +575,6 @@ enum Type {
   OTHERS
 }
 
-enum Level {
-  UNNECESSARY
-  ENJOY
-  BEGINNER
-  MIDDLE
-  EXPERT
-  OPEN
-}
-
 enum Status {
   DRAFT
   PUBLISHED
@@ -623,7 +606,6 @@ type Recruitment {
   title: String!
   content: String
   type: Type!
-  level: Level!
   place: String
   startAt: DateTime
   locationLat: Float
@@ -663,7 +645,6 @@ input recruitmentInput {
   title: String!
   content: String
   type: Type!
-  level: Level!
   place: String
   startAt: DateTime
   locationLat: Float
@@ -1893,41 +1874,6 @@ func (ec *executionContext) _Recruitment_type(ctx context.Context, field graphql
 	res := resTmp.(model.Type)
 	fc.Result = res
 	return ec.marshalNType2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Recruitment_level(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Recruitment",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Level, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Level)
-	fc.Result = res
-	return ec.marshalNLevel2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLevel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Recruitment_place(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
@@ -3765,14 +3711,6 @@ func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "level":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("level"))
-			it.Level, err = ec.unmarshalNLevel2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLevel(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "place":
 			var err error
 
@@ -4153,11 +4091,6 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_content(ctx, field, obj)
 		case "type":
 			out.Values[i] = ec._Recruitment_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "level":
-			out.Values[i] = ec._Recruitment_level(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4614,16 +4547,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNLevel2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLevel(ctx context.Context, v interface{}) (model.Level, error) {
-	var res model.Level
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNLevel2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐLevel(ctx context.Context, sel ast.SelectionSet, v model.Level) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Prefecture) graphql.Marshaler {

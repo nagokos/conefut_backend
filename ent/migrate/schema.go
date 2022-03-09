@@ -41,7 +41,6 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "title", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(60)"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"unnecessary", "opponent", "individual", "member", "joining", "others"}, Default: "unnecessary"},
-		{Name: "level", Type: field.TypeEnum, Enums: []string{"unnecessary", "enjoy", "beginner", "middle", "expert", "open"}, Default: "unnecessary"},
 		{Name: "place", Type: field.TypeString, Nullable: true},
 		{Name: "start_at", Type: field.TypeTime, Nullable: true},
 		{Name: "content", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(10000)"}},
@@ -62,19 +61,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "recruitments_competitions_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[14]},
+				Columns:    []*schema.Column{RecruitmentsColumns[13]},
 				RefColumns: []*schema.Column{CompetitionsColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_prefectures_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[15]},
+				Columns:    []*schema.Column{RecruitmentsColumns[14]},
 				RefColumns: []*schema.Column{PrefecturesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "recruitments_users_recruitments",
-				Columns:    []*schema.Column{RecruitmentsColumns[16]},
+				Columns:    []*schema.Column{RecruitmentsColumns[15]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -83,17 +82,17 @@ var (
 			{
 				Name:    "recruitment_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{RecruitmentsColumns[16]},
+				Columns: []*schema.Column{RecruitmentsColumns[15]},
 			},
 			{
 				Name:    "recruitment_prefecture_id",
 				Unique:  false,
-				Columns: []*schema.Column{RecruitmentsColumns[15]},
+				Columns: []*schema.Column{RecruitmentsColumns[14]},
 			},
 			{
 				Name:    "recruitment_competition_id",
 				Unique:  false,
-				Columns: []*schema.Column{RecruitmentsColumns[14]},
+				Columns: []*schema.Column{RecruitmentsColumns[13]},
 			},
 		},
 	}

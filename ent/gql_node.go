@@ -138,7 +138,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     r.ID,
 		Type:   "Recruitment",
-		Fields: make([]*Field, 16),
+		Fields: make([]*Field, 15),
 		Edges:  make([]*Edge, 4),
 	}
 	var buf []byte
@@ -174,18 +174,10 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "type",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(r.Level); err != nil {
-		return nil, err
-	}
-	node.Fields[4] = &Field{
-		Type:  "recruitment.Level",
-		Name:  "level",
-		Value: string(buf),
-	}
 	if buf, err = json.Marshal(r.Place); err != nil {
 		return nil, err
 	}
-	node.Fields[5] = &Field{
+	node.Fields[4] = &Field{
 		Type:  "string",
 		Name:  "place",
 		Value: string(buf),
@@ -193,7 +185,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.StartAt); err != nil {
 		return nil, err
 	}
-	node.Fields[6] = &Field{
+	node.Fields[5] = &Field{
 		Type:  "time.Time",
 		Name:  "start_at",
 		Value: string(buf),
@@ -201,7 +193,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.Content); err != nil {
 		return nil, err
 	}
-	node.Fields[7] = &Field{
+	node.Fields[6] = &Field{
 		Type:  "string",
 		Name:  "content",
 		Value: string(buf),
@@ -209,7 +201,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.LocationLat); err != nil {
 		return nil, err
 	}
-	node.Fields[8] = &Field{
+	node.Fields[7] = &Field{
 		Type:  "float64",
 		Name:  "locationLat",
 		Value: string(buf),
@@ -217,7 +209,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.LocationLng); err != nil {
 		return nil, err
 	}
-	node.Fields[9] = &Field{
+	node.Fields[8] = &Field{
 		Type:  "float64",
 		Name:  "locationLng",
 		Value: string(buf),
@@ -225,7 +217,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.Capacity); err != nil {
 		return nil, err
 	}
-	node.Fields[10] = &Field{
+	node.Fields[9] = &Field{
 		Type:  "int",
 		Name:  "capacity",
 		Value: string(buf),
@@ -233,7 +225,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.ClosingAt); err != nil {
 		return nil, err
 	}
-	node.Fields[11] = &Field{
+	node.Fields[10] = &Field{
 		Type:  "time.Time",
 		Name:  "closing_at",
 		Value: string(buf),
@@ -241,7 +233,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.Status); err != nil {
 		return nil, err
 	}
-	node.Fields[12] = &Field{
+	node.Fields[11] = &Field{
 		Type:  "recruitment.Status",
 		Name:  "status",
 		Value: string(buf),
@@ -249,7 +241,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.PrefectureID); err != nil {
 		return nil, err
 	}
-	node.Fields[13] = &Field{
+	node.Fields[12] = &Field{
 		Type:  "string",
 		Name:  "prefecture_id",
 		Value: string(buf),
@@ -257,7 +249,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.CompetitionID); err != nil {
 		return nil, err
 	}
-	node.Fields[14] = &Field{
+	node.Fields[13] = &Field{
 		Type:  "string",
 		Name:  "competition_id",
 		Value: string(buf),
@@ -265,7 +257,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(r.UserID); err != nil {
 		return nil, err
 	}
-	node.Fields[15] = &Field{
+	node.Fields[14] = &Field{
 		Type:  "string",
 		Name:  "user_id",
 		Value: string(buf),

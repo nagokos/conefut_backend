@@ -42,12 +42,11 @@ func main() {
 	for i := 0; i < 20; i++ {
 		recruitment := &ent.Recruitment{
 			Type:      "opponent",
-			Level:     "enjoy",
 			Title:     fmt.Sprintf("%v 明日の午後からサッカーできる人を探しています。ご連絡お待ちしています。", i),
 			Content:   fmt.Sprintf("%v 明日の午後からサッカーできる人を探しています。場所は後ほど連絡します。", i),
 			Place:     "埼玉スタジアム2002",
-			StartAt:   time.Now().Add(time.Hour * 5),
-			ClosingAt: time.Now().Add(time.Hour * 2),
+			StartAt:   time.Now().Add(time.Hour * 20),
+			ClosingAt: time.Now().Add(time.Hour * 19),
 			Capacity:  1,
 			Edges: ent.RecruitmentEdges{
 				Competition: comp,
@@ -65,7 +64,6 @@ func main() {
 			Create().
 			SetTitle(rec.Title).
 			SetType(rec.Type).
-			SetLevel(rec.Level).
 			SetNillableStartAt(&rec.StartAt).
 			SetNillableContent(&rec.Content).
 			SetNillablePlace(&rec.Place).
