@@ -11,6 +11,7 @@ import (
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
@@ -353,6 +354,48 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 
 	fmt.Println(resRecruitments)
 	return resRecruitments, nil
+}
+
+func GetStockedRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+	var recruitments []*model.Recruitment
+
+	currentUser := auth.ForContext(ctx)
+
+	res, err := client.Recruitment.
+		Query().
+		WithUser().
+		Where(
+			recruitment.HasStocksWith(
+				stock.UserID(currentUser.ID),
+			),
+		).
+		Order(ent.Desc(recruitment.FieldStatus)).
+		All(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("get stocked recruitments error %s", err.Error()))
+		return []*model.Recruitment{}, err
+	}
+
+	for _, recruitment := range res {
+		var user *ent.User
+		if recruitment.Edges.User != nil {
+			user = recruitment.Edges.User
+		}
+
+		recruitments = append(recruitments, &model.Recruitment{
+			ID:     recruitment.ID,
+			Title:  recruitment.Title,
+			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
+			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
+			User: &model.User{
+				ID:     user.ID,
+				Name:   user.Name,
+				Avatar: user.Avatar,
+			},
+		})
+	}
+
+	return recruitments, nil
 }
 
 func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
