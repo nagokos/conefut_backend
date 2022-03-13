@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
@@ -31,6 +32,7 @@ type RecruitmentQuery struct {
 	predicates []predicate.Recruitment
 	// eager-loading edges.
 	withStocks      *StockQuery
+	withApplicants  *ApplicantQuery
 	withUser        *UserQuery
 	withPrefecture  *PrefectureQuery
 	withCompetition *CompetitionQuery
@@ -85,6 +87,28 @@ func (rq *RecruitmentQuery) QueryStocks() *StockQuery {
 			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
 			sqlgraph.To(stock.Table, stock.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.StocksTable, recruitment.StocksColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryApplicants chains the current query on the "applicants" edge.
+func (rq *RecruitmentQuery) QueryApplicants() *ApplicantQuery {
+	query := &ApplicantQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(applicant.Table, applicant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.ApplicantsTable, recruitment.ApplicantsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
 		return fromU, nil
@@ -340,6 +364,7 @@ func (rq *RecruitmentQuery) Clone() *RecruitmentQuery {
 		order:           append([]OrderFunc{}, rq.order...),
 		predicates:      append([]predicate.Recruitment{}, rq.predicates...),
 		withStocks:      rq.withStocks.Clone(),
+		withApplicants:  rq.withApplicants.Clone(),
 		withUser:        rq.withUser.Clone(),
 		withPrefecture:  rq.withPrefecture.Clone(),
 		withCompetition: rq.withCompetition.Clone(),
@@ -357,6 +382,17 @@ func (rq *RecruitmentQuery) WithStocks(opts ...func(*StockQuery)) *RecruitmentQu
 		opt(query)
 	}
 	rq.withStocks = query
+	return rq
+}
+
+// WithApplicants tells the query-builder to eager-load the nodes that are connected to
+// the "applicants" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithApplicants(opts ...func(*ApplicantQuery)) *RecruitmentQuery {
+	query := &ApplicantQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withApplicants = query
 	return rq
 }
 
@@ -458,8 +494,9 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 	var (
 		nodes       = []*Recruitment{}
 		_spec       = rq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			rq.withStocks != nil,
+			rq.withApplicants != nil,
 			rq.withUser != nil,
 			rq.withPrefecture != nil,
 			rq.withCompetition != nil,
@@ -507,6 +544,31 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 				return nil, fmt.Errorf(`unexpected foreign-key "recruitment_id" returned %v for node %v`, fk, n.ID)
 			}
 			node.Edges.Stocks = append(node.Edges.Stocks, n)
+		}
+	}
+
+	if query := rq.withApplicants; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*Recruitment)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Applicants = []*Applicant{}
+		}
+		query.Where(predicate.Applicant(func(s *sql.Selector) {
+			s.Where(sql.InValues(recruitment.ApplicantsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.RecruitmentID
+			node, ok := nodeids[fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "recruitment_id" returned %v for node %v`, fk, n.ID)
+			}
+			node.Edges.Applicants = append(node.Edges.Applicants, n)
 		}
 	}
 

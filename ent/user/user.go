@@ -42,6 +42,8 @@ const (
 	EdgeRecruitments = "recruitments"
 	// EdgeStocks holds the string denoting the stocks edge name in mutations.
 	EdgeStocks = "stocks"
+	// EdgeApplicants holds the string denoting the applicants edge name in mutations.
+	EdgeApplicants = "applicants"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// RecruitmentsTable is the table that holds the recruitments relation/edge.
@@ -58,6 +60,13 @@ const (
 	StocksInverseTable = "stocks"
 	// StocksColumn is the table column denoting the stocks relation/edge.
 	StocksColumn = "user_id"
+	// ApplicantsTable is the table that holds the applicants relation/edge.
+	ApplicantsTable = "applicants"
+	// ApplicantsInverseTable is the table name for the Applicant entity.
+	// It exists in this package in order to avoid circular dependency with the "applicant" package.
+	ApplicantsInverseTable = "applicants"
+	// ApplicantsColumn is the table column denoting the applicants relation/edge.
+	ApplicantsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.

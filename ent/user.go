@@ -51,9 +51,11 @@ type UserEdges struct {
 	Recruitments []*Recruitment `json:"recruitments,omitempty"`
 	// Stocks holds the value of the stocks edge.
 	Stocks []*Stock `json:"stocks,omitempty"`
+	// Applicants holds the value of the applicants edge.
+	Applicants []*Applicant `json:"applicants,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // RecruitmentsOrErr returns the Recruitments value or an error if the edge
@@ -72,6 +74,15 @@ func (e UserEdges) StocksOrErr() ([]*Stock, error) {
 		return e.Stocks, nil
 	}
 	return nil, &NotLoadedError{edge: "stocks"}
+}
+
+// ApplicantsOrErr returns the Applicants value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ApplicantsOrErr() ([]*Applicant, error) {
+	if e.loadedTypes[2] {
+		return e.Applicants, nil
+	}
+	return nil, &NotLoadedError{edge: "applicants"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -189,6 +200,11 @@ func (u *User) QueryRecruitments() *RecruitmentQuery {
 // QueryStocks queries the "stocks" edge of the User entity.
 func (u *User) QueryStocks() *StockQuery {
 	return (&UserClient{config: u.config}).QueryStocks(u)
+}
+
+// QueryApplicants queries the "applicants" edge of the User entity.
+func (u *User) QueryApplicants() *ApplicantQuery {
+	return (&UserClient{config: u.config}).QueryApplicants(u)
 }
 
 // Update returns a builder for updating this User.

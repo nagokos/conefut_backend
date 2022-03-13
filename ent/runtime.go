@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -17,6 +18,29 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	applicantMixin := schema.Applicant{}.Mixin()
+	applicantMixinFields0 := applicantMixin[0].Fields()
+	_ = applicantMixinFields0
+	applicantMixinFields1 := applicantMixin[1].Fields()
+	_ = applicantMixinFields1
+	applicantFields := schema.Applicant{}.Fields()
+	_ = applicantFields
+	// applicantDescCreatedAt is the schema descriptor for created_at field.
+	applicantDescCreatedAt := applicantMixinFields0[0].Descriptor()
+	// applicant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	applicant.DefaultCreatedAt = applicantDescCreatedAt.Default.(func() time.Time)
+	// applicantDescUpdatedAt is the schema descriptor for updated_at field.
+	applicantDescUpdatedAt := applicantMixinFields0[1].Descriptor()
+	// applicant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	applicant.DefaultUpdatedAt = applicantDescUpdatedAt.Default.(func() time.Time)
+	// applicant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	applicant.UpdateDefaultUpdatedAt = applicantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// applicantDescID is the schema descriptor for id field.
+	applicantDescID := applicantMixinFields1[0].Descriptor()
+	// applicant.DefaultID holds the default value on creation for the id field.
+	applicant.DefaultID = applicantDescID.Default.(func() string)
+	// applicant.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	applicant.IDValidator = applicantDescID.Validators[0].(func(string) error)
 	competitionMixin := schema.Competition{}.Mixin()
 	competitionMixinFields0 := competitionMixin[0].Fields()
 	_ = competitionMixinFields0

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/stock"
@@ -219,6 +220,21 @@ func (uu *UserUpdate) AddStocks(s ...*Stock) *UserUpdate {
 	return uu.AddStockIDs(ids...)
 }
 
+// AddApplicantIDs adds the "applicants" edge to the Applicant entity by IDs.
+func (uu *UserUpdate) AddApplicantIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddApplicantIDs(ids...)
+	return uu
+}
+
+// AddApplicants adds the "applicants" edges to the Applicant entity.
+func (uu *UserUpdate) AddApplicants(a ...*Applicant) *UserUpdate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uu.AddApplicantIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -264,6 +280,27 @@ func (uu *UserUpdate) RemoveStocks(s ...*Stock) *UserUpdate {
 		ids[i] = s[i].ID
 	}
 	return uu.RemoveStockIDs(ids...)
+}
+
+// ClearApplicants clears all "applicants" edges to the Applicant entity.
+func (uu *UserUpdate) ClearApplicants() *UserUpdate {
+	uu.mutation.ClearApplicants()
+	return uu
+}
+
+// RemoveApplicantIDs removes the "applicants" edge to Applicant entities by IDs.
+func (uu *UserUpdate) RemoveApplicantIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveApplicantIDs(ids...)
+	return uu
+}
+
+// RemoveApplicants removes "applicants" edges to Applicant entities.
+func (uu *UserUpdate) RemoveApplicants(a ...*Applicant) *UserUpdate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uu.RemoveApplicantIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -598,6 +635,60 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.ApplicantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedApplicantsIDs(); len(nodes) > 0 && !uu.mutation.ApplicantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ApplicantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -807,6 +898,21 @@ func (uuo *UserUpdateOne) AddStocks(s ...*Stock) *UserUpdateOne {
 	return uuo.AddStockIDs(ids...)
 }
 
+// AddApplicantIDs adds the "applicants" edge to the Applicant entity by IDs.
+func (uuo *UserUpdateOne) AddApplicantIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddApplicantIDs(ids...)
+	return uuo
+}
+
+// AddApplicants adds the "applicants" edges to the Applicant entity.
+func (uuo *UserUpdateOne) AddApplicants(a ...*Applicant) *UserUpdateOne {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uuo.AddApplicantIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
@@ -852,6 +958,27 @@ func (uuo *UserUpdateOne) RemoveStocks(s ...*Stock) *UserUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return uuo.RemoveStockIDs(ids...)
+}
+
+// ClearApplicants clears all "applicants" edges to the Applicant entity.
+func (uuo *UserUpdateOne) ClearApplicants() *UserUpdateOne {
+	uuo.mutation.ClearApplicants()
+	return uuo
+}
+
+// RemoveApplicantIDs removes the "applicants" edge to Applicant entities by IDs.
+func (uuo *UserUpdateOne) RemoveApplicantIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveApplicantIDs(ids...)
+	return uuo
+}
+
+// RemoveApplicants removes "applicants" edges to Applicant entities.
+func (uuo *UserUpdateOne) RemoveApplicants(a ...*Applicant) *UserUpdateOne {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uuo.RemoveApplicantIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -1202,6 +1329,60 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeString,
 					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.ApplicantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedApplicantsIDs(); len(nodes) > 0 && !uuo.mutation.ApplicantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ApplicantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ApplicantsTable,
+			Columns: []string{user.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
 				},
 			},
 		}

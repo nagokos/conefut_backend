@@ -4,6 +4,22 @@ package ent
 
 import "context"
 
+func (a *Applicant) User(ctx context.Context) (*User, error) {
+	result, err := a.Edges.UserOrErr()
+	if IsNotLoaded(err) {
+		result, err = a.QueryUser().Only(ctx)
+	}
+	return result, err
+}
+
+func (a *Applicant) Recruitment(ctx context.Context) (*Recruitment, error) {
+	result, err := a.Edges.RecruitmentOrErr()
+	if IsNotLoaded(err) {
+		result, err = a.QueryRecruitment().Only(ctx)
+	}
+	return result, err
+}
+
 func (c *Competition) Recruitments(ctx context.Context) ([]*Recruitment, error) {
 	result, err := c.Edges.RecruitmentsOrErr()
 	if IsNotLoaded(err) {
@@ -24,6 +40,14 @@ func (r *Recruitment) Stocks(ctx context.Context) ([]*Stock, error) {
 	result, err := r.Edges.StocksOrErr()
 	if IsNotLoaded(err) {
 		result, err = r.QueryStocks().All(ctx)
+	}
+	return result, err
+}
+
+func (r *Recruitment) Applicants(ctx context.Context) ([]*Applicant, error) {
+	result, err := r.Edges.ApplicantsOrErr()
+	if IsNotLoaded(err) {
+		result, err = r.QueryApplicants().All(ctx)
 	}
 	return result, err
 }
@@ -80,6 +104,14 @@ func (u *User) Stocks(ctx context.Context) ([]*Stock, error) {
 	result, err := u.Edges.StocksOrErr()
 	if IsNotLoaded(err) {
 		result, err = u.QueryStocks().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) Applicants(ctx context.Context) ([]*Applicant, error) {
+	result, err := u.Edges.ApplicantsOrErr()
+	if IsNotLoaded(err) {
+		result, err = u.QueryApplicants().All(ctx)
 	}
 	return result, err
 }
