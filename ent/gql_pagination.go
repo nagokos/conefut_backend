@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -235,6 +236,233 @@ const (
 	pageInfoField   = "pageInfo"
 	totalCountField = "totalCount"
 )
+
+// ApplicantEdge is the edge representation of Applicant.
+type ApplicantEdge struct {
+	Node   *Applicant `json:"node"`
+	Cursor Cursor     `json:"cursor"`
+}
+
+// ApplicantConnection is the connection containing edges to Applicant.
+type ApplicantConnection struct {
+	Edges      []*ApplicantEdge `json:"edges"`
+	PageInfo   PageInfo         `json:"pageInfo"`
+	TotalCount int              `json:"totalCount"`
+}
+
+// ApplicantPaginateOption enables pagination customization.
+type ApplicantPaginateOption func(*applicantPager) error
+
+// WithApplicantOrder configures pagination ordering.
+func WithApplicantOrder(order *ApplicantOrder) ApplicantPaginateOption {
+	if order == nil {
+		order = DefaultApplicantOrder
+	}
+	o := *order
+	return func(pager *applicantPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultApplicantOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithApplicantFilter configures pagination filter.
+func WithApplicantFilter(filter func(*ApplicantQuery) (*ApplicantQuery, error)) ApplicantPaginateOption {
+	return func(pager *applicantPager) error {
+		if filter == nil {
+			return errors.New("ApplicantQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type applicantPager struct {
+	order  *ApplicantOrder
+	filter func(*ApplicantQuery) (*ApplicantQuery, error)
+}
+
+func newApplicantPager(opts []ApplicantPaginateOption) (*applicantPager, error) {
+	pager := &applicantPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultApplicantOrder
+	}
+	return pager, nil
+}
+
+func (p *applicantPager) applyFilter(query *ApplicantQuery) (*ApplicantQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *applicantPager) toCursor(a *Applicant) Cursor {
+	return p.order.Field.toCursor(a)
+}
+
+func (p *applicantPager) applyCursors(query *ApplicantQuery, after, before *Cursor) *ApplicantQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultApplicantOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *applicantPager) applyOrder(query *ApplicantQuery, reverse bool) *ApplicantQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultApplicantOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultApplicantOrder.Field.field))
+	}
+	return query
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Applicant.
+func (a *ApplicantQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...ApplicantPaginateOption,
+) (*ApplicantConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newApplicantPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if a, err = pager.applyFilter(a); err != nil {
+		return nil, err
+	}
+
+	conn := &ApplicantConnection{Edges: []*ApplicantEdge{}}
+	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
+		if hasCollectedField(ctx, totalCountField) ||
+			hasCollectedField(ctx, pageInfoField) {
+			count, err := a.Count(ctx)
+			if err != nil {
+				return nil, err
+			}
+			conn.TotalCount = count
+			conn.PageInfo.HasNextPage = first != nil && count > 0
+			conn.PageInfo.HasPreviousPage = last != nil && count > 0
+		}
+		return conn, nil
+	}
+
+	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
+		count, err := a.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn.TotalCount = count
+	}
+
+	a = pager.applyCursors(a, after, before)
+	a = pager.applyOrder(a, last != nil)
+	var limit int
+	if first != nil {
+		limit = *first + 1
+	} else if last != nil {
+		limit = *last + 1
+	}
+	if limit > 0 {
+		a = a.Limit(limit)
+	}
+
+	if field := getCollectedField(ctx, edgesField, nodeField); field != nil {
+		a = a.collectField(graphql.GetOperationContext(ctx), *field)
+	}
+
+	nodes, err := a.All(ctx)
+	if err != nil || len(nodes) == 0 {
+		return conn, err
+	}
+
+	if len(nodes) == limit {
+		conn.PageInfo.HasNextPage = first != nil
+		conn.PageInfo.HasPreviousPage = last != nil
+		nodes = nodes[:len(nodes)-1]
+	}
+
+	var nodeAt func(int) *Applicant
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Applicant {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Applicant {
+			return nodes[i]
+		}
+	}
+
+	conn.Edges = make([]*ApplicantEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		conn.Edges[i] = &ApplicantEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+
+	conn.PageInfo.StartCursor = &conn.Edges[0].Cursor
+	conn.PageInfo.EndCursor = &conn.Edges[len(conn.Edges)-1].Cursor
+	if conn.TotalCount == 0 {
+		conn.TotalCount = len(nodes)
+	}
+
+	return conn, nil
+}
+
+// ApplicantOrderField defines the ordering field of Applicant.
+type ApplicantOrderField struct {
+	field    string
+	toCursor func(*Applicant) Cursor
+}
+
+// ApplicantOrder defines the ordering of Applicant.
+type ApplicantOrder struct {
+	Direction OrderDirection       `json:"direction"`
+	Field     *ApplicantOrderField `json:"field"`
+}
+
+// DefaultApplicantOrder is the default ordering of Applicant.
+var DefaultApplicantOrder = &ApplicantOrder{
+	Direction: OrderDirectionAsc,
+	Field: &ApplicantOrderField{
+		field: applicant.FieldID,
+		toCursor: func(a *Applicant) Cursor {
+			return Cursor{ID: a.ID}
+		},
+	},
+}
+
+// ToEdge converts Applicant into ApplicantEdge.
+func (a *Applicant) ToEdge(order *ApplicantOrder) *ApplicantEdge {
+	if order == nil {
+		order = DefaultApplicantOrder
+	}
+	return &ApplicantEdge{
+		Node:   a,
+		Cursor: order.Field.toCursor(a),
+	}
+}
 
 // CompetitionEdge is the edge representation of Competition.
 type CompetitionEdge struct {

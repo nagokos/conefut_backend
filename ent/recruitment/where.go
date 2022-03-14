@@ -1632,6 +1632,34 @@ func HasStocksWith(preds ...predicate.Stock) predicate.Recruitment {
 	})
 }
 
+// HasApplicants applies the HasEdge predicate on the "applicants" edge.
+func HasApplicants() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ApplicantsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ApplicantsTable, ApplicantsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasApplicantsWith applies the HasEdge predicate on the "applicants" edge with a given conditions (other predicates).
+func HasApplicantsWith(preds ...predicate.Applicant) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ApplicantsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ApplicantsTable, ApplicantsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {

@@ -69,12 +69,22 @@ type Recruitment {
 }
 
 type Query {
+  # prefecture
   getPrefectures: [Prefecture!]!
+
+  # user
   getCurrentUser: User
+
+  # competition
   getCompetitions: [Competition!]!
+
+  # recruitment
   getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
+  getStockedRecruitments: [Recruitment!]!
+
+  # stock
   checkStocked(recruitmentId: String!): Boolean!
   getStockedCount(recruitmentId: String!): Int!
 }
@@ -106,12 +116,17 @@ input recruitmentInput {
 }
 
 type Mutation {
+  # user
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
+
+  # recruitment
   createRecruitment(input: recruitmentInput!): Recruitment!
   updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
+
+  # stock
   createStock(recruitmentId: String!): Boolean!
   deleteStock(recruitmentId: String!): Boolean!
 }

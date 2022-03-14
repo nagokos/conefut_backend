@@ -8,6 +8,52 @@ import (
 )
 
 var (
+	// ApplicantsColumns holds the columns for the "applicants" table.
+	ApplicantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "management_status", Type: field.TypeEnum, Enums: []string{"backlog", "checked", "accepted", "rejected"}, Default: "backlog"},
+		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeString, Nullable: true},
+	}
+	// ApplicantsTable holds the schema information for the "applicants" table.
+	ApplicantsTable = &schema.Table{
+		Name:       "applicants",
+		Columns:    ApplicantsColumns,
+		PrimaryKey: []*schema.Column{ApplicantsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "applicants_recruitments_applicants",
+				Columns:    []*schema.Column{ApplicantsColumns[4]},
+				RefColumns: []*schema.Column{RecruitmentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "applicants_users_applicants",
+				Columns:    []*schema.Column{ApplicantsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "applicant_user_id_recruitment_id",
+				Unique:  true,
+				Columns: []*schema.Column{ApplicantsColumns[5], ApplicantsColumns[4]},
+			},
+			{
+				Name:    "applicant_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{ApplicantsColumns[5]},
+			},
+			{
+				Name:    "applicant_recruitment_id",
+				Unique:  false,
+				Columns: []*schema.Column{ApplicantsColumns[4]},
+			},
+		},
+	}
 	// CompetitionsColumns holds the columns for the "competitions" table.
 	CompetitionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -172,6 +218,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ApplicantsTable,
 		CompetitionsTable,
 		PrefecturesTable,
 		RecruitmentsTable,
@@ -181,6 +228,8 @@ var (
 )
 
 func init() {
+	ApplicantsTable.ForeignKeys[0].RefTable = RecruitmentsTable
+	ApplicantsTable.ForeignKeys[1].RefTable = UsersTable
 	RecruitmentsTable.ForeignKeys[0].RefTable = CompetitionsTable
 	RecruitmentsTable.ForeignKeys[1].RefTable = PrefecturesTable
 	RecruitmentsTable.ForeignKeys[2].RefTable = UsersTable

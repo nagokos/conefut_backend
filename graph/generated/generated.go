@@ -74,6 +74,7 @@ type ComplexityRoot struct {
 		GetRecruitment             func(childComplexity int, id string) int
 		GetRecruitments            func(childComplexity int) int
 		GetStockedCount            func(childComplexity int, recruitmentID string) int
+		GetStockedRecruitments     func(childComplexity int) int
 	}
 
 	Recruitment struct {
@@ -122,6 +123,7 @@ type QueryResolver interface {
 	GetRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
+	GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
 }
@@ -330,6 +332,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetStockedCount(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Query.getStockedRecruitments":
+		if e.complexity.Query.GetStockedRecruitments == nil {
+			break
+		}
+
+		return e.complexity.Query.GetStockedRecruitments(childComplexity), true
 
 	case "Recruitment.capacity":
 		if e.complexity.Recruitment.Capacity == nil {
@@ -620,12 +629,22 @@ type Recruitment {
 }
 
 type Query {
+  # prefecture
   getPrefectures: [Prefecture!]!
+
+  # user
   getCurrentUser: User
+
+  # competition
   getCompetitions: [Competition!]!
+
+  # recruitment
   getRecruitments: [Recruitment!]!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
+  getStockedRecruitments: [Recruitment!]!
+
+  # stock
   checkStocked(recruitmentId: String!): Boolean!
   getStockedCount(recruitmentId: String!): Int!
 }
@@ -657,12 +676,17 @@ input recruitmentInput {
 }
 
 type Mutation {
+  # user
   createUser(input: createUserInput!): User!
   loginUser(input: loginUserInput!): User!
   logoutUser: Boolean!
+
+  # recruitment
   createRecruitment(input: recruitmentInput!): Recruitment!
   updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Boolean!
+
+  # stock
   createStock(recruitmentId: String!): Boolean!
   deleteStock(recruitmentId: String!): Boolean!
 }
@@ -1582,6 +1606,41 @@ func (ec *executionContext) _Query_getRecruitment(ctx context.Context, field gra
 	res := resTmp.(*model.Recruitment)
 	fc.Result = res
 	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getStockedRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetStockedRecruitments(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Recruitment)
+	fc.Result = res
+	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4018,6 +4077,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getRecruitment(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getStockedRecruitments":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getStockedRecruitments(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -81,6 +81,11 @@ func (User) Edges() []ent.Edge {
 				OnDelete: entsql.Cascade,
 			}).
 			StorageKey(edge.Column("user_id")),
+		edge.To("applicants", Applicant.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}).
+			StorageKey(edge.Column("user_id")),
 	}
 }
 

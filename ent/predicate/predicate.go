@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Applicant is the predicate function for applicant builders.
+type Applicant func(*sql.Selector)
+
 // Competition is the predicate function for competition builders.
 type Competition func(*sql.Selector)
 

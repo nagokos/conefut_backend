@@ -86,6 +86,11 @@ func (Recruitment) Edges() []ent.Edge {
 				OnDelete: entsql.Cascade,
 			}).
 			StorageKey(edge.Column("recruitment_id")),
+		edge.To("applicants", Applicant.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}).
+			StorageKey(edge.Column("recruitment_id")),
 		edge.From("user", User.Type).
 			Unique().
 			Field("user_id").

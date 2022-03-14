@@ -9,6 +9,19 @@ import (
 	"github.com/nagokos/connefut_backend/ent"
 )
 
+// The ApplicantFunc type is an adapter to allow the use of ordinary
+// function as Applicant mutator.
+type ApplicantFunc func(context.Context, *ent.ApplicantMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ApplicantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.ApplicantMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ApplicantMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The CompetitionFunc type is an adapter to allow the use of ordinary
 // function as Competition mutator.
 type CompetitionFunc func(context.Context, *ent.CompetitionMutation) (ent.Value, error)

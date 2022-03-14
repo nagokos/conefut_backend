@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -245,6 +246,21 @@ func (rc *RecruitmentCreate) AddStocks(s ...*Stock) *RecruitmentCreate {
 		ids[i] = s[i].ID
 	}
 	return rc.AddStockIDs(ids...)
+}
+
+// AddApplicantIDs adds the "applicants" edge to the Applicant entity by IDs.
+func (rc *RecruitmentCreate) AddApplicantIDs(ids ...string) *RecruitmentCreate {
+	rc.mutation.AddApplicantIDs(ids...)
+	return rc
+}
+
+// AddApplicants adds the "applicants" edges to the Applicant entity.
+func (rc *RecruitmentCreate) AddApplicants(a ...*Applicant) *RecruitmentCreate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return rc.AddApplicantIDs(ids...)
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -542,6 +558,25 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeString,
 					Column: stock.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := rc.mutation.ApplicantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.ApplicantsTable,
+			Columns: []string{recruitment.ApplicantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: applicant.FieldID,
 				},
 			},
 		}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/nagokos/connefut_backend/ent/migrate"
 
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -25,6 +26,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Applicant is the client for interacting with the Applicant builders.
+	Applicant *ApplicantClient
 	// Competition is the client for interacting with the Competition builders.
 	Competition *CompetitionClient
 	// Prefecture is the client for interacting with the Prefecture builders.
@@ -48,6 +51,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Applicant = NewApplicantClient(c.config)
 	c.Competition = NewCompetitionClient(c.config)
 	c.Prefecture = NewPrefectureClient(c.config)
 	c.Recruitment = NewRecruitmentClient(c.config)
@@ -86,6 +90,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:         ctx,
 		config:      cfg,
+		Applicant:   NewApplicantClient(cfg),
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
 		Recruitment: NewRecruitmentClient(cfg),
@@ -109,6 +114,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
 		config:      cfg,
+		Applicant:   NewApplicantClient(cfg),
 		Competition: NewCompetitionClient(cfg),
 		Prefecture:  NewPrefectureClient(cfg),
 		Recruitment: NewRecruitmentClient(cfg),
@@ -120,7 +126,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Competition.
+//		Applicant.
 //		Query().
 //		Count(ctx)
 //
@@ -143,11 +149,134 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Applicant.Use(hooks...)
 	c.Competition.Use(hooks...)
 	c.Prefecture.Use(hooks...)
 	c.Recruitment.Use(hooks...)
 	c.Stock.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// ApplicantClient is a client for the Applicant schema.
+type ApplicantClient struct {
+	config
+}
+
+// NewApplicantClient returns a client for the Applicant from the given config.
+func NewApplicantClient(c config) *ApplicantClient {
+	return &ApplicantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `applicant.Hooks(f(g(h())))`.
+func (c *ApplicantClient) Use(hooks ...Hook) {
+	c.hooks.Applicant = append(c.hooks.Applicant, hooks...)
+}
+
+// Create returns a create builder for Applicant.
+func (c *ApplicantClient) Create() *ApplicantCreate {
+	mutation := newApplicantMutation(c.config, OpCreate)
+	return &ApplicantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Applicant entities.
+func (c *ApplicantClient) CreateBulk(builders ...*ApplicantCreate) *ApplicantCreateBulk {
+	return &ApplicantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Applicant.
+func (c *ApplicantClient) Update() *ApplicantUpdate {
+	mutation := newApplicantMutation(c.config, OpUpdate)
+	return &ApplicantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ApplicantClient) UpdateOne(a *Applicant) *ApplicantUpdateOne {
+	mutation := newApplicantMutation(c.config, OpUpdateOne, withApplicant(a))
+	return &ApplicantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ApplicantClient) UpdateOneID(id string) *ApplicantUpdateOne {
+	mutation := newApplicantMutation(c.config, OpUpdateOne, withApplicantID(id))
+	return &ApplicantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Applicant.
+func (c *ApplicantClient) Delete() *ApplicantDelete {
+	mutation := newApplicantMutation(c.config, OpDelete)
+	return &ApplicantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *ApplicantClient) DeleteOne(a *Applicant) *ApplicantDeleteOne {
+	return c.DeleteOneID(a.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *ApplicantClient) DeleteOneID(id string) *ApplicantDeleteOne {
+	builder := c.Delete().Where(applicant.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ApplicantDeleteOne{builder}
+}
+
+// Query returns a query builder for Applicant.
+func (c *ApplicantClient) Query() *ApplicantQuery {
+	return &ApplicantQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Applicant entity by its id.
+func (c *ApplicantClient) Get(ctx context.Context, id string) (*Applicant, error) {
+	return c.Query().Where(applicant.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ApplicantClient) GetX(ctx context.Context, id string) *Applicant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Applicant.
+func (c *ApplicantClient) QueryUser(a *Applicant) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(applicant.Table, applicant.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, applicant.UserTable, applicant.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRecruitment queries the recruitment edge of a Applicant.
+func (c *ApplicantClient) QueryRecruitment(a *Applicant) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(applicant.Table, applicant.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, applicant.RecruitmentTable, applicant.RecruitmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ApplicantClient) Hooks() []Hook {
+	return c.hooks.Applicant
 }
 
 // CompetitionClient is a client for the Competition schema.
@@ -463,6 +592,22 @@ func (c *RecruitmentClient) QueryStocks(r *Recruitment) *StockQuery {
 	return query
 }
 
+// QueryApplicants queries the applicants edge of a Recruitment.
+func (c *RecruitmentClient) QueryApplicants(r *Recruitment) *ApplicantQuery {
+	query := &ApplicantQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(applicant.Table, applicant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.ApplicantsTable, recruitment.ApplicantsColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryUser queries the user edge of a Recruitment.
 func (c *RecruitmentClient) QueryUser(r *Recruitment) *UserQuery {
 	query := &UserQuery{config: c.config}
@@ -748,6 +893,22 @@ func (c *UserClient) QueryStocks(u *User) *StockQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(stock.Table, stock.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.StocksTable, user.StocksColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryApplicants queries the applicants edge of a User.
+func (c *UserClient) QueryApplicants(u *User) *ApplicantQuery {
+	query := &ApplicantQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(applicant.Table, applicant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ApplicantsTable, user.ApplicantsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
