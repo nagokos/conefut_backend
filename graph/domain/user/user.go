@@ -154,7 +154,7 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *model.User, err error) {
+func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (*model.User, error) {
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
