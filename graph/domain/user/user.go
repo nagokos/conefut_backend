@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,8 +14,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
@@ -43,6 +43,29 @@ type User struct {
 	EmailVerificationTokenExpiresAt time.Time
 }
 
+func checkExistsEmail() validation.RuleFunc {
+	return func(v interface{}) error {
+		var err error
+
+		s := v.(string)
+		ctx := context.Background()
+		client := db.DatabaseConnection()
+
+		res, _ := client.User.
+			Query().
+			Where(user.Email(s)).
+			Exist(ctx)
+
+		if res {
+			err = errors.New("このメールアドレスは既に使用されています")
+		} else {
+			err = nil
+		}
+
+		return err
+	}
+}
+
 // ** validation **
 func (u User) CreateUserValidate() error {
 	return validation.ValidateStruct(&u,
@@ -54,8 +77,9 @@ func (u User) CreateUserValidate() error {
 		validation.Field(
 			&u.Email,
 			validation.Required.Error("メールアドレスを入力してください"),
-			is.Email.Error("メールアドレスを正しく入力してください"),
-			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)),
+			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
+				Error("メールアドレスを正しく入力してください"),
+			validation.By(checkExistsEmail()),
 		),
 		validation.Field(
 			&u.Password,
@@ -72,8 +96,8 @@ func (u User) AuthenticateUserValidate() error {
 		validation.Field(
 			&u.Email,
 			validation.Required.Error("メールアドレスを入力してください"),
-			is.Email.Error("メールアドレスを正しく入力してください"),
-			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)),
+			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
+				Error("メールアドレスを正しく入力してください"),
 		),
 		validation.Field(
 			&u.Password,
@@ -145,12 +169,6 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 		SetLastSignInAt(time.Now()).
 		Save(ctx)
 
-	if err != nil {
-		logger.Log.Error().Msg(err.Error())
-		utils.NewValidationError("email", "このメールアドレスは既に使用されています").AddGraphQLError(ctx)
-		return nil, err
-	}
-
 	resUser = model.User{
 		ID:                      res.ID,
 		Name:                    res.Name,
@@ -170,21 +188,29 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (user *mo
 }
 
 func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*model.User, error) {
+
 	res, err := client.
 		Query().
 		Where(user.Email(u.Email)).
 		Only(ctx)
+
+	fmt.Println(res)
+	if res == nil {
+		logger.Log.Error().Msg(fmt.Sprintln("not create user"))
+		return nil, errors.New("ユーザーが見つかりませんでした")
+	}
+
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
 		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
-		return nil, err
+		return nil, errors.New("フォームに不備があります")
 	}
 
 	err = CheckPasswordHash(res.PasswordDigest, u.Password)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("password is incorrect: %s", err))
 		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
-		return nil, err
+		return nil, errors.New("フォームに不備があります")
 	}
 
 	res, err = client.
