@@ -37,6 +37,11 @@ type Recruitment struct {
 	User        *User        `json:"user"`
 }
 
+type Tag struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type User struct {
 	ID                      string                  `json:"id"`
 	Name                    string                  `json:"name"`
@@ -45,6 +50,10 @@ type User struct {
 	Avatar                  string                  `json:"avatar"`
 	Introduction            *string                 `json:"introduction"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
+}
+
+type CreateTagInput struct {
+	Name string `json:"name"`
 }
 
 type CreateUserInput struct {
