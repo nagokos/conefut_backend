@@ -189,6 +189,34 @@ func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string
 	return true, nil
 }
 
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
+	tag := tag.Tag{
+		Name: input.Name,
+	}
+
+	err := tag.CreateTagValidate()
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		errs := err.(validation.Errors)
+
+		for k, errMessage := range errs {
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		}
+		return nil, errors.New("タグの作成に失敗しました")
+	}
+
+	res, err := tag.CreateTag(ctx, r.client)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
 	if err != nil {
