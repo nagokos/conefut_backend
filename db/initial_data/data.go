@@ -81,6 +81,25 @@ func InsertCompetitions(ctx context.Context, client *ent.Client) error {
 	return err
 }
 
+func InsertTags(ctx context.Context, client *ent.Client) error {
+	tags := []string{
+		"エンジョイ",
+		"男女MIX",
+		"シニア",
+		"ガチ",
+		"誰でもOK",
+		"経験者",
+		"初心者歓迎",
+		"競技志向",
+	}
+	bulk := make([]*ent.TagCreate, len(tags))
+	for i, name := range tags {
+		bulk[i] = client.Tag.Create().SetName(name)
+	}
+	_, err := client.Tag.CreateBulk(bulk...).Save(ctx)
+	return err
+}
+
 func main() {
 	client := db.DatabaseConnection()
 	defer client.Close()
@@ -95,6 +114,11 @@ func main() {
 	err = InsertCompetitions(ctx, client)
 	if err != nil {
 		logger.Log.Fatal().Msg(fmt.Sprintln("error competitions: ", err))
+	}
+
+	err = InsertTags(ctx, client)
+	if err != nil {
+		logger.Log.Fatal().Msg(fmt.Sprintln("error tags: ", err))
 	}
 
 	logger.Log.Info().Msg("create initial data!")
