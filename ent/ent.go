@@ -12,7 +12,9 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
+	"github.com/nagokos/connefut_backend/ent/tag"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -34,12 +36,14 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		applicant.Table:   applicant.ValidColumn,
-		competition.Table: competition.ValidColumn,
-		prefecture.Table:  prefecture.ValidColumn,
-		recruitment.Table: recruitment.ValidColumn,
-		stock.Table:       stock.ValidColumn,
-		user.Table:        user.ValidColumn,
+		applicant.Table:      applicant.ValidColumn,
+		competition.Table:    competition.ValidColumn,
+		prefecture.Table:     prefecture.ValidColumn,
+		recruitment.Table:    recruitment.ValidColumn,
+		recruitmenttag.Table: recruitmenttag.ValidColumn,
+		stock.Table:          stock.ValidColumn,
+		tag.Table:            tag.ValidColumn,
+		user.Table:           user.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

@@ -14,6 +14,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
@@ -261,6 +262,21 @@ func (rc *RecruitmentCreate) AddApplicants(a ...*Applicant) *RecruitmentCreate {
 		ids[i] = a[i].ID
 	}
 	return rc.AddApplicantIDs(ids...)
+}
+
+// AddRecruitmentTagIDs adds the "recruitment_tags" edge to the RecruitmentTag entity by IDs.
+func (rc *RecruitmentCreate) AddRecruitmentTagIDs(ids ...string) *RecruitmentCreate {
+	rc.mutation.AddRecruitmentTagIDs(ids...)
+	return rc
+}
+
+// AddRecruitmentTags adds the "recruitment_tags" edges to the RecruitmentTag entity.
+func (rc *RecruitmentCreate) AddRecruitmentTags(r ...*RecruitmentTag) *RecruitmentCreate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return rc.AddRecruitmentTagIDs(ids...)
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -577,6 +593,25 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeString,
 					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := rc.mutation.RecruitmentTagsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
 				},
 			},
 		}

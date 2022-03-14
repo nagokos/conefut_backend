@@ -65,6 +65,8 @@ type RecruitmentEdges struct {
 	Stocks []*Stock `json:"stocks,omitempty"`
 	// Applicants holds the value of the applicants edge.
 	Applicants []*Applicant `json:"applicants,omitempty"`
+	// RecruitmentTags holds the value of the recruitment_tags edge.
+	RecruitmentTags []*RecruitmentTag `json:"recruitment_tags,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
 	// Prefecture holds the value of the prefecture edge.
@@ -73,7 +75,7 @@ type RecruitmentEdges struct {
 	Competition *Competition `json:"competition,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // StocksOrErr returns the Stocks value or an error if the edge
@@ -94,10 +96,19 @@ func (e RecruitmentEdges) ApplicantsOrErr() ([]*Applicant, error) {
 	return nil, &NotLoadedError{edge: "applicants"}
 }
 
+// RecruitmentTagsOrErr returns the RecruitmentTags value or an error if the edge
+// was not loaded in eager-loading.
+func (e RecruitmentEdges) RecruitmentTagsOrErr() ([]*RecruitmentTag, error) {
+	if e.loadedTypes[2] {
+		return e.RecruitmentTags, nil
+	}
+	return nil, &NotLoadedError{edge: "recruitment_tags"}
+}
+
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		if e.User == nil {
 			// The edge user was loaded in eager-loading,
 			// but was not found.
@@ -111,7 +122,7 @@ func (e RecruitmentEdges) UserOrErr() (*User, error) {
 // PrefectureOrErr returns the Prefecture value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		if e.Prefecture == nil {
 			// The edge prefecture was loaded in eager-loading,
 			// but was not found.
@@ -125,7 +136,7 @@ func (e RecruitmentEdges) PrefectureOrErr() (*Prefecture, error) {
 // CompetitionOrErr returns the Competition value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RecruitmentEdges) CompetitionOrErr() (*Competition, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		if e.Competition == nil {
 			// The edge competition was loaded in eager-loading,
 			// but was not found.
@@ -273,6 +284,11 @@ func (r *Recruitment) QueryStocks() *StockQuery {
 // QueryApplicants queries the "applicants" edge of the Recruitment entity.
 func (r *Recruitment) QueryApplicants() *ApplicantQuery {
 	return (&RecruitmentClient{config: r.config}).QueryApplicants(r)
+}
+
+// QueryRecruitmentTags queries the "recruitment_tags" edge of the Recruitment entity.
+func (r *Recruitment) QueryRecruitmentTags() *RecruitmentTagQuery {
+	return (&RecruitmentClient{config: r.config}).QueryRecruitmentTags(r)
 }
 
 // QueryUser queries the "user" edge of the Recruitment entity.

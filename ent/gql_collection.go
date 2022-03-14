@@ -57,6 +57,18 @@ func (r *RecruitmentQuery) collectField(ctx *graphql.OperationContext, field gra
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (rt *RecruitmentTagQuery) CollectFields(ctx context.Context, satisfies ...string) *RecruitmentTagQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		rt = rt.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return rt
+}
+
+func (rt *RecruitmentTagQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *RecruitmentTagQuery {
+	return rt
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (s *StockQuery) CollectFields(ctx context.Context, satisfies ...string) *StockQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		s = s.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
@@ -69,6 +81,18 @@ func (s *StockQuery) collectField(ctx *graphql.OperationContext, field graphql.C
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (t *TagQuery) CollectFields(ctx context.Context, satisfies ...string) *TagQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		t = t.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return t
+}
+
+func (t *TagQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *TagQuery {
+	return t
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (u *UserQuery) CollectFields(ctx context.Context, satisfies ...string) *UserQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		u = u.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
@@ -77,13 +101,5 @@ func (u *UserQuery) CollectFields(ctx context.Context, satisfies ...string) *Use
 }
 
 func (u *UserQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *UserQuery {
-	for _, field := range graphql.CollectFields(ctx, field.Selections, satisfies) {
-		switch field.Name {
-		case "stocks":
-			u = u.WithStocks(func(query *StockQuery) {
-				query.collectField(ctx, field)
-			})
-		}
-	}
 	return u
 }

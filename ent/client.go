@@ -13,7 +13,9 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
+	"github.com/nagokos/connefut_backend/ent/tag"
 	"github.com/nagokos/connefut_backend/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -34,8 +36,12 @@ type Client struct {
 	Prefecture *PrefectureClient
 	// Recruitment is the client for interacting with the Recruitment builders.
 	Recruitment *RecruitmentClient
+	// RecruitmentTag is the client for interacting with the RecruitmentTag builders.
+	RecruitmentTag *RecruitmentTagClient
 	// Stock is the client for interacting with the Stock builders.
 	Stock *StockClient
+	// Tag is the client for interacting with the Tag builders.
+	Tag *TagClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -55,7 +61,9 @@ func (c *Client) init() {
 	c.Competition = NewCompetitionClient(c.config)
 	c.Prefecture = NewPrefectureClient(c.config)
 	c.Recruitment = NewRecruitmentClient(c.config)
+	c.RecruitmentTag = NewRecruitmentTagClient(c.config)
 	c.Stock = NewStockClient(c.config)
+	c.Tag = NewTagClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -88,14 +96,16 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		Applicant:   NewApplicantClient(cfg),
-		Competition: NewCompetitionClient(cfg),
-		Prefecture:  NewPrefectureClient(cfg),
-		Recruitment: NewRecruitmentClient(cfg),
-		Stock:       NewStockClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Applicant:      NewApplicantClient(cfg),
+		Competition:    NewCompetitionClient(cfg),
+		Prefecture:     NewPrefectureClient(cfg),
+		Recruitment:    NewRecruitmentClient(cfg),
+		RecruitmentTag: NewRecruitmentTagClient(cfg),
+		Stock:          NewStockClient(cfg),
+		Tag:            NewTagClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -113,13 +123,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		config:      cfg,
-		Applicant:   NewApplicantClient(cfg),
-		Competition: NewCompetitionClient(cfg),
-		Prefecture:  NewPrefectureClient(cfg),
-		Recruitment: NewRecruitmentClient(cfg),
-		Stock:       NewStockClient(cfg),
-		User:        NewUserClient(cfg),
+		config:         cfg,
+		Applicant:      NewApplicantClient(cfg),
+		Competition:    NewCompetitionClient(cfg),
+		Prefecture:     NewPrefectureClient(cfg),
+		Recruitment:    NewRecruitmentClient(cfg),
+		RecruitmentTag: NewRecruitmentTagClient(cfg),
+		Stock:          NewStockClient(cfg),
+		Tag:            NewTagClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -153,7 +165,9 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Competition.Use(hooks...)
 	c.Prefecture.Use(hooks...)
 	c.Recruitment.Use(hooks...)
+	c.RecruitmentTag.Use(hooks...)
 	c.Stock.Use(hooks...)
+	c.Tag.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -608,6 +622,22 @@ func (c *RecruitmentClient) QueryApplicants(r *Recruitment) *ApplicantQuery {
 	return query
 }
 
+// QueryRecruitmentTags queries the recruitment_tags edge of a Recruitment.
+func (c *RecruitmentClient) QueryRecruitmentTags(r *Recruitment) *RecruitmentTagQuery {
+	query := &RecruitmentTagQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, id),
+			sqlgraph.To(recruitmenttag.Table, recruitmenttag.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.RecruitmentTagsTable, recruitment.RecruitmentTagsColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryUser queries the user edge of a Recruitment.
 func (c *RecruitmentClient) QueryUser(r *Recruitment) *UserQuery {
 	query := &UserQuery{config: c.config}
@@ -659,6 +689,128 @@ func (c *RecruitmentClient) QueryCompetition(r *Recruitment) *CompetitionQuery {
 // Hooks returns the client hooks.
 func (c *RecruitmentClient) Hooks() []Hook {
 	return c.hooks.Recruitment
+}
+
+// RecruitmentTagClient is a client for the RecruitmentTag schema.
+type RecruitmentTagClient struct {
+	config
+}
+
+// NewRecruitmentTagClient returns a client for the RecruitmentTag from the given config.
+func NewRecruitmentTagClient(c config) *RecruitmentTagClient {
+	return &RecruitmentTagClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `recruitmenttag.Hooks(f(g(h())))`.
+func (c *RecruitmentTagClient) Use(hooks ...Hook) {
+	c.hooks.RecruitmentTag = append(c.hooks.RecruitmentTag, hooks...)
+}
+
+// Create returns a create builder for RecruitmentTag.
+func (c *RecruitmentTagClient) Create() *RecruitmentTagCreate {
+	mutation := newRecruitmentTagMutation(c.config, OpCreate)
+	return &RecruitmentTagCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RecruitmentTag entities.
+func (c *RecruitmentTagClient) CreateBulk(builders ...*RecruitmentTagCreate) *RecruitmentTagCreateBulk {
+	return &RecruitmentTagCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RecruitmentTag.
+func (c *RecruitmentTagClient) Update() *RecruitmentTagUpdate {
+	mutation := newRecruitmentTagMutation(c.config, OpUpdate)
+	return &RecruitmentTagUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RecruitmentTagClient) UpdateOne(rt *RecruitmentTag) *RecruitmentTagUpdateOne {
+	mutation := newRecruitmentTagMutation(c.config, OpUpdateOne, withRecruitmentTag(rt))
+	return &RecruitmentTagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RecruitmentTagClient) UpdateOneID(id string) *RecruitmentTagUpdateOne {
+	mutation := newRecruitmentTagMutation(c.config, OpUpdateOne, withRecruitmentTagID(id))
+	return &RecruitmentTagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RecruitmentTag.
+func (c *RecruitmentTagClient) Delete() *RecruitmentTagDelete {
+	mutation := newRecruitmentTagMutation(c.config, OpDelete)
+	return &RecruitmentTagDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *RecruitmentTagClient) DeleteOne(rt *RecruitmentTag) *RecruitmentTagDeleteOne {
+	return c.DeleteOneID(rt.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *RecruitmentTagClient) DeleteOneID(id string) *RecruitmentTagDeleteOne {
+	builder := c.Delete().Where(recruitmenttag.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RecruitmentTagDeleteOne{builder}
+}
+
+// Query returns a query builder for RecruitmentTag.
+func (c *RecruitmentTagClient) Query() *RecruitmentTagQuery {
+	return &RecruitmentTagQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a RecruitmentTag entity by its id.
+func (c *RecruitmentTagClient) Get(ctx context.Context, id string) (*RecruitmentTag, error) {
+	return c.Query().Where(recruitmenttag.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RecruitmentTagClient) GetX(ctx context.Context, id string) *RecruitmentTag {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRecruitment queries the recruitment edge of a RecruitmentTag.
+func (c *RecruitmentTagClient) QueryRecruitment(rt *RecruitmentTag) *RecruitmentQuery {
+	query := &RecruitmentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := rt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitmenttag.Table, recruitmenttag.FieldID, id),
+			sqlgraph.To(recruitment.Table, recruitment.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitmenttag.RecruitmentTable, recruitmenttag.RecruitmentColumn),
+		)
+		fromV = sqlgraph.Neighbors(rt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTag queries the tag edge of a RecruitmentTag.
+func (c *RecruitmentTagClient) QueryTag(rt *RecruitmentTag) *TagQuery {
+	query := &TagQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := rt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitmenttag.Table, recruitmenttag.FieldID, id),
+			sqlgraph.To(tag.Table, tag.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recruitmenttag.TagTable, recruitmenttag.TagColumn),
+		)
+		fromV = sqlgraph.Neighbors(rt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RecruitmentTagClient) Hooks() []Hook {
+	return c.hooks.RecruitmentTag
 }
 
 // StockClient is a client for the Stock schema.
@@ -781,6 +933,112 @@ func (c *StockClient) QueryRecruitment(s *Stock) *RecruitmentQuery {
 // Hooks returns the client hooks.
 func (c *StockClient) Hooks() []Hook {
 	return c.hooks.Stock
+}
+
+// TagClient is a client for the Tag schema.
+type TagClient struct {
+	config
+}
+
+// NewTagClient returns a client for the Tag from the given config.
+func NewTagClient(c config) *TagClient {
+	return &TagClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tag.Hooks(f(g(h())))`.
+func (c *TagClient) Use(hooks ...Hook) {
+	c.hooks.Tag = append(c.hooks.Tag, hooks...)
+}
+
+// Create returns a create builder for Tag.
+func (c *TagClient) Create() *TagCreate {
+	mutation := newTagMutation(c.config, OpCreate)
+	return &TagCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Tag entities.
+func (c *TagClient) CreateBulk(builders ...*TagCreate) *TagCreateBulk {
+	return &TagCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Tag.
+func (c *TagClient) Update() *TagUpdate {
+	mutation := newTagMutation(c.config, OpUpdate)
+	return &TagUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TagClient) UpdateOne(t *Tag) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTag(t))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TagClient) UpdateOneID(id string) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTagID(id))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Tag.
+func (c *TagClient) Delete() *TagDelete {
+	mutation := newTagMutation(c.config, OpDelete)
+	return &TagDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *TagClient) DeleteOne(t *Tag) *TagDeleteOne {
+	return c.DeleteOneID(t.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *TagClient) DeleteOneID(id string) *TagDeleteOne {
+	builder := c.Delete().Where(tag.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TagDeleteOne{builder}
+}
+
+// Query returns a query builder for Tag.
+func (c *TagClient) Query() *TagQuery {
+	return &TagQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Tag entity by its id.
+func (c *TagClient) Get(ctx context.Context, id string) (*Tag, error) {
+	return c.Query().Where(tag.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TagClient) GetX(ctx context.Context, id string) *Tag {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRecruitmentTags queries the recruitment_tags edge of a Tag.
+func (c *TagClient) QueryRecruitmentTags(t *Tag) *RecruitmentTagQuery {
+	query := &RecruitmentTagQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tag.Table, tag.FieldID, id),
+			sqlgraph.To(recruitmenttag.Table, recruitmenttag.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, tag.RecruitmentTagsTable, tag.RecruitmentTagsColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TagClient) Hooks() []Hook {
+	return c.hooks.Tag
 }
 
 // UserClient is a client for the User schema.

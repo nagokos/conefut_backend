@@ -17,6 +17,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
@@ -31,11 +32,12 @@ type RecruitmentQuery struct {
 	fields     []string
 	predicates []predicate.Recruitment
 	// eager-loading edges.
-	withStocks      *StockQuery
-	withApplicants  *ApplicantQuery
-	withUser        *UserQuery
-	withPrefecture  *PrefectureQuery
-	withCompetition *CompetitionQuery
+	withStocks          *StockQuery
+	withApplicants      *ApplicantQuery
+	withRecruitmentTags *RecruitmentTagQuery
+	withUser            *UserQuery
+	withPrefecture      *PrefectureQuery
+	withCompetition     *CompetitionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -109,6 +111,28 @@ func (rq *RecruitmentQuery) QueryApplicants() *ApplicantQuery {
 			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
 			sqlgraph.To(applicant.Table, applicant.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.ApplicantsTable, recruitment.ApplicantsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRecruitmentTags chains the current query on the "recruitment_tags" edge.
+func (rq *RecruitmentQuery) QueryRecruitmentTags() *RecruitmentTagQuery {
+	query := &RecruitmentTagQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recruitment.Table, recruitment.FieldID, selector),
+			sqlgraph.To(recruitmenttag.Table, recruitmenttag.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recruitment.RecruitmentTagsTable, recruitment.RecruitmentTagsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
 		return fromU, nil
@@ -358,16 +382,17 @@ func (rq *RecruitmentQuery) Clone() *RecruitmentQuery {
 		return nil
 	}
 	return &RecruitmentQuery{
-		config:          rq.config,
-		limit:           rq.limit,
-		offset:          rq.offset,
-		order:           append([]OrderFunc{}, rq.order...),
-		predicates:      append([]predicate.Recruitment{}, rq.predicates...),
-		withStocks:      rq.withStocks.Clone(),
-		withApplicants:  rq.withApplicants.Clone(),
-		withUser:        rq.withUser.Clone(),
-		withPrefecture:  rq.withPrefecture.Clone(),
-		withCompetition: rq.withCompetition.Clone(),
+		config:              rq.config,
+		limit:               rq.limit,
+		offset:              rq.offset,
+		order:               append([]OrderFunc{}, rq.order...),
+		predicates:          append([]predicate.Recruitment{}, rq.predicates...),
+		withStocks:          rq.withStocks.Clone(),
+		withApplicants:      rq.withApplicants.Clone(),
+		withRecruitmentTags: rq.withRecruitmentTags.Clone(),
+		withUser:            rq.withUser.Clone(),
+		withPrefecture:      rq.withPrefecture.Clone(),
+		withCompetition:     rq.withCompetition.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
@@ -393,6 +418,17 @@ func (rq *RecruitmentQuery) WithApplicants(opts ...func(*ApplicantQuery)) *Recru
 		opt(query)
 	}
 	rq.withApplicants = query
+	return rq
+}
+
+// WithRecruitmentTags tells the query-builder to eager-load the nodes that are connected to
+// the "recruitment_tags" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RecruitmentQuery) WithRecruitmentTags(opts ...func(*RecruitmentTagQuery)) *RecruitmentQuery {
+	query := &RecruitmentTagQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withRecruitmentTags = query
 	return rq
 }
 
@@ -494,9 +530,10 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 	var (
 		nodes       = []*Recruitment{}
 		_spec       = rq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			rq.withStocks != nil,
 			rq.withApplicants != nil,
+			rq.withRecruitmentTags != nil,
 			rq.withUser != nil,
 			rq.withPrefecture != nil,
 			rq.withCompetition != nil,
@@ -569,6 +606,31 @@ func (rq *RecruitmentQuery) sqlAll(ctx context.Context) ([]*Recruitment, error) 
 				return nil, fmt.Errorf(`unexpected foreign-key "recruitment_id" returned %v for node %v`, fk, n.ID)
 			}
 			node.Edges.Applicants = append(node.Edges.Applicants, n)
+		}
+	}
+
+	if query := rq.withRecruitmentTags; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*Recruitment)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.RecruitmentTags = []*RecruitmentTag{}
+		}
+		query.Where(predicate.RecruitmentTag(func(s *sql.Selector) {
+			s.Where(sql.InValues(recruitment.RecruitmentTagsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.RecruitmentID
+			node, ok := nodeids[fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "recruitment_id" returned %v for node %v`, fk, n.ID)
+			}
+			node.Edges.RecruitmentTags = append(node.Edges.RecruitmentTags, n)
 		}
 	}
 
