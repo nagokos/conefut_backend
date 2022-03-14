@@ -292,6 +292,14 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 	return res, nil
 }
 
+func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
+	res, err := tag.GetTags(ctx, r.client)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
