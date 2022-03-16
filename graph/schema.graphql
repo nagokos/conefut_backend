@@ -66,6 +66,12 @@ type Recruitment {
   competition: Competition
   prefecture: Prefecture
   user: User!
+  tags: [Tag]!
+}
+
+type Tag {
+  id: String!
+  name: String!
 }
 
 type Query {
@@ -87,6 +93,10 @@ type Query {
   # stock
   checkStocked(recruitmentId: String!): Boolean!
   getStockedCount(recruitmentId: String!): Int!
+
+  # tag
+  getTags: [Tag!]!
+  getRecruitmentTags(recruitmentId: String!): [Tag]!
 }
 
 input createUserInput {
@@ -113,6 +123,16 @@ input recruitmentInput {
   closingAt: DateTime
   competitionId: String
   prefectureId: String
+  tags: [recruitmentTagInput]!
+}
+
+input recruitmentTagInput {
+  id: String!
+  name: String!
+}
+
+input createTagInput {
+  name: String!
 }
 
 type Mutation {
@@ -129,4 +149,10 @@ type Mutation {
   # stock
   createStock(recruitmentId: String!): Boolean!
   deleteStock(recruitmentId: String!): Boolean!
+
+  # tag
+  createTag(input: createTagInput!): Tag!
+
+  # recruitment_tags
+  addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
 }

@@ -48,6 +48,8 @@ const (
 	EdgeStocks = "stocks"
 	// EdgeApplicants holds the string denoting the applicants edge name in mutations.
 	EdgeApplicants = "applicants"
+	// EdgeRecruitmentTags holds the string denoting the recruitment_tags edge name in mutations.
+	EdgeRecruitmentTags = "recruitment_tags"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrefecture holds the string denoting the prefecture edge name in mutations.
@@ -70,6 +72,13 @@ const (
 	ApplicantsInverseTable = "applicants"
 	// ApplicantsColumn is the table column denoting the applicants relation/edge.
 	ApplicantsColumn = "recruitment_id"
+	// RecruitmentTagsTable is the table that holds the recruitment_tags relation/edge.
+	RecruitmentTagsTable = "recruitment_tags"
+	// RecruitmentTagsInverseTable is the table name for the RecruitmentTag entity.
+	// It exists in this package in order to avoid circular dependency with the "recruitmenttag" package.
+	RecruitmentTagsInverseTable = "recruitment_tags"
+	// RecruitmentTagsColumn is the table column denoting the recruitment_tags relation/edge.
+	RecruitmentTagsColumn = "recruitment_id"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "recruitments"
 	// UserInverseTable is the table name for the User entity.

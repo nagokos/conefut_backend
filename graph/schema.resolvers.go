@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
 	"github.com/nagokos/connefut_backend/graph/domain/stock"
+	"github.com/nagokos/connefut_backend/graph/domain/tag"
 	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -30,20 +32,24 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 
 	err := u.CreateUserValidate()
 
+	fmt.Println(err)
+
 	if err != nil {
 		logger.Log.Error().Msg(err.Error())
 		errs := err.(validation.Errors)
 
+		fmt.Println(errs)
+
 		for k, errMessage := range errs {
-			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return &model.User{}, err
+		return nil, errors.New("フォームに不備があります")
 	}
 
 	res, err := u.CreateUser(r.client.User, ctx)
 	if err != nil {
-		return &model.User{}, err
+		return nil, err
 	}
 
 	token, _ := user.CreateToken(res.ID)
@@ -65,10 +71,10 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
-			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return &model.User{}, err
+		return nil, errors.New("フォームに不備があります")
 	}
 
 	res, err := u.AuthenticateUser(r.client.User, ctx)
@@ -110,7 +116,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
-			utils.NewValidationError(strings.ToLower(k), errMessage.Error()).AddGraphQLError(ctx)
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 		return &model.Recruitment{}, err
 	}
@@ -144,8 +150,8 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
 		errs := err.(validation.Errors)
 
-		for i, errMessage := range errs {
-			utils.NewValidationError(strings.ToLower(i), errMessage.Error()).AddGraphQLError(ctx)
+		for k, errMessage := range errs {
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 		return &model.Recruitment{}, err
 	}
@@ -181,6 +187,34 @@ func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
+	tag := tag.Tag{
+		Name: input.Name,
+	}
+
+	err := tag.CreateTagValidate()
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		errs := err.(validation.Errors)
+
+		for k, errMessage := range errs {
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		}
+		return nil, errors.New("タグの作成に失敗しました")
+	}
+
+	res, err := tag.CreateTag(ctx, r.client)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
@@ -254,6 +288,14 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 	res, err := stock.GetStockedCount(ctx, *r.client, recruitmentID)
 	if err != nil {
 		return 0, err
+	}
+	return res, nil
+}
+
+func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
+	res, err := tag.GetTags(ctx, r.client)
+	if err != nil {
+		return nil, err
 	}
 	return res, nil
 }

@@ -142,6 +142,51 @@ var (
 			},
 		},
 	}
+	// RecruitmentTagsColumns holds the columns for the "recruitment_tags" table.
+	RecruitmentTagsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
+		{Name: "tag_id", Type: field.TypeString, Nullable: true},
+	}
+	// RecruitmentTagsTable holds the schema information for the "recruitment_tags" table.
+	RecruitmentTagsTable = &schema.Table{
+		Name:       "recruitment_tags",
+		Columns:    RecruitmentTagsColumns,
+		PrimaryKey: []*schema.Column{RecruitmentTagsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "recruitment_tags_recruitments_recruitment_tags",
+				Columns:    []*schema.Column{RecruitmentTagsColumns[3]},
+				RefColumns: []*schema.Column{RecruitmentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "recruitment_tags_tags_recruitment_tags",
+				Columns:    []*schema.Column{RecruitmentTagsColumns[4]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "recruitmenttag_recruitment_id_tag_id",
+				Unique:  true,
+				Columns: []*schema.Column{RecruitmentTagsColumns[3], RecruitmentTagsColumns[4]},
+			},
+			{
+				Name:    "recruitmenttag_tag_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentTagsColumns[4]},
+			},
+			{
+				Name:    "recruitmenttag_recruitment_id",
+				Unique:  false,
+				Columns: []*schema.Column{RecruitmentTagsColumns[3]},
+			},
+		},
+	}
 	// StocksColumns holds the columns for the "stocks" table.
 	StocksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -187,6 +232,19 @@ var (
 			},
 		},
 	}
+	// TagsColumns holds the columns for the "tags" table.
+	TagsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Unique: true},
+	}
+	// TagsTable holds the schema information for the "tags" table.
+	TagsTable = &schema.Table{
+		Name:       "tags",
+		Columns:    TagsColumns,
+		PrimaryKey: []*schema.Column{TagsColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -222,7 +280,9 @@ var (
 		CompetitionsTable,
 		PrefecturesTable,
 		RecruitmentsTable,
+		RecruitmentTagsTable,
 		StocksTable,
+		TagsTable,
 		UsersTable,
 	}
 )
@@ -233,6 +293,8 @@ func init() {
 	RecruitmentsTable.ForeignKeys[0].RefTable = CompetitionsTable
 	RecruitmentsTable.ForeignKeys[1].RefTable = PrefecturesTable
 	RecruitmentsTable.ForeignKeys[2].RefTable = UsersTable
+	RecruitmentTagsTable.ForeignKeys[0].RefTable = RecruitmentsTable
+	RecruitmentTagsTable.ForeignKeys[1].RefTable = TagsTable
 	StocksTable.ForeignKeys[0].RefTable = RecruitmentsTable
 	StocksTable.ForeignKeys[1].RefTable = UsersTable
 }

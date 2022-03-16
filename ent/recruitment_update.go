@@ -16,6 +16,7 @@ import (
 	"github.com/nagokos/connefut_backend/ent/predicate"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
@@ -310,6 +311,21 @@ func (ru *RecruitmentUpdate) AddApplicants(a ...*Applicant) *RecruitmentUpdate {
 	return ru.AddApplicantIDs(ids...)
 }
 
+// AddRecruitmentTagIDs adds the "recruitment_tags" edge to the RecruitmentTag entity by IDs.
+func (ru *RecruitmentUpdate) AddRecruitmentTagIDs(ids ...string) *RecruitmentUpdate {
+	ru.mutation.AddRecruitmentTagIDs(ids...)
+	return ru
+}
+
+// AddRecruitmentTags adds the "recruitment_tags" edges to the RecruitmentTag entity.
+func (ru *RecruitmentUpdate) AddRecruitmentTags(r ...*RecruitmentTag) *RecruitmentUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return ru.AddRecruitmentTagIDs(ids...)
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (ru *RecruitmentUpdate) SetUser(u *User) *RecruitmentUpdate {
 	return ru.SetUserID(u.ID)
@@ -370,6 +386,27 @@ func (ru *RecruitmentUpdate) RemoveApplicants(a ...*Applicant) *RecruitmentUpdat
 		ids[i] = a[i].ID
 	}
 	return ru.RemoveApplicantIDs(ids...)
+}
+
+// ClearRecruitmentTags clears all "recruitment_tags" edges to the RecruitmentTag entity.
+func (ru *RecruitmentUpdate) ClearRecruitmentTags() *RecruitmentUpdate {
+	ru.mutation.ClearRecruitmentTags()
+	return ru
+}
+
+// RemoveRecruitmentTagIDs removes the "recruitment_tags" edge to RecruitmentTag entities by IDs.
+func (ru *RecruitmentUpdate) RemoveRecruitmentTagIDs(ids ...string) *RecruitmentUpdate {
+	ru.mutation.RemoveRecruitmentTagIDs(ids...)
+	return ru
+}
+
+// RemoveRecruitmentTags removes "recruitment_tags" edges to RecruitmentTag entities.
+func (ru *RecruitmentUpdate) RemoveRecruitmentTags(r ...*RecruitmentTag) *RecruitmentUpdate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return ru.RemoveRecruitmentTagIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -745,6 +782,60 @@ func (ru *RecruitmentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeString,
 					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ru.mutation.RecruitmentTagsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedRecruitmentTagsIDs(); len(nodes) > 0 && !ru.mutation.RecruitmentTagsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RecruitmentTagsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
 				},
 			},
 		}
@@ -1154,6 +1245,21 @@ func (ruo *RecruitmentUpdateOne) AddApplicants(a ...*Applicant) *RecruitmentUpda
 	return ruo.AddApplicantIDs(ids...)
 }
 
+// AddRecruitmentTagIDs adds the "recruitment_tags" edge to the RecruitmentTag entity by IDs.
+func (ruo *RecruitmentUpdateOne) AddRecruitmentTagIDs(ids ...string) *RecruitmentUpdateOne {
+	ruo.mutation.AddRecruitmentTagIDs(ids...)
+	return ruo
+}
+
+// AddRecruitmentTags adds the "recruitment_tags" edges to the RecruitmentTag entity.
+func (ruo *RecruitmentUpdateOne) AddRecruitmentTags(r ...*RecruitmentTag) *RecruitmentUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return ruo.AddRecruitmentTagIDs(ids...)
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (ruo *RecruitmentUpdateOne) SetUser(u *User) *RecruitmentUpdateOne {
 	return ruo.SetUserID(u.ID)
@@ -1214,6 +1320,27 @@ func (ruo *RecruitmentUpdateOne) RemoveApplicants(a ...*Applicant) *RecruitmentU
 		ids[i] = a[i].ID
 	}
 	return ruo.RemoveApplicantIDs(ids...)
+}
+
+// ClearRecruitmentTags clears all "recruitment_tags" edges to the RecruitmentTag entity.
+func (ruo *RecruitmentUpdateOne) ClearRecruitmentTags() *RecruitmentUpdateOne {
+	ruo.mutation.ClearRecruitmentTags()
+	return ruo
+}
+
+// RemoveRecruitmentTagIDs removes the "recruitment_tags" edge to RecruitmentTag entities by IDs.
+func (ruo *RecruitmentUpdateOne) RemoveRecruitmentTagIDs(ids ...string) *RecruitmentUpdateOne {
+	ruo.mutation.RemoveRecruitmentTagIDs(ids...)
+	return ruo
+}
+
+// RemoveRecruitmentTags removes "recruitment_tags" edges to RecruitmentTag entities.
+func (ruo *RecruitmentUpdateOne) RemoveRecruitmentTags(r ...*RecruitmentTag) *RecruitmentUpdateOne {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return ruo.RemoveRecruitmentTagIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -1613,6 +1740,60 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeString,
 					Column: applicant.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ruo.mutation.RecruitmentTagsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedRecruitmentTagsIDs(); len(nodes) > 0 && !ruo.mutation.RecruitmentTagsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RecruitmentTagsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   recruitment.RecruitmentTagsTable,
+			Columns: []string{recruitment.RecruitmentTagsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: recruitmenttag.FieldID,
 				},
 			},
 		}

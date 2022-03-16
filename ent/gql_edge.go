@@ -52,6 +52,14 @@ func (r *Recruitment) Applicants(ctx context.Context) ([]*Applicant, error) {
 	return result, err
 }
 
+func (r *Recruitment) RecruitmentTags(ctx context.Context) ([]*RecruitmentTag, error) {
+	result, err := r.Edges.RecruitmentTagsOrErr()
+	if IsNotLoaded(err) {
+		result, err = r.QueryRecruitmentTags().All(ctx)
+	}
+	return result, err
+}
+
 func (r *Recruitment) User(ctx context.Context) (*User, error) {
 	result, err := r.Edges.UserOrErr()
 	if IsNotLoaded(err) {
@@ -76,6 +84,22 @@ func (r *Recruitment) Competition(ctx context.Context) (*Competition, error) {
 	return result, MaskNotFound(err)
 }
 
+func (rt *RecruitmentTag) Recruitment(ctx context.Context) (*Recruitment, error) {
+	result, err := rt.Edges.RecruitmentOrErr()
+	if IsNotLoaded(err) {
+		result, err = rt.QueryRecruitment().Only(ctx)
+	}
+	return result, err
+}
+
+func (rt *RecruitmentTag) Tag(ctx context.Context) (*Tag, error) {
+	result, err := rt.Edges.TagOrErr()
+	if IsNotLoaded(err) {
+		result, err = rt.QueryTag().Only(ctx)
+	}
+	return result, err
+}
+
 func (s *Stock) User(ctx context.Context) (*User, error) {
 	result, err := s.Edges.UserOrErr()
 	if IsNotLoaded(err) {
@@ -88,6 +112,14 @@ func (s *Stock) Recruitment(ctx context.Context) (*Recruitment, error) {
 	result, err := s.Edges.RecruitmentOrErr()
 	if IsNotLoaded(err) {
 		result, err = s.QueryRecruitment().Only(ctx)
+	}
+	return result, err
+}
+
+func (t *Tag) RecruitmentTags(ctx context.Context) ([]*RecruitmentTag, error) {
+	result, err := t.Edges.RecruitmentTagsOrErr()
+	if IsNotLoaded(err) {
+		result, err = t.QueryRecruitmentTags().All(ctx)
 	}
 	return result, err
 }

@@ -14,7 +14,9 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
+	"github.com/nagokos/connefut_backend/ent/tag"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -211,7 +213,7 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		ID:     r.ID,
 		Type:   "Recruitment",
 		Fields: make([]*Field, 15),
-		Edges:  make([]*Edge, 5),
+		Edges:  make([]*Edge, 6),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(r.CreatedAt); err != nil {
@@ -355,32 +357,105 @@ func (r *Recruitment) Node(ctx context.Context) (node *Node, err error) {
 		return nil, err
 	}
 	node.Edges[2] = &Edge{
-		Type: "User",
-		Name: "user",
+		Type: "RecruitmentTag",
+		Name: "recruitment_tags",
 	}
-	err = r.QueryUser().
-		Select(user.FieldID).
+	err = r.QueryRecruitmentTags().
+		Select(recruitmenttag.FieldID).
 		Scan(ctx, &node.Edges[2].IDs)
 	if err != nil {
 		return nil, err
 	}
 	node.Edges[3] = &Edge{
-		Type: "Prefecture",
-		Name: "prefecture",
+		Type: "User",
+		Name: "user",
 	}
-	err = r.QueryPrefecture().
-		Select(prefecture.FieldID).
+	err = r.QueryUser().
+		Select(user.FieldID).
 		Scan(ctx, &node.Edges[3].IDs)
 	if err != nil {
 		return nil, err
 	}
 	node.Edges[4] = &Edge{
+		Type: "Prefecture",
+		Name: "prefecture",
+	}
+	err = r.QueryPrefecture().
+		Select(prefecture.FieldID).
+		Scan(ctx, &node.Edges[4].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[5] = &Edge{
 		Type: "Competition",
 		Name: "competition",
 	}
 	err = r.QueryCompetition().
 		Select(competition.FieldID).
-		Scan(ctx, &node.Edges[4].IDs)
+		Scan(ctx, &node.Edges[5].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (rt *RecruitmentTag) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     rt.ID,
+		Type:   "RecruitmentTag",
+		Fields: make([]*Field, 4),
+		Edges:  make([]*Edge, 2),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(rt.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(rt.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(rt.RecruitmentID); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "recruitment_id",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(rt.TagID); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "string",
+		Name:  "tag_id",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Recruitment",
+		Name: "recruitment",
+	}
+	err = rt.QueryRecruitment().
+		Select(recruitment.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Tag",
+		Name: "tag",
+	}
+	err = rt.QueryTag().
+		Select(tag.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -444,6 +519,51 @@ func (s *Stock) Node(ctx context.Context) (node *Node, err error) {
 	err = s.QueryRecruitment().
 		Select(recruitment.FieldID).
 		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (t *Tag) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     t.ID,
+		Type:   "Tag",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(t.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(t.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(t.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "RecruitmentTag",
+		Name: "recruitment_tags",
+	}
+	err = t.QueryRecruitmentTags().
+		Select(recruitmenttag.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -690,10 +810,28 @@ func (c *Client) noder(ctx context.Context, table string, id string) (Noder, err
 			return nil, err
 		}
 		return n, nil
+	case recruitmenttag.Table:
+		n, err := c.RecruitmentTag.Query().
+			Where(recruitmenttag.ID(id)).
+			CollectFields(ctx, "RecruitmentTag").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case stock.Table:
 		n, err := c.Stock.Query().
 			Where(stock.ID(id)).
 			CollectFields(ctx, "Stock").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case tag.Table:
+		n, err := c.Tag.Query().
+			Where(tag.ID(id)).
+			CollectFields(ctx, "Tag").
 			Only(ctx)
 		if err != nil {
 			return nil, err
@@ -833,10 +971,36 @@ func (c *Client) noders(ctx context.Context, table string, ids []string) ([]Node
 				*noder = node
 			}
 		}
+	case recruitmenttag.Table:
+		nodes, err := c.RecruitmentTag.Query().
+			Where(recruitmenttag.IDIn(ids...)).
+			CollectFields(ctx, "RecruitmentTag").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case stock.Table:
 		nodes, err := c.Stock.Query().
 			Where(stock.IDIn(ids...)).
 			CollectFields(ctx, "Stock").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case tag.Table:
+		nodes, err := c.Tag.Query().
+			Where(tag.IDIn(ids...)).
+			CollectFields(ctx, "Tag").
 			All(ctx)
 		if err != nil {
 			return nil, err

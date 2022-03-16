@@ -1660,6 +1660,34 @@ func HasApplicantsWith(preds ...predicate.Applicant) predicate.Recruitment {
 	})
 }
 
+// HasRecruitmentTags applies the HasEdge predicate on the "recruitment_tags" edge.
+func HasRecruitmentTags() predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(RecruitmentTagsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RecruitmentTagsTable, RecruitmentTagsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRecruitmentTagsWith applies the HasEdge predicate on the "recruitment_tags" edge with a given conditions (other predicates).
+func HasRecruitmentTagsWith(preds ...predicate.RecruitmentTag) predicate.Recruitment {
+	return predicate.Recruitment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(RecruitmentTagsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RecruitmentTagsTable, RecruitmentTagsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.Recruitment {
 	return predicate.Recruitment(func(s *sql.Selector) {

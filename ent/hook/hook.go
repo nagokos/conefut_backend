@@ -61,6 +61,19 @@ func (f RecruitmentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 	return f(ctx, mv)
 }
 
+// The RecruitmentTagFunc type is an adapter to allow the use of ordinary
+// function as RecruitmentTag mutator.
+type RecruitmentTagFunc func(context.Context, *ent.RecruitmentTagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RecruitmentTagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.RecruitmentTagMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RecruitmentTagMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The StockFunc type is an adapter to allow the use of ordinary
 // function as Stock mutator.
 type StockFunc func(context.Context, *ent.StockMutation) (ent.Value, error)
@@ -70,6 +83,19 @@ func (f StockFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	mv, ok := m.(*ent.StockMutation)
 	if !ok {
 		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StockMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The TagFunc type is an adapter to allow the use of ordinary
+// function as Tag mutator.
+type TagFunc func(context.Context, *ent.TagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.TagMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TagMutation", m)
 	}
 	return f(ctx, mv)
 }

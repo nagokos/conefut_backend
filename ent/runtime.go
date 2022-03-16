@@ -9,8 +9,10 @@ import (
 	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/schema"
 	"github.com/nagokos/connefut_backend/ent/stock"
+	"github.com/nagokos/connefut_backend/ent/tag"
 	"github.com/nagokos/connefut_backend/ent/user"
 )
 
@@ -118,6 +120,29 @@ func init() {
 	recruitment.DefaultID = recruitmentDescID.Default.(func() string)
 	// recruitment.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	recruitment.IDValidator = recruitmentDescID.Validators[0].(func(string) error)
+	recruitmenttagMixin := schema.RecruitmentTag{}.Mixin()
+	recruitmenttagMixinFields0 := recruitmenttagMixin[0].Fields()
+	_ = recruitmenttagMixinFields0
+	recruitmenttagMixinFields1 := recruitmenttagMixin[1].Fields()
+	_ = recruitmenttagMixinFields1
+	recruitmenttagFields := schema.RecruitmentTag{}.Fields()
+	_ = recruitmenttagFields
+	// recruitmenttagDescCreatedAt is the schema descriptor for created_at field.
+	recruitmenttagDescCreatedAt := recruitmenttagMixinFields1[0].Descriptor()
+	// recruitmenttag.DefaultCreatedAt holds the default value on creation for the created_at field.
+	recruitmenttag.DefaultCreatedAt = recruitmenttagDescCreatedAt.Default.(func() time.Time)
+	// recruitmenttagDescUpdatedAt is the schema descriptor for updated_at field.
+	recruitmenttagDescUpdatedAt := recruitmenttagMixinFields1[1].Descriptor()
+	// recruitmenttag.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	recruitmenttag.DefaultUpdatedAt = recruitmenttagDescUpdatedAt.Default.(func() time.Time)
+	// recruitmenttag.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	recruitmenttag.UpdateDefaultUpdatedAt = recruitmenttagDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// recruitmenttagDescID is the schema descriptor for id field.
+	recruitmenttagDescID := recruitmenttagMixinFields0[0].Descriptor()
+	// recruitmenttag.DefaultID holds the default value on creation for the id field.
+	recruitmenttag.DefaultID = recruitmenttagDescID.Default.(func() string)
+	// recruitmenttag.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	recruitmenttag.IDValidator = recruitmenttagDescID.Validators[0].(func(string) error)
 	stockMixin := schema.Stock{}.Mixin()
 	stockMixinFields0 := stockMixin[0].Fields()
 	_ = stockMixinFields0
@@ -141,6 +166,29 @@ func init() {
 	stock.DefaultID = stockDescID.Default.(func() string)
 	// stock.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	stock.IDValidator = stockDescID.Validators[0].(func(string) error)
+	tagMixin := schema.Tag{}.Mixin()
+	tagMixinFields0 := tagMixin[0].Fields()
+	_ = tagMixinFields0
+	tagMixinFields1 := tagMixin[1].Fields()
+	_ = tagMixinFields1
+	tagFields := schema.Tag{}.Fields()
+	_ = tagFields
+	// tagDescCreatedAt is the schema descriptor for created_at field.
+	tagDescCreatedAt := tagMixinFields1[0].Descriptor()
+	// tag.DefaultCreatedAt holds the default value on creation for the created_at field.
+	tag.DefaultCreatedAt = tagDescCreatedAt.Default.(func() time.Time)
+	// tagDescUpdatedAt is the schema descriptor for updated_at field.
+	tagDescUpdatedAt := tagMixinFields1[1].Descriptor()
+	// tag.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	tag.DefaultUpdatedAt = tagDescUpdatedAt.Default.(func() time.Time)
+	// tag.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	tag.UpdateDefaultUpdatedAt = tagDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// tagDescID is the schema descriptor for id field.
+	tagDescID := tagMixinFields0[0].Descriptor()
+	// tag.DefaultID holds the default value on creation for the id field.
+	tag.DefaultID = tagDescID.Default.(func() string)
+	// tag.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	tag.IDValidator = tagDescID.Validators[0].(func(string) error)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0
