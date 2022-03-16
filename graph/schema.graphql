@@ -66,6 +66,7 @@ type Recruitment {
   competition: Competition
   prefecture: Prefecture
   user: User!
+  tags: [Tag]!
 }
 
 type Tag {
@@ -95,6 +96,7 @@ type Query {
 
   # tag
   getTags: [Tag!]!
+  getRecruitmentTags(recruitmentId: String!): [Tag]!
 }
 
 input createUserInput {
@@ -121,6 +123,12 @@ input recruitmentInput {
   closingAt: DateTime
   competitionId: String
   prefectureId: String
+  tags: [recruitmentTagInput]!
+}
+
+input recruitmentTagInput {
+  id: String!
+  name: String!
 }
 
 input createTagInput {
