@@ -276,6 +276,7 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 	var prefecture *model.Prefecture
 	var competition *model.Competition
 	var user *model.User
+	var tags []*model.Tag
 
 	res, err := client.Recruitment.
 		Query().
@@ -283,6 +284,11 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		WithCompetition().
 		WithPrefecture().
 		WithUser().
+		WithRecruitmentTags(
+			func(rtq *ent.RecruitmentTagQuery) {
+				rtq.WithTag().All(ctx)
+			},
+		).
 		Only(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("get recruitment error %s", err.Error()))
@@ -300,6 +306,15 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		competition = &model.Competition{
 			ID:   res.Edges.Competition.ID,
 			Name: res.Edges.Competition.Name,
+		}
+	}
+
+	if res.Edges.RecruitmentTags != nil {
+		for _, recTag := range res.Edges.RecruitmentTags {
+			tags = append(tags, &model.Tag{
+				ID:   recTag.Edges.Tag.ID,
+				Name: recTag.Edges.Tag.Name,
+			})
 		}
 	}
 
@@ -327,6 +342,7 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		Competition: competition,
 		UpdatedAt:   res.UpdatedAt,
 		User:        user,
+		Tags:        tags,
 	}
 	return resRecruitment, nil
 }
