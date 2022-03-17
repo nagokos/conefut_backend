@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -30,6 +32,7 @@ type Recruitment struct {
 	ClosingAt     *time.Time
 	CompetitionID *string
 	PrefectureID  *string
+	Tags          []*model.RecruitmentTagInput
 }
 
 func requiredIfUnnecessaryType() validation.RuleFunc {
