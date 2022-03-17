@@ -228,8 +228,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client)
 		User:        &model.User{},
 	}
 
-	fmt.Println(*resRecruitment)
-
 	return resRecruitment, nil
 }
 
