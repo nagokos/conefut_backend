@@ -108,6 +108,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
+		Tags:          input.Tags,
 	}
 
 	err := rm.RecruitmentValidate()
@@ -121,7 +122,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		return &model.Recruitment{}, err
 	}
 
-	resRecruitment, err := rm.CreateRecruitment(ctx, r.client.Recruitment)
+	resRecruitment, err := rm.CreateRecruitment(ctx, r.client)
 	if err != nil {
 		return &model.Recruitment{}, err
 	}
@@ -143,6 +144,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
+		Tags:          input.Tags,
 	}
 
 	err := rm.RecruitmentValidate()
