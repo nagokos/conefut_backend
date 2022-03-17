@@ -35,6 +35,7 @@ type Recruitment struct {
 	Competition *Competition `json:"competition"`
 	Prefecture  *Prefecture  `json:"prefecture"`
 	User        *User        `json:"user"`
+	Tags        []*Tag       `json:"tags"`
 }
 
 type Tag struct {
@@ -68,18 +69,24 @@ type LoginUserInput struct {
 }
 
 type RecruitmentInput struct {
-	Title         string     `json:"title"`
-	Content       *string    `json:"content"`
-	Type          Type       `json:"type"`
-	Place         *string    `json:"place"`
-	StartAt       *time.Time `json:"startAt"`
-	LocationLat   *float64   `json:"locationLat"`
-	LocationLng   *float64   `json:"locationLng"`
-	Capacity      *int       `json:"capacity"`
-	Status        Status     `json:"status"`
-	ClosingAt     *time.Time `json:"closingAt"`
-	CompetitionID *string    `json:"competitionId"`
-	PrefectureID  *string    `json:"prefectureId"`
+	Title         string                 `json:"title"`
+	Content       *string                `json:"content"`
+	Type          Type                   `json:"type"`
+	Place         *string                `json:"place"`
+	StartAt       *time.Time             `json:"startAt"`
+	LocationLat   *float64               `json:"locationLat"`
+	LocationLng   *float64               `json:"locationLng"`
+	Capacity      *int                   `json:"capacity"`
+	Status        Status                 `json:"status"`
+	ClosingAt     *time.Time             `json:"closingAt"`
+	CompetitionID *string                `json:"competitionId"`
+	PrefectureID  *string                `json:"prefectureId"`
+	Tags          []*RecruitmentTagInput `json:"tags"`
+}
+
+type RecruitmentTagInput struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type EmailVerificationStatus string
