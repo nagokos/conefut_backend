@@ -169,13 +169,13 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.RecruitmentClient) (*model.Recruitment, error) {
+func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
 	}
 
-	res, err := client.
+	res, err := client.Recruitment.
 		Create().
 		SetTitle(r.Title).
 		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
