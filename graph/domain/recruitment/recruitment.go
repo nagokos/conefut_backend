@@ -433,18 +433,28 @@ func GetStockedRecruitments(ctx context.Context, client ent.Client) ([]*model.Re
 }
 
 func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
-	var entRecruitment *ent.Recruitment
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return nil, errors.New("ログインしてください")
 	}
 
-	i, err := client.Recruitment.
-		Update().
+	entRecruitment, err := client.User.
+		Query().
+		Where(
+			user.ID(currentUser.ID),
+		).
+		QueryRecruitments().
 		Where(
 			recruitment.ID(id),
-			recruitment.HasUserWith(user.ID(currentUser.ID)),
 		).
+		Only(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment not found %s", err.Error()))
+		return nil, errors.New("recruitment not found")
+	}
+
+	res, err := entRecruitment.
+		Update().
 		ClearCapacity().
 		ClearLocationLat().
 		ClearLocationLng().
@@ -461,24 +471,73 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		SetNillableCompetitionID(r.CompetitionID).
 		SetNillablePrefectureID(r.PrefectureID).
 		Save(ctx)
-	if i == 0 {
-		return nil, errors.New("募集の更新に失敗しました")
-	}
+
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
 		return nil, err
 	}
 
-	entRecruitment, err = client.Recruitment.Query().Where(recruitment.ID(id)).Only(ctx)
+	currentTags, _ := res.
+		QueryRecruitmentTags().
+		QueryTag().
+		All(ctx)
+
+	var oldTags []*ent.Tag // チェックを外されたタグ(削除するもの)
+
+	// 削除するタグを見つける処理
+	for _, currentTag := range currentTags {
+		found := false
+		for _, sentTag := range r.Tags {
+			if currentTag.Name == sentTag.Name {
+				found = true
+			}
+		}
+		if !found {
+			oldTags = append(oldTags, currentTag)
+		}
+	}
+
+	bulk := make([]*ent.RecruitmentTagCreate, len(r.Tags))
+	for i, tag := range r.Tags {
+		bulk[i] = client.RecruitmentTag.
+			Create().
+			SetRecruitmentID(res.ID).
+			SetTagID(tag.ID)
+	}
+	err = client.RecruitmentTag.
+		CreateBulk(bulk...).
+		OnConflict(
+			sql.ConflictColumns(
+				recruitmenttag.FieldRecruitmentID,
+				recruitmenttag.FieldTagID,
+			),
+		).
+		UpdateUpdatedAt().
+		Exec(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
-		return nil, err
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment_tag upsert error: %s", err.Error()))
+	}
+
+	if len(oldTags) != 0 {
+		for _, tag := range oldTags {
+			i, err := client.RecruitmentTag.
+				Delete().
+				Where(
+					recruitmenttag.RecruitmentID(res.ID),
+					recruitmenttag.TagID(tag.ID),
+				).
+				Exec(ctx)
+			logger.Log.Debug().Msg(fmt.Sprintln(i))
+			if err != nil {
+				logger.Log.Error().Msg(fmt.Sprintf("delete recruitment tag error: %s", err.Error()))
+			}
+		}
 	}
 
 	resRecruitment := &model.Recruitment{
-		ID:     entRecruitment.ID,
-		Title:  entRecruitment.Title,
-		Status: model.Status(strings.ToUpper(string(entRecruitment.Status))),
+		ID:     res.ID,
+		Title:  res.Title,
+		Status: model.Status(strings.ToUpper(string(res.Status))),
 	}
 	return resRecruitment, nil
 }
@@ -492,10 +551,11 @@ func DeleteRecruitment(ctx context.Context, client ent.Client, id string) (bool,
 	res, err := client.Recruitment.
 		Delete().
 		Where(
-			recruitment.HasUserWith(user.ID(currentUser.ID)),
 			recruitment.ID(id),
+			recruitment.UserID(currentUser.ID),
 		).
 		Exec(ctx)
+
 	if res == 0 {
 		return false, errors.New("募集の削除に失敗しました")
 	}
