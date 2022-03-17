@@ -302,6 +302,14 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 	return res, nil
 }
 
+func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID string) ([]*model.Tag, error) {
+	res, err := tag.GetRecruitmentTags(ctx, r.client, recruitmentID)
+	if err != nil {
+		return res, err
+	}
+	return res, err
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
