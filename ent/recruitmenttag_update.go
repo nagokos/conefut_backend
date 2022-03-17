@@ -147,10 +147,10 @@ func (rtu *RecruitmentTagUpdate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (rtu *RecruitmentTagUpdate) check() error {
 	if _, ok := rtu.mutation.RecruitmentID(); rtu.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "RecruitmentTag.recruitment"`)
 	}
 	if _, ok := rtu.mutation.TagID(); rtu.mutation.TagCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"tag\"")
+		return errors.New(`ent: clearing a required unique edge "RecruitmentTag.tag"`)
 	}
 	return nil
 }
@@ -393,10 +393,10 @@ func (rtuo *RecruitmentTagUpdateOne) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (rtuo *RecruitmentTagUpdateOne) check() error {
 	if _, ok := rtuo.mutation.RecruitmentID(); rtuo.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "RecruitmentTag.recruitment"`)
 	}
 	if _, ok := rtuo.mutation.TagID(); rtuo.mutation.TagCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"tag\"")
+		return errors.New(`ent: clearing a required unique edge "RecruitmentTag.tag"`)
 	}
 	return nil
 }
@@ -414,7 +414,7 @@ func (rtuo *RecruitmentTagUpdateOne) sqlSave(ctx context.Context) (_node *Recrui
 	}
 	id, ok := rtuo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing RecruitmentTag.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "RecruitmentTag.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := rtuo.fields; len(fields) > 0 {

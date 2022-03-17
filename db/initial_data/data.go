@@ -84,13 +84,15 @@ func InsertCompetitions(ctx context.Context, client *ent.Client) error {
 func InsertTags(ctx context.Context, client *ent.Client) error {
 	tags := []string{
 		"エンジョイ",
-		"男女MIX",
+		"男女mix",
 		"シニア",
 		"ガチ",
-		"誰でもOK",
+		"誰でもok",
 		"経験者",
 		"初心者歓迎",
 		"競技志向",
+		"急募",
+		"人工芝",
 	}
 	bulk := make([]*ent.TagCreate, len(tags))
 	for i, name := range tags {

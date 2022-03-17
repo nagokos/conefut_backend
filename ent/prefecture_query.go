@@ -132,7 +132,7 @@ func (pq *PrefectureQuery) FirstIDX(ctx context.Context) string {
 }
 
 // Only returns a single Prefecture entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Prefecture entity is not found.
+// Returns a *NotSingularError when more than one Prefecture entity is found.
 // Returns a *NotFoundError when no Prefecture entities are found.
 func (pq *PrefectureQuery) Only(ctx context.Context) (*Prefecture, error) {
 	nodes, err := pq.Limit(2).All(ctx)
@@ -159,7 +159,7 @@ func (pq *PrefectureQuery) OnlyX(ctx context.Context) *Prefecture {
 }
 
 // OnlyID is like Only, but returns the only Prefecture ID in the query.
-// Returns a *NotSingularError when exactly one Prefecture ID is not found.
+// Returns a *NotSingularError when more than one Prefecture ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (pq *PrefectureQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
@@ -269,8 +269,9 @@ func (pq *PrefectureQuery) Clone() *PrefectureQuery {
 		predicates:       append([]predicate.Prefecture{}, pq.predicates...),
 		withRecruitments: pq.withRecruitments.Clone(),
 		// clone intermediate query.
-		sql:  pq.sql.Clone(),
-		path: pq.path,
+		sql:    pq.sql.Clone(),
+		path:   pq.path,
+		unique: pq.unique,
 	}
 }
 
@@ -404,6 +405,10 @@ func (pq *PrefectureQuery) sqlAll(ctx context.Context) ([]*Prefecture, error) {
 
 func (pq *PrefectureQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := pq.querySpec()
+	_spec.Node.Columns = pq.fields
+	if len(pq.fields) > 0 {
+		_spec.Unique = pq.unique != nil && *pq.unique
+	}
 	return sqlgraph.CountNodes(ctx, pq.driver, _spec)
 }
 
@@ -474,6 +479,9 @@ func (pq *PrefectureQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if pq.sql != nil {
 		selector = pq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if pq.unique != nil && *pq.unique {
+		selector.Distinct()
 	}
 	for _, p := range pq.predicates {
 		p(selector)
@@ -753,9 +761,7 @@ func (pgb *PrefectureGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range pgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(pgb.fields...)...)

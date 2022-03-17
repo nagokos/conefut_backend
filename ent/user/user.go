@@ -4,8 +4,6 @@ package user
 
 import (
 	"fmt"
-	"io"
-	"strconv"
 	"time"
 )
 
@@ -168,40 +166,4 @@ func EmailVerificationStatusValidator(evs EmailVerificationStatus) error {
 	default:
 		return fmt.Errorf("user: invalid enum value for email_verification_status field: %q", evs)
 	}
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (r Role) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(r.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (r *Role) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*r = Role(str)
-	if err := RoleValidator(*r); err != nil {
-		return fmt.Errorf("%s is not a valid Role", str)
-	}
-	return nil
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (evs EmailVerificationStatus) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(evs.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (evs *EmailVerificationStatus) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*evs = EmailVerificationStatus(str)
-	if err := EmailVerificationStatusValidator(*evs); err != nil {
-		return fmt.Errorf("%s is not a valid EmailVerificationStatus", str)
-	}
-	return nil
 }

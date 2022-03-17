@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
+	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -30,6 +32,7 @@ type Recruitment struct {
 	ClosingAt     *time.Time
 	CompetitionID *string
 	PrefectureID  *string
+	Tags          []*model.RecruitmentTagInput
 }
 
 func requiredIfUnnecessaryType() validation.RuleFunc {
@@ -166,13 +169,13 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.RecruitmentClient) (*model.Recruitment, error) {
+func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
 	}
 
-	res, err := client.
+	res, err := client.Recruitment.
 		Create().
 		SetTitle(r.Title).
 		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
@@ -193,6 +196,23 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		return &model.Recruitment{}, err
 	}
 
+	if len(r.Tags) != 0 {
+		tags := r.Tags
+		bulk := make([]*ent.RecruitmentTagCreate, len(tags))
+		for i, tag := range tags {
+			bulk[i] = client.RecruitmentTag.
+				Create().
+				SetRecruitmentID(res.ID).
+				SetTagID(tag.ID)
+		}
+		_, err := client.RecruitmentTag.
+			CreateBulk(bulk...).
+			Save(ctx)
+		if err != nil {
+			logger.Log.Error().Msg(fmt.Sprintf("create recruitment_tags error: %s", err.Error()))
+		}
+	}
+
 	resRecruitment := &model.Recruitment{
 		ID:          res.ID,
 		Title:       res.Title,
@@ -207,8 +227,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Recruit
 		ClosingAt:   &res.ClosingAt,
 		User:        &model.User{},
 	}
-
-	fmt.Println(*resRecruitment)
 
 	return resRecruitment, nil
 }
@@ -258,6 +276,7 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 	var prefecture *model.Prefecture
 	var competition *model.Competition
 	var user *model.User
+	var tags []*model.Tag
 
 	res, err := client.Recruitment.
 		Query().
@@ -265,6 +284,11 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		WithCompetition().
 		WithPrefecture().
 		WithUser().
+		WithRecruitmentTags(
+			func(rtq *ent.RecruitmentTagQuery) {
+				rtq.WithTag().All(ctx)
+			},
+		).
 		Only(ctx)
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("get recruitment error %s", err.Error()))
@@ -282,6 +306,15 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		competition = &model.Competition{
 			ID:   res.Edges.Competition.ID,
 			Name: res.Edges.Competition.Name,
+		}
+	}
+
+	if res.Edges.RecruitmentTags != nil {
+		for _, recTag := range res.Edges.RecruitmentTags {
+			tags = append(tags, &model.Tag{
+				ID:   recTag.Edges.Tag.ID,
+				Name: recTag.Edges.Tag.Name,
+			})
 		}
 	}
 
@@ -309,6 +342,7 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		Competition: competition,
 		UpdatedAt:   res.UpdatedAt,
 		User:        user,
+		Tags:        tags,
 	}
 	return resRecruitment, nil
 }
@@ -399,18 +433,28 @@ func GetStockedRecruitments(ctx context.Context, client ent.Client) ([]*model.Re
 }
 
 func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
-	var entRecruitment *ent.Recruitment
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return nil, errors.New("ログインしてください")
 	}
 
-	i, err := client.Recruitment.
-		Update().
+	entRecruitment, err := client.User.
+		Query().
+		Where(
+			user.ID(currentUser.ID),
+		).
+		QueryRecruitments().
 		Where(
 			recruitment.ID(id),
-			recruitment.HasUserWith(user.ID(currentUser.ID)),
 		).
+		Only(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment not found %s", err.Error()))
+		return nil, errors.New("recruitment not found")
+	}
+
+	res, err := entRecruitment.
+		Update().
 		ClearCapacity().
 		ClearLocationLat().
 		ClearLocationLng().
@@ -427,24 +471,73 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		SetNillableCompetitionID(r.CompetitionID).
 		SetNillablePrefectureID(r.PrefectureID).
 		Save(ctx)
-	if i == 0 {
-		return nil, errors.New("募集の更新に失敗しました")
-	}
+
 	if err != nil {
 		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
 		return nil, err
 	}
 
-	entRecruitment, err = client.Recruitment.Query().Where(recruitment.ID(id)).Only(ctx)
+	currentTags, _ := res.
+		QueryRecruitmentTags().
+		QueryTag().
+		All(ctx)
+
+	var oldTags []*ent.Tag // チェックを外されたタグ(削除するもの)
+
+	// 削除するタグを見つける処理
+	for _, currentTag := range currentTags {
+		found := false
+		for _, sentTag := range r.Tags {
+			if currentTag.Name == sentTag.Name {
+				found = true
+			}
+		}
+		if !found {
+			oldTags = append(oldTags, currentTag)
+		}
+	}
+
+	bulk := make([]*ent.RecruitmentTagCreate, len(r.Tags))
+	for i, tag := range r.Tags {
+		bulk[i] = client.RecruitmentTag.
+			Create().
+			SetRecruitmentID(res.ID).
+			SetTagID(tag.ID)
+	}
+	err = client.RecruitmentTag.
+		CreateBulk(bulk...).
+		OnConflict(
+			sql.ConflictColumns(
+				recruitmenttag.FieldRecruitmentID,
+				recruitmenttag.FieldTagID,
+			),
+		).
+		UpdateUpdatedAt().
+		Exec(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
-		return nil, err
+		logger.Log.Error().Msg(fmt.Sprintf("recruitment_tag upsert error: %s", err.Error()))
+	}
+
+	if len(oldTags) != 0 {
+		for _, tag := range oldTags {
+			i, err := client.RecruitmentTag.
+				Delete().
+				Where(
+					recruitmenttag.RecruitmentID(res.ID),
+					recruitmenttag.TagID(tag.ID),
+				).
+				Exec(ctx)
+			logger.Log.Debug().Msg(fmt.Sprintln(i))
+			if err != nil {
+				logger.Log.Error().Msg(fmt.Sprintf("delete recruitment tag error: %s", err.Error()))
+			}
+		}
 	}
 
 	resRecruitment := &model.Recruitment{
-		ID:     entRecruitment.ID,
-		Title:  entRecruitment.Title,
-		Status: model.Status(strings.ToUpper(string(entRecruitment.Status))),
+		ID:     res.ID,
+		Title:  res.Title,
+		Status: model.Status(strings.ToUpper(string(res.Status))),
 	}
 	return resRecruitment, nil
 }
@@ -458,10 +551,11 @@ func DeleteRecruitment(ctx context.Context, client ent.Client, id string) (bool,
 	res, err := client.Recruitment.
 		Delete().
 		Where(
-			recruitment.HasUserWith(user.ID(currentUser.ID)),
 			recruitment.ID(id),
+			recruitment.UserID(currentUser.ID),
 		).
 		Exec(ctx)
+
 	if res == 0 {
 		return false, errors.New("募集の削除に失敗しました")
 	}

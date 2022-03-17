@@ -4,8 +4,6 @@ package applicant
 
 import (
 	"fmt"
-	"io"
-	"strconv"
 	"time"
 )
 
@@ -105,22 +103,4 @@ func ManagementStatusValidator(ms ManagementStatus) error {
 	default:
 		return fmt.Errorf("applicant: invalid enum value for management_status field: %q", ms)
 	}
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (ms ManagementStatus) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(ms.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (ms *ManagementStatus) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*ms = ManagementStatus(str)
-	if err := ManagementStatusValidator(*ms); err != nil {
-		return fmt.Errorf("%s is not a valid ManagementStatus", str)
-	}
-	return nil
 }

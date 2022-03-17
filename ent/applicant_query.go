@@ -155,7 +155,7 @@ func (aq *ApplicantQuery) FirstIDX(ctx context.Context) string {
 }
 
 // Only returns a single Applicant entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Applicant entity is not found.
+// Returns a *NotSingularError when more than one Applicant entity is found.
 // Returns a *NotFoundError when no Applicant entities are found.
 func (aq *ApplicantQuery) Only(ctx context.Context) (*Applicant, error) {
 	nodes, err := aq.Limit(2).All(ctx)
@@ -182,7 +182,7 @@ func (aq *ApplicantQuery) OnlyX(ctx context.Context) *Applicant {
 }
 
 // OnlyID is like Only, but returns the only Applicant ID in the query.
-// Returns a *NotSingularError when exactly one Applicant ID is not found.
+// Returns a *NotSingularError when more than one Applicant ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (aq *ApplicantQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
@@ -293,8 +293,9 @@ func (aq *ApplicantQuery) Clone() *ApplicantQuery {
 		withUser:        aq.withUser.Clone(),
 		withRecruitment: aq.withRecruitment.Clone(),
 		// clone intermediate query.
-		sql:  aq.sql.Clone(),
-		path: aq.path,
+		sql:    aq.sql.Clone(),
+		path:   aq.path,
+		unique: aq.unique,
 	}
 }
 
@@ -467,6 +468,10 @@ func (aq *ApplicantQuery) sqlAll(ctx context.Context) ([]*Applicant, error) {
 
 func (aq *ApplicantQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := aq.querySpec()
+	_spec.Node.Columns = aq.fields
+	if len(aq.fields) > 0 {
+		_spec.Unique = aq.unique != nil && *aq.unique
+	}
 	return sqlgraph.CountNodes(ctx, aq.driver, _spec)
 }
 
@@ -537,6 +542,9 @@ func (aq *ApplicantQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if aq.sql != nil {
 		selector = aq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if aq.unique != nil && *aq.unique {
+		selector.Distinct()
 	}
 	for _, p := range aq.predicates {
 		p(selector)
@@ -816,9 +824,7 @@ func (agb *ApplicantGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range agb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(agb.fields...)...)

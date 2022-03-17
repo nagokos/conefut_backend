@@ -500,26 +500,26 @@ func (ru *RecruitmentUpdate) defaults() {
 func (ru *RecruitmentUpdate) check() error {
 	if v, ok := ru.mutation.Title(); ok {
 		if err := recruitment.TitleValidator(v); err != nil {
-			return &ValidationError{Name: "title", err: fmt.Errorf("ent: validator failed for field \"title\": %w", err)}
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Recruitment.title": %w`, err)}
 		}
 	}
 	if v, ok := ru.mutation.GetType(); ok {
 		if err := recruitment.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Recruitment.type": %w`, err)}
 		}
 	}
 	if v, ok := ru.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
-			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
+			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "Recruitment.content": %w`, err)}
 		}
 	}
 	if v, ok := ru.mutation.Status(); ok {
 		if err := recruitment.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Recruitment.status": %w`, err)}
 		}
 	}
 	if _, ok := ru.mutation.UserID(); ru.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Recruitment.user"`)
 	}
 	return nil
 }
@@ -1441,26 +1441,26 @@ func (ruo *RecruitmentUpdateOne) defaults() {
 func (ruo *RecruitmentUpdateOne) check() error {
 	if v, ok := ruo.mutation.Title(); ok {
 		if err := recruitment.TitleValidator(v); err != nil {
-			return &ValidationError{Name: "title", err: fmt.Errorf("ent: validator failed for field \"title\": %w", err)}
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Recruitment.title": %w`, err)}
 		}
 	}
 	if v, ok := ruo.mutation.GetType(); ok {
 		if err := recruitment.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf("ent: validator failed for field \"type\": %w", err)}
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Recruitment.type": %w`, err)}
 		}
 	}
 	if v, ok := ruo.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
-			return &ValidationError{Name: "content", err: fmt.Errorf("ent: validator failed for field \"content\": %w", err)}
+			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "Recruitment.content": %w`, err)}
 		}
 	}
 	if v, ok := ruo.mutation.Status(); ok {
 		if err := recruitment.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Recruitment.status": %w`, err)}
 		}
 	}
 	if _, ok := ruo.mutation.UserID(); ruo.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Recruitment.user"`)
 	}
 	return nil
 }
@@ -1478,7 +1478,7 @@ func (ruo *RecruitmentUpdateOne) sqlSave(ctx context.Context) (_node *Recruitmen
 	}
 	id, ok := ruo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Recruitment.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Recruitment.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := ruo.fields; len(fields) > 0 {

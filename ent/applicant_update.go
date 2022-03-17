@@ -162,14 +162,14 @@ func (au *ApplicantUpdate) defaults() {
 func (au *ApplicantUpdate) check() error {
 	if v, ok := au.mutation.ManagementStatus(); ok {
 		if err := applicant.ManagementStatusValidator(v); err != nil {
-			return &ValidationError{Name: "management_status", err: fmt.Errorf("ent: validator failed for field \"management_status\": %w", err)}
+			return &ValidationError{Name: "management_status", err: fmt.Errorf(`ent: validator failed for field "Applicant.management_status": %w`, err)}
 		}
 	}
 	if _, ok := au.mutation.UserID(); au.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Applicant.user"`)
 	}
 	if _, ok := au.mutation.RecruitmentID(); au.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "Applicant.recruitment"`)
 	}
 	return nil
 }
@@ -434,14 +434,14 @@ func (auo *ApplicantUpdateOne) defaults() {
 func (auo *ApplicantUpdateOne) check() error {
 	if v, ok := auo.mutation.ManagementStatus(); ok {
 		if err := applicant.ManagementStatusValidator(v); err != nil {
-			return &ValidationError{Name: "management_status", err: fmt.Errorf("ent: validator failed for field \"management_status\": %w", err)}
+			return &ValidationError{Name: "management_status", err: fmt.Errorf(`ent: validator failed for field "Applicant.management_status": %w`, err)}
 		}
 	}
 	if _, ok := auo.mutation.UserID(); auo.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Applicant.user"`)
 	}
 	if _, ok := auo.mutation.RecruitmentID(); auo.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "Applicant.recruitment"`)
 	}
 	return nil
 }
@@ -459,7 +459,7 @@ func (auo *ApplicantUpdateOne) sqlSave(ctx context.Context) (_node *Applicant, e
 	}
 	id, ok := auo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Applicant.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Applicant.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := auo.fields; len(fields) > 0 {
