@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -20,6 +22,7 @@ type RecruitmentTagCreate struct {
 	config
 	mutation *RecruitmentTagMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -174,27 +177,27 @@ func (rtc *RecruitmentTagCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (rtc *RecruitmentTagCreate) check() error {
 	if _, ok := rtc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "RecruitmentTag.created_at"`)}
 	}
 	if _, ok := rtc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "RecruitmentTag.updated_at"`)}
 	}
 	if _, ok := rtc.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "recruitment_id"`)}
+		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "RecruitmentTag.recruitment_id"`)}
 	}
 	if _, ok := rtc.mutation.TagID(); !ok {
-		return &ValidationError{Name: "tag_id", err: errors.New(`ent: missing required field "tag_id"`)}
+		return &ValidationError{Name: "tag_id", err: errors.New(`ent: missing required field "RecruitmentTag.tag_id"`)}
 	}
 	if v, ok := rtc.mutation.ID(); ok {
 		if err := recruitmenttag.IDValidator(v); err != nil {
-			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
+			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "RecruitmentTag.id": %w`, err)}
 		}
 	}
 	if _, ok := rtc.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment", err: errors.New("ent: missing required edge \"recruitment\"")}
+		return &ValidationError{Name: "recruitment", err: errors.New(`ent: missing required edge "RecruitmentTag.recruitment"`)}
 	}
 	if _, ok := rtc.mutation.TagID(); !ok {
-		return &ValidationError{Name: "tag", err: errors.New("ent: missing required edge \"tag\"")}
+		return &ValidationError{Name: "tag", err: errors.New(`ent: missing required edge "RecruitmentTag.tag"`)}
 	}
 	return nil
 }
@@ -208,7 +211,11 @@ func (rtc *RecruitmentTagCreate) sqlSave(ctx context.Context) (*RecruitmentTag, 
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected RecruitmentTag.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -224,6 +231,7 @@ func (rtc *RecruitmentTagCreate) createSpec() (*RecruitmentTag, *sqlgraph.Create
 			},
 		}
 	)
+	_spec.OnConflict = rtc.conflict
 	if id, ok := rtc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
@@ -287,10 +295,257 @@ func (rtc *RecruitmentTagCreate) createSpec() (*RecruitmentTag, *sqlgraph.Create
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.RecruitmentTag.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RecruitmentTagUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (rtc *RecruitmentTagCreate) OnConflict(opts ...sql.ConflictOption) *RecruitmentTagUpsertOne {
+	rtc.conflict = opts
+	return &RecruitmentTagUpsertOne{
+		create: rtc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.RecruitmentTag.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (rtc *RecruitmentTagCreate) OnConflictColumns(columns ...string) *RecruitmentTagUpsertOne {
+	rtc.conflict = append(rtc.conflict, sql.ConflictColumns(columns...))
+	return &RecruitmentTagUpsertOne{
+		create: rtc,
+	}
+}
+
+type (
+	// RecruitmentTagUpsertOne is the builder for "upsert"-ing
+	//  one RecruitmentTag node.
+	RecruitmentTagUpsertOne struct {
+		create *RecruitmentTagCreate
+	}
+
+	// RecruitmentTagUpsert is the "OnConflict" setter.
+	RecruitmentTagUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentTagUpsert) SetCreatedAt(v time.Time) *RecruitmentTagUpsert {
+	u.Set(recruitmenttag.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsert) UpdateCreatedAt() *RecruitmentTagUpsert {
+	u.SetExcluded(recruitmenttag.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentTagUpsert) SetUpdatedAt(v time.Time) *RecruitmentTagUpsert {
+	u.Set(recruitmenttag.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsert) UpdateUpdatedAt() *RecruitmentTagUpsert {
+	u.SetExcluded(recruitmenttag.FieldUpdatedAt)
+	return u
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *RecruitmentTagUpsert) SetRecruitmentID(v string) *RecruitmentTagUpsert {
+	u.Set(recruitmenttag.FieldRecruitmentID, v)
+	return u
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsert) UpdateRecruitmentID() *RecruitmentTagUpsert {
+	u.SetExcluded(recruitmenttag.FieldRecruitmentID)
+	return u
+}
+
+// SetTagID sets the "tag_id" field.
+func (u *RecruitmentTagUpsert) SetTagID(v string) *RecruitmentTagUpsert {
+	u.Set(recruitmenttag.FieldTagID, v)
+	return u
+}
+
+// UpdateTagID sets the "tag_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsert) UpdateTagID() *RecruitmentTagUpsert {
+	u.SetExcluded(recruitmenttag.FieldTagID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.RecruitmentTag.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(recruitmenttag.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *RecruitmentTagUpsertOne) UpdateNewValues() *RecruitmentTagUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(recruitmenttag.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(recruitmenttag.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//  client.RecruitmentTag.Create().
+//      OnConflict(sql.ResolveWithIgnore()).
+//      Exec(ctx)
+//
+func (u *RecruitmentTagUpsertOne) Ignore() *RecruitmentTagUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RecruitmentTagUpsertOne) DoNothing() *RecruitmentTagUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RecruitmentTagCreate.OnConflict
+// documentation for more info.
+func (u *RecruitmentTagUpsertOne) Update(set func(*RecruitmentTagUpsert)) *RecruitmentTagUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RecruitmentTagUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentTagUpsertOne) SetCreatedAt(v time.Time) *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertOne) UpdateCreatedAt() *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentTagUpsertOne) SetUpdatedAt(v time.Time) *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertOne) UpdateUpdatedAt() *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *RecruitmentTagUpsertOne) SetRecruitmentID(v string) *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertOne) UpdateRecruitmentID() *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// SetTagID sets the "tag_id" field.
+func (u *RecruitmentTagUpsertOne) SetTagID(v string) *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetTagID(v)
+	})
+}
+
+// UpdateTagID sets the "tag_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertOne) UpdateTagID() *RecruitmentTagUpsertOne {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateTagID()
+	})
+}
+
+// Exec executes the query.
+func (u *RecruitmentTagUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RecruitmentTagCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RecruitmentTagUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *RecruitmentTagUpsertOne) ID(ctx context.Context) (id string, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: RecruitmentTagUpsertOne.ID is not supported by MySQL driver. Use RecruitmentTagUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *RecruitmentTagUpsertOne) IDX(ctx context.Context) string {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // RecruitmentTagCreateBulk is the builder for creating many RecruitmentTag entities in bulk.
 type RecruitmentTagCreateBulk struct {
 	config
 	builders []*RecruitmentTagCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the RecruitmentTag entities in the database.
@@ -317,6 +572,7 @@ func (rtcb *RecruitmentTagCreateBulk) Save(ctx context.Context) ([]*RecruitmentT
 					_, err = mutators[i+1].Mutate(root, rtcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = rtcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, rtcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -363,6 +619,181 @@ func (rtcb *RecruitmentTagCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (rtcb *RecruitmentTagCreateBulk) ExecX(ctx context.Context) {
 	if err := rtcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.RecruitmentTag.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RecruitmentTagUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (rtcb *RecruitmentTagCreateBulk) OnConflict(opts ...sql.ConflictOption) *RecruitmentTagUpsertBulk {
+	rtcb.conflict = opts
+	return &RecruitmentTagUpsertBulk{
+		create: rtcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.RecruitmentTag.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (rtcb *RecruitmentTagCreateBulk) OnConflictColumns(columns ...string) *RecruitmentTagUpsertBulk {
+	rtcb.conflict = append(rtcb.conflict, sql.ConflictColumns(columns...))
+	return &RecruitmentTagUpsertBulk{
+		create: rtcb,
+	}
+}
+
+// RecruitmentTagUpsertBulk is the builder for "upsert"-ing
+// a bulk of RecruitmentTag nodes.
+type RecruitmentTagUpsertBulk struct {
+	create *RecruitmentTagCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.RecruitmentTag.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(recruitmenttag.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *RecruitmentTagUpsertBulk) UpdateNewValues() *RecruitmentTagUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(recruitmenttag.FieldID)
+				return
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(recruitmenttag.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.RecruitmentTag.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+//
+func (u *RecruitmentTagUpsertBulk) Ignore() *RecruitmentTagUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RecruitmentTagUpsertBulk) DoNothing() *RecruitmentTagUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RecruitmentTagCreateBulk.OnConflict
+// documentation for more info.
+func (u *RecruitmentTagUpsertBulk) Update(set func(*RecruitmentTagUpsert)) *RecruitmentTagUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RecruitmentTagUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentTagUpsertBulk) SetCreatedAt(v time.Time) *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertBulk) UpdateCreatedAt() *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentTagUpsertBulk) SetUpdatedAt(v time.Time) *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertBulk) UpdateUpdatedAt() *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *RecruitmentTagUpsertBulk) SetRecruitmentID(v string) *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertBulk) UpdateRecruitmentID() *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// SetTagID sets the "tag_id" field.
+func (u *RecruitmentTagUpsertBulk) SetTagID(v string) *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.SetTagID(v)
+	})
+}
+
+// UpdateTagID sets the "tag_id" field to the value that was provided on create.
+func (u *RecruitmentTagUpsertBulk) UpdateTagID() *RecruitmentTagUpsertBulk {
+	return u.Update(func(s *RecruitmentTagUpsert) {
+		s.UpdateTagID()
+	})
+}
+
+// Exec executes the query.
+func (u *RecruitmentTagUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the RecruitmentTagCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RecruitmentTagCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RecruitmentTagUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

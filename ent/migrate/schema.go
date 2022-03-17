@@ -14,8 +14,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "management_status", Type: field.TypeEnum, Enums: []string{"backlog", "checked", "accepted", "rejected"}, Default: "backlog"},
-		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
-		{Name: "user_id", Type: field.TypeString, Nullable: true},
+		{Name: "recruitment_id", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString},
 	}
 	// ApplicantsTable holds the schema information for the "applicants" table.
 	ApplicantsTable = &schema.Table{
@@ -97,7 +97,7 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "published", "closed"}, Default: "draft"},
 		{Name: "competition_id", Type: field.TypeString, Nullable: true},
 		{Name: "prefecture_id", Type: field.TypeString, Nullable: true},
-		{Name: "user_id", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeString},
 	}
 	// RecruitmentsTable holds the schema information for the "recruitments" table.
 	RecruitmentsTable = &schema.Table{
@@ -147,8 +147,8 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
-		{Name: "tag_id", Type: field.TypeString, Nullable: true},
+		{Name: "recruitment_id", Type: field.TypeString},
+		{Name: "tag_id", Type: field.TypeString},
 	}
 	// RecruitmentTagsTable holds the schema information for the "recruitment_tags" table.
 	RecruitmentTagsTable = &schema.Table{
@@ -192,8 +192,8 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "recruitment_id", Type: field.TypeString, Nullable: true},
-		{Name: "user_id", Type: field.TypeString, Nullable: true},
+		{Name: "recruitment_id", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString},
 	}
 	// StocksTable holds the schema information for the "stocks" table.
 	StocksTable = &schema.Table{

@@ -147,10 +147,10 @@ func (su *StockUpdate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (su *StockUpdate) check() error {
 	if _, ok := su.mutation.UserID(); su.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Stock.user"`)
 	}
 	if _, ok := su.mutation.RecruitmentID(); su.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "Stock.recruitment"`)
 	}
 	return nil
 }
@@ -393,10 +393,10 @@ func (suo *StockUpdateOne) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (suo *StockUpdateOne) check() error {
 	if _, ok := suo.mutation.UserID(); suo.mutation.UserCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"user\"")
+		return errors.New(`ent: clearing a required unique edge "Stock.user"`)
 	}
 	if _, ok := suo.mutation.RecruitmentID(); suo.mutation.RecruitmentCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"recruitment\"")
+		return errors.New(`ent: clearing a required unique edge "Stock.recruitment"`)
 	}
 	return nil
 }
@@ -414,7 +414,7 @@ func (suo *StockUpdateOne) sqlSave(ctx context.Context) (_node *Stock, err error
 	}
 	id, ok := suo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Stock.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Stock.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := suo.fields; len(fields) > 0 {

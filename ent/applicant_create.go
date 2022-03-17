@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/applicant"
@@ -20,6 +22,7 @@ type ApplicantCreate struct {
 	config
 	mutation *ApplicantMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -192,35 +195,35 @@ func (ac *ApplicantCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (ac *ApplicantCreate) check() error {
 	if _, ok := ac.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Applicant.created_at"`)}
 	}
 	if _, ok := ac.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Applicant.updated_at"`)}
 	}
 	if _, ok := ac.mutation.ManagementStatus(); !ok {
-		return &ValidationError{Name: "management_status", err: errors.New(`ent: missing required field "management_status"`)}
+		return &ValidationError{Name: "management_status", err: errors.New(`ent: missing required field "Applicant.management_status"`)}
 	}
 	if v, ok := ac.mutation.ManagementStatus(); ok {
 		if err := applicant.ManagementStatusValidator(v); err != nil {
-			return &ValidationError{Name: "management_status", err: fmt.Errorf(`ent: validator failed for field "management_status": %w`, err)}
+			return &ValidationError{Name: "management_status", err: fmt.Errorf(`ent: validator failed for field "Applicant.management_status": %w`, err)}
 		}
 	}
 	if _, ok := ac.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "user_id"`)}
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Applicant.user_id"`)}
 	}
 	if _, ok := ac.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "recruitment_id"`)}
+		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "Applicant.recruitment_id"`)}
 	}
 	if v, ok := ac.mutation.ID(); ok {
 		if err := applicant.IDValidator(v); err != nil {
-			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
+			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Applicant.id": %w`, err)}
 		}
 	}
 	if _, ok := ac.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user", err: errors.New("ent: missing required edge \"user\"")}
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Applicant.user"`)}
 	}
 	if _, ok := ac.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment", err: errors.New("ent: missing required edge \"recruitment\"")}
+		return &ValidationError{Name: "recruitment", err: errors.New(`ent: missing required edge "Applicant.recruitment"`)}
 	}
 	return nil
 }
@@ -234,7 +237,11 @@ func (ac *ApplicantCreate) sqlSave(ctx context.Context) (*Applicant, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Applicant.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -250,6 +257,7 @@ func (ac *ApplicantCreate) createSpec() (*Applicant, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	_spec.OnConflict = ac.conflict
 	if id, ok := ac.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
@@ -321,10 +329,283 @@ func (ac *ApplicantCreate) createSpec() (*Applicant, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Applicant.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.ApplicantUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (ac *ApplicantCreate) OnConflict(opts ...sql.ConflictOption) *ApplicantUpsertOne {
+	ac.conflict = opts
+	return &ApplicantUpsertOne{
+		create: ac,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Applicant.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (ac *ApplicantCreate) OnConflictColumns(columns ...string) *ApplicantUpsertOne {
+	ac.conflict = append(ac.conflict, sql.ConflictColumns(columns...))
+	return &ApplicantUpsertOne{
+		create: ac,
+	}
+}
+
+type (
+	// ApplicantUpsertOne is the builder for "upsert"-ing
+	//  one Applicant node.
+	ApplicantUpsertOne struct {
+		create *ApplicantCreate
+	}
+
+	// ApplicantUpsert is the "OnConflict" setter.
+	ApplicantUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetCreatedAt sets the "created_at" field.
+func (u *ApplicantUpsert) SetCreatedAt(v time.Time) *ApplicantUpsert {
+	u.Set(applicant.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *ApplicantUpsert) UpdateCreatedAt() *ApplicantUpsert {
+	u.SetExcluded(applicant.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ApplicantUpsert) SetUpdatedAt(v time.Time) *ApplicantUpsert {
+	u.Set(applicant.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ApplicantUpsert) UpdateUpdatedAt() *ApplicantUpsert {
+	u.SetExcluded(applicant.FieldUpdatedAt)
+	return u
+}
+
+// SetManagementStatus sets the "management_status" field.
+func (u *ApplicantUpsert) SetManagementStatus(v applicant.ManagementStatus) *ApplicantUpsert {
+	u.Set(applicant.FieldManagementStatus, v)
+	return u
+}
+
+// UpdateManagementStatus sets the "management_status" field to the value that was provided on create.
+func (u *ApplicantUpsert) UpdateManagementStatus() *ApplicantUpsert {
+	u.SetExcluded(applicant.FieldManagementStatus)
+	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *ApplicantUpsert) SetUserID(v string) *ApplicantUpsert {
+	u.Set(applicant.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *ApplicantUpsert) UpdateUserID() *ApplicantUpsert {
+	u.SetExcluded(applicant.FieldUserID)
+	return u
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *ApplicantUpsert) SetRecruitmentID(v string) *ApplicantUpsert {
+	u.Set(applicant.FieldRecruitmentID, v)
+	return u
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *ApplicantUpsert) UpdateRecruitmentID() *ApplicantUpsert {
+	u.SetExcluded(applicant.FieldRecruitmentID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.Applicant.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(applicant.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *ApplicantUpsertOne) UpdateNewValues() *ApplicantUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(applicant.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(applicant.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//  client.Applicant.Create().
+//      OnConflict(sql.ResolveWithIgnore()).
+//      Exec(ctx)
+//
+func (u *ApplicantUpsertOne) Ignore() *ApplicantUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *ApplicantUpsertOne) DoNothing() *ApplicantUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the ApplicantCreate.OnConflict
+// documentation for more info.
+func (u *ApplicantUpsertOne) Update(set func(*ApplicantUpsert)) *ApplicantUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&ApplicantUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *ApplicantUpsertOne) SetCreatedAt(v time.Time) *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *ApplicantUpsertOne) UpdateCreatedAt() *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ApplicantUpsertOne) SetUpdatedAt(v time.Time) *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ApplicantUpsertOne) UpdateUpdatedAt() *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetManagementStatus sets the "management_status" field.
+func (u *ApplicantUpsertOne) SetManagementStatus(v applicant.ManagementStatus) *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetManagementStatus(v)
+	})
+}
+
+// UpdateManagementStatus sets the "management_status" field to the value that was provided on create.
+func (u *ApplicantUpsertOne) UpdateManagementStatus() *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateManagementStatus()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *ApplicantUpsertOne) SetUserID(v string) *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *ApplicantUpsertOne) UpdateUserID() *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *ApplicantUpsertOne) SetRecruitmentID(v string) *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *ApplicantUpsertOne) UpdateRecruitmentID() *ApplicantUpsertOne {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// Exec executes the query.
+func (u *ApplicantUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for ApplicantCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *ApplicantUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *ApplicantUpsertOne) ID(ctx context.Context) (id string, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: ApplicantUpsertOne.ID is not supported by MySQL driver. Use ApplicantUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *ApplicantUpsertOne) IDX(ctx context.Context) string {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // ApplicantCreateBulk is the builder for creating many Applicant entities in bulk.
 type ApplicantCreateBulk struct {
 	config
 	builders []*ApplicantCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Applicant entities in the database.
@@ -351,6 +632,7 @@ func (acb *ApplicantCreateBulk) Save(ctx context.Context) ([]*Applicant, error) 
 					_, err = mutators[i+1].Mutate(root, acb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = acb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, acb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -397,6 +679,195 @@ func (acb *ApplicantCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (acb *ApplicantCreateBulk) ExecX(ctx context.Context) {
 	if err := acb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Applicant.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.ApplicantUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (acb *ApplicantCreateBulk) OnConflict(opts ...sql.ConflictOption) *ApplicantUpsertBulk {
+	acb.conflict = opts
+	return &ApplicantUpsertBulk{
+		create: acb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Applicant.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (acb *ApplicantCreateBulk) OnConflictColumns(columns ...string) *ApplicantUpsertBulk {
+	acb.conflict = append(acb.conflict, sql.ConflictColumns(columns...))
+	return &ApplicantUpsertBulk{
+		create: acb,
+	}
+}
+
+// ApplicantUpsertBulk is the builder for "upsert"-ing
+// a bulk of Applicant nodes.
+type ApplicantUpsertBulk struct {
+	create *ApplicantCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Applicant.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(applicant.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *ApplicantUpsertBulk) UpdateNewValues() *ApplicantUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(applicant.FieldID)
+				return
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(applicant.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Applicant.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+//
+func (u *ApplicantUpsertBulk) Ignore() *ApplicantUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *ApplicantUpsertBulk) DoNothing() *ApplicantUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the ApplicantCreateBulk.OnConflict
+// documentation for more info.
+func (u *ApplicantUpsertBulk) Update(set func(*ApplicantUpsert)) *ApplicantUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&ApplicantUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *ApplicantUpsertBulk) SetCreatedAt(v time.Time) *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *ApplicantUpsertBulk) UpdateCreatedAt() *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ApplicantUpsertBulk) SetUpdatedAt(v time.Time) *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ApplicantUpsertBulk) UpdateUpdatedAt() *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetManagementStatus sets the "management_status" field.
+func (u *ApplicantUpsertBulk) SetManagementStatus(v applicant.ManagementStatus) *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetManagementStatus(v)
+	})
+}
+
+// UpdateManagementStatus sets the "management_status" field to the value that was provided on create.
+func (u *ApplicantUpsertBulk) UpdateManagementStatus() *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateManagementStatus()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *ApplicantUpsertBulk) SetUserID(v string) *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *ApplicantUpsertBulk) UpdateUserID() *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *ApplicantUpsertBulk) SetRecruitmentID(v string) *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *ApplicantUpsertBulk) UpdateRecruitmentID() *ApplicantUpsertBulk {
+	return u.Update(func(s *ApplicantUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// Exec executes the query.
+func (u *ApplicantUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ApplicantCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for ApplicantCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *ApplicantUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

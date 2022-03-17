@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -376,27 +377,27 @@ func (uu *UserUpdate) defaults() {
 func (uu *UserUpdate) check() error {
 	if v, ok := uu.mutation.Name(); ok {
 		if err := user.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf("ent: validator failed for field \"name\": %w", err)}
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
 		}
 	}
 	if v, ok := uu.mutation.Email(); ok {
 		if err := user.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
 	}
 	if v, ok := uu.mutation.Role(); ok {
 		if err := user.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf("ent: validator failed for field \"role\": %w", err)}
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
 		}
 	}
 	if v, ok := uu.mutation.Introduction(); ok {
 		if err := user.IntroductionValidator(v); err != nil {
-			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
+			return &ValidationError{Name: "introduction", err: fmt.Errorf(`ent: validator failed for field "User.introduction": %w`, err)}
 		}
 	}
 	if v, ok := uu.mutation.EmailVerificationStatus(); ok {
 		if err := user.EmailVerificationStatusValidator(v); err != nil {
-			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf("ent: validator failed for field \"email_verification_status\": %w", err)}
+			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf(`ent: validator failed for field "User.email_verification_status": %w`, err)}
 		}
 	}
 	return nil
@@ -1061,27 +1062,27 @@ func (uuo *UserUpdateOne) defaults() {
 func (uuo *UserUpdateOne) check() error {
 	if v, ok := uuo.mutation.Name(); ok {
 		if err := user.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf("ent: validator failed for field \"name\": %w", err)}
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
 		}
 	}
 	if v, ok := uuo.mutation.Email(); ok {
 		if err := user.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
 	}
 	if v, ok := uuo.mutation.Role(); ok {
 		if err := user.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf("ent: validator failed for field \"role\": %w", err)}
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
 		}
 	}
 	if v, ok := uuo.mutation.Introduction(); ok {
 		if err := user.IntroductionValidator(v); err != nil {
-			return &ValidationError{Name: "introduction", err: fmt.Errorf("ent: validator failed for field \"introduction\": %w", err)}
+			return &ValidationError{Name: "introduction", err: fmt.Errorf(`ent: validator failed for field "User.introduction": %w`, err)}
 		}
 	}
 	if v, ok := uuo.mutation.EmailVerificationStatus(); ok {
 		if err := user.EmailVerificationStatusValidator(v); err != nil {
-			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf("ent: validator failed for field \"email_verification_status\": %w", err)}
+			return &ValidationError{Name: "email_verification_status", err: fmt.Errorf(`ent: validator failed for field "User.email_verification_status": %w`, err)}
 		}
 	}
 	return nil
@@ -1100,7 +1101,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	id, ok := uuo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing User.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "User.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := uuo.fields; len(fields) > 0 {

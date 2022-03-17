@@ -4,8 +4,6 @@ package recruitment
 
 import (
 	"fmt"
-	"io"
-	"strconv"
 	"time"
 )
 
@@ -204,40 +202,4 @@ func StatusValidator(s Status) error {
 	default:
 		return fmt.Errorf("recruitment: invalid enum value for status field: %q", s)
 	}
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (_type Type) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(_type.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (_type *Type) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*_type = Type(str)
-	if err := TypeValidator(*_type); err != nil {
-		return fmt.Errorf("%s is not a valid Type", str)
-	}
-	return nil
-}
-
-// MarshalGQL implements graphql.Marshaler interface.
-func (s Status) MarshalGQL(w io.Writer) {
-	io.WriteString(w, strconv.Quote(s.String()))
-}
-
-// UnmarshalGQL implements graphql.Unmarshaler interface.
-func (s *Status) UnmarshalGQL(val interface{}) error {
-	str, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("enum %T must be a string", val)
-	}
-	*s = Status(str)
-	if err := StatusValidator(*s); err != nil {
-		return fmt.Errorf("%s is not a valid Status", str)
-	}
-	return nil
 }

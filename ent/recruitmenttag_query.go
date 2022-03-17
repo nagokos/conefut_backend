@@ -155,7 +155,7 @@ func (rtq *RecruitmentTagQuery) FirstIDX(ctx context.Context) string {
 }
 
 // Only returns a single RecruitmentTag entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one RecruitmentTag entity is not found.
+// Returns a *NotSingularError when more than one RecruitmentTag entity is found.
 // Returns a *NotFoundError when no RecruitmentTag entities are found.
 func (rtq *RecruitmentTagQuery) Only(ctx context.Context) (*RecruitmentTag, error) {
 	nodes, err := rtq.Limit(2).All(ctx)
@@ -182,7 +182,7 @@ func (rtq *RecruitmentTagQuery) OnlyX(ctx context.Context) *RecruitmentTag {
 }
 
 // OnlyID is like Only, but returns the only RecruitmentTag ID in the query.
-// Returns a *NotSingularError when exactly one RecruitmentTag ID is not found.
+// Returns a *NotSingularError when more than one RecruitmentTag ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (rtq *RecruitmentTagQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
@@ -293,8 +293,9 @@ func (rtq *RecruitmentTagQuery) Clone() *RecruitmentTagQuery {
 		withRecruitment: rtq.withRecruitment.Clone(),
 		withTag:         rtq.withTag.Clone(),
 		// clone intermediate query.
-		sql:  rtq.sql.Clone(),
-		path: rtq.path,
+		sql:    rtq.sql.Clone(),
+		path:   rtq.path,
+		unique: rtq.unique,
 	}
 }
 
@@ -467,6 +468,10 @@ func (rtq *RecruitmentTagQuery) sqlAll(ctx context.Context) ([]*RecruitmentTag, 
 
 func (rtq *RecruitmentTagQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := rtq.querySpec()
+	_spec.Node.Columns = rtq.fields
+	if len(rtq.fields) > 0 {
+		_spec.Unique = rtq.unique != nil && *rtq.unique
+	}
 	return sqlgraph.CountNodes(ctx, rtq.driver, _spec)
 }
 
@@ -537,6 +542,9 @@ func (rtq *RecruitmentTagQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if rtq.sql != nil {
 		selector = rtq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if rtq.unique != nil && *rtq.unique {
+		selector.Distinct()
 	}
 	for _, p := range rtq.predicates {
 		p(selector)
@@ -816,9 +824,7 @@ func (rtgb *RecruitmentTagGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range rtgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(rtgb.fields...)...)

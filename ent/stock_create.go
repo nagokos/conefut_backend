@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
@@ -20,6 +22,7 @@ type StockCreate struct {
 	config
 	mutation *StockMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -174,27 +177,27 @@ func (sc *StockCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (sc *StockCreate) check() error {
 	if _, ok := sc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Stock.created_at"`)}
 	}
 	if _, ok := sc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Stock.updated_at"`)}
 	}
 	if _, ok := sc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "user_id"`)}
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Stock.user_id"`)}
 	}
 	if _, ok := sc.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "recruitment_id"`)}
+		return &ValidationError{Name: "recruitment_id", err: errors.New(`ent: missing required field "Stock.recruitment_id"`)}
 	}
 	if v, ok := sc.mutation.ID(); ok {
 		if err := stock.IDValidator(v); err != nil {
-			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
+			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Stock.id": %w`, err)}
 		}
 	}
 	if _, ok := sc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user", err: errors.New("ent: missing required edge \"user\"")}
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Stock.user"`)}
 	}
 	if _, ok := sc.mutation.RecruitmentID(); !ok {
-		return &ValidationError{Name: "recruitment", err: errors.New("ent: missing required edge \"recruitment\"")}
+		return &ValidationError{Name: "recruitment", err: errors.New(`ent: missing required edge "Stock.recruitment"`)}
 	}
 	return nil
 }
@@ -208,7 +211,11 @@ func (sc *StockCreate) sqlSave(ctx context.Context) (*Stock, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Stock.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -224,6 +231,7 @@ func (sc *StockCreate) createSpec() (*Stock, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	_spec.OnConflict = sc.conflict
 	if id, ok := sc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
@@ -287,10 +295,257 @@ func (sc *StockCreate) createSpec() (*Stock, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Stock.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.StockUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (sc *StockCreate) OnConflict(opts ...sql.ConflictOption) *StockUpsertOne {
+	sc.conflict = opts
+	return &StockUpsertOne{
+		create: sc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Stock.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (sc *StockCreate) OnConflictColumns(columns ...string) *StockUpsertOne {
+	sc.conflict = append(sc.conflict, sql.ConflictColumns(columns...))
+	return &StockUpsertOne{
+		create: sc,
+	}
+}
+
+type (
+	// StockUpsertOne is the builder for "upsert"-ing
+	//  one Stock node.
+	StockUpsertOne struct {
+		create *StockCreate
+	}
+
+	// StockUpsert is the "OnConflict" setter.
+	StockUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetCreatedAt sets the "created_at" field.
+func (u *StockUpsert) SetCreatedAt(v time.Time) *StockUpsert {
+	u.Set(stock.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *StockUpsert) UpdateCreatedAt() *StockUpsert {
+	u.SetExcluded(stock.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *StockUpsert) SetUpdatedAt(v time.Time) *StockUpsert {
+	u.Set(stock.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *StockUpsert) UpdateUpdatedAt() *StockUpsert {
+	u.SetExcluded(stock.FieldUpdatedAt)
+	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *StockUpsert) SetUserID(v string) *StockUpsert {
+	u.Set(stock.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *StockUpsert) UpdateUserID() *StockUpsert {
+	u.SetExcluded(stock.FieldUserID)
+	return u
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *StockUpsert) SetRecruitmentID(v string) *StockUpsert {
+	u.Set(stock.FieldRecruitmentID, v)
+	return u
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *StockUpsert) UpdateRecruitmentID() *StockUpsert {
+	u.SetExcluded(stock.FieldRecruitmentID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.Stock.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(stock.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *StockUpsertOne) UpdateNewValues() *StockUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(stock.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(stock.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//  client.Stock.Create().
+//      OnConflict(sql.ResolveWithIgnore()).
+//      Exec(ctx)
+//
+func (u *StockUpsertOne) Ignore() *StockUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *StockUpsertOne) DoNothing() *StockUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the StockCreate.OnConflict
+// documentation for more info.
+func (u *StockUpsertOne) Update(set func(*StockUpsert)) *StockUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&StockUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *StockUpsertOne) SetCreatedAt(v time.Time) *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *StockUpsertOne) UpdateCreatedAt() *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *StockUpsertOne) SetUpdatedAt(v time.Time) *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *StockUpsertOne) UpdateUpdatedAt() *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *StockUpsertOne) SetUserID(v string) *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *StockUpsertOne) UpdateUserID() *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *StockUpsertOne) SetRecruitmentID(v string) *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *StockUpsertOne) UpdateRecruitmentID() *StockUpsertOne {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// Exec executes the query.
+func (u *StockUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for StockCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *StockUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *StockUpsertOne) ID(ctx context.Context) (id string, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: StockUpsertOne.ID is not supported by MySQL driver. Use StockUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *StockUpsertOne) IDX(ctx context.Context) string {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // StockCreateBulk is the builder for creating many Stock entities in bulk.
 type StockCreateBulk struct {
 	config
 	builders []*StockCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Stock entities in the database.
@@ -317,6 +572,7 @@ func (scb *StockCreateBulk) Save(ctx context.Context) ([]*Stock, error) {
 					_, err = mutators[i+1].Mutate(root, scb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = scb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, scb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -363,6 +619,181 @@ func (scb *StockCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (scb *StockCreateBulk) ExecX(ctx context.Context) {
 	if err := scb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Stock.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.StockUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (scb *StockCreateBulk) OnConflict(opts ...sql.ConflictOption) *StockUpsertBulk {
+	scb.conflict = opts
+	return &StockUpsertBulk{
+		create: scb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Stock.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (scb *StockCreateBulk) OnConflictColumns(columns ...string) *StockUpsertBulk {
+	scb.conflict = append(scb.conflict, sql.ConflictColumns(columns...))
+	return &StockUpsertBulk{
+		create: scb,
+	}
+}
+
+// StockUpsertBulk is the builder for "upsert"-ing
+// a bulk of Stock nodes.
+type StockUpsertBulk struct {
+	create *StockCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Stock.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(stock.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *StockUpsertBulk) UpdateNewValues() *StockUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(stock.FieldID)
+				return
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(stock.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Stock.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+//
+func (u *StockUpsertBulk) Ignore() *StockUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *StockUpsertBulk) DoNothing() *StockUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the StockCreateBulk.OnConflict
+// documentation for more info.
+func (u *StockUpsertBulk) Update(set func(*StockUpsert)) *StockUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&StockUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *StockUpsertBulk) SetCreatedAt(v time.Time) *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *StockUpsertBulk) UpdateCreatedAt() *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *StockUpsertBulk) SetUpdatedAt(v time.Time) *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *StockUpsertBulk) UpdateUpdatedAt() *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *StockUpsertBulk) SetUserID(v string) *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *StockUpsertBulk) UpdateUserID() *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRecruitmentID sets the "recruitment_id" field.
+func (u *StockUpsertBulk) SetRecruitmentID(v string) *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.SetRecruitmentID(v)
+	})
+}
+
+// UpdateRecruitmentID sets the "recruitment_id" field to the value that was provided on create.
+func (u *StockUpsertBulk) UpdateRecruitmentID() *StockUpsertBulk {
+	return u.Update(func(s *StockUpsert) {
+		s.UpdateRecruitmentID()
+	})
+}
+
+// Exec executes the query.
+func (u *StockUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the StockCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for StockCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *StockUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

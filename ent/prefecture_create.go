@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/prefecture"
@@ -19,6 +21,7 @@ type PrefectureCreate struct {
 	config
 	mutation *PrefectureMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -172,17 +175,17 @@ func (pc *PrefectureCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (pc *PrefectureCreate) check() error {
 	if _, ok := pc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Prefecture.created_at"`)}
 	}
 	if _, ok := pc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Prefecture.updated_at"`)}
 	}
 	if _, ok := pc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Prefecture.name"`)}
 	}
 	if v, ok := pc.mutation.ID(); ok {
 		if err := prefecture.IDValidator(v); err != nil {
-			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
+			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Prefecture.id": %w`, err)}
 		}
 	}
 	return nil
@@ -197,7 +200,11 @@ func (pc *PrefectureCreate) sqlSave(ctx context.Context) (*Prefecture, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Prefecture.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -213,6 +220,7 @@ func (pc *PrefectureCreate) createSpec() (*Prefecture, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	_spec.OnConflict = pc.conflict
 	if id, ok := pc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
@@ -263,10 +271,231 @@ func (pc *PrefectureCreate) createSpec() (*Prefecture, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Prefecture.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PrefectureUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (pc *PrefectureCreate) OnConflict(opts ...sql.ConflictOption) *PrefectureUpsertOne {
+	pc.conflict = opts
+	return &PrefectureUpsertOne{
+		create: pc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Prefecture.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (pc *PrefectureCreate) OnConflictColumns(columns ...string) *PrefectureUpsertOne {
+	pc.conflict = append(pc.conflict, sql.ConflictColumns(columns...))
+	return &PrefectureUpsertOne{
+		create: pc,
+	}
+}
+
+type (
+	// PrefectureUpsertOne is the builder for "upsert"-ing
+	//  one Prefecture node.
+	PrefectureUpsertOne struct {
+		create *PrefectureCreate
+	}
+
+	// PrefectureUpsert is the "OnConflict" setter.
+	PrefectureUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetCreatedAt sets the "created_at" field.
+func (u *PrefectureUpsert) SetCreatedAt(v time.Time) *PrefectureUpsert {
+	u.Set(prefecture.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *PrefectureUpsert) UpdateCreatedAt() *PrefectureUpsert {
+	u.SetExcluded(prefecture.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PrefectureUpsert) SetUpdatedAt(v time.Time) *PrefectureUpsert {
+	u.Set(prefecture.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PrefectureUpsert) UpdateUpdatedAt() *PrefectureUpsert {
+	u.SetExcluded(prefecture.FieldUpdatedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *PrefectureUpsert) SetName(v string) *PrefectureUpsert {
+	u.Set(prefecture.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *PrefectureUpsert) UpdateName() *PrefectureUpsert {
+	u.SetExcluded(prefecture.FieldName)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.Prefecture.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(prefecture.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *PrefectureUpsertOne) UpdateNewValues() *PrefectureUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(prefecture.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(prefecture.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//  client.Prefecture.Create().
+//      OnConflict(sql.ResolveWithIgnore()).
+//      Exec(ctx)
+//
+func (u *PrefectureUpsertOne) Ignore() *PrefectureUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PrefectureUpsertOne) DoNothing() *PrefectureUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PrefectureCreate.OnConflict
+// documentation for more info.
+func (u *PrefectureUpsertOne) Update(set func(*PrefectureUpsert)) *PrefectureUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PrefectureUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *PrefectureUpsertOne) SetCreatedAt(v time.Time) *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *PrefectureUpsertOne) UpdateCreatedAt() *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PrefectureUpsertOne) SetUpdatedAt(v time.Time) *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PrefectureUpsertOne) UpdateUpdatedAt() *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *PrefectureUpsertOne) SetName(v string) *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *PrefectureUpsertOne) UpdateName() *PrefectureUpsertOne {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateName()
+	})
+}
+
+// Exec executes the query.
+func (u *PrefectureUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for PrefectureCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PrefectureUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *PrefectureUpsertOne) ID(ctx context.Context) (id string, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: PrefectureUpsertOne.ID is not supported by MySQL driver. Use PrefectureUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *PrefectureUpsertOne) IDX(ctx context.Context) string {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // PrefectureCreateBulk is the builder for creating many Prefecture entities in bulk.
 type PrefectureCreateBulk struct {
 	config
 	builders []*PrefectureCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Prefecture entities in the database.
@@ -293,6 +522,7 @@ func (pcb *PrefectureCreateBulk) Save(ctx context.Context) ([]*Prefecture, error
 					_, err = mutators[i+1].Mutate(root, pcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = pcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, pcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -339,6 +569,167 @@ func (pcb *PrefectureCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (pcb *PrefectureCreateBulk) ExecX(ctx context.Context) {
 	if err := pcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Prefecture.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PrefectureUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (pcb *PrefectureCreateBulk) OnConflict(opts ...sql.ConflictOption) *PrefectureUpsertBulk {
+	pcb.conflict = opts
+	return &PrefectureUpsertBulk{
+		create: pcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Prefecture.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (pcb *PrefectureCreateBulk) OnConflictColumns(columns ...string) *PrefectureUpsertBulk {
+	pcb.conflict = append(pcb.conflict, sql.ConflictColumns(columns...))
+	return &PrefectureUpsertBulk{
+		create: pcb,
+	}
+}
+
+// PrefectureUpsertBulk is the builder for "upsert"-ing
+// a bulk of Prefecture nodes.
+type PrefectureUpsertBulk struct {
+	create *PrefectureCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Prefecture.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(prefecture.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *PrefectureUpsertBulk) UpdateNewValues() *PrefectureUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(prefecture.FieldID)
+				return
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(prefecture.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Prefecture.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+//
+func (u *PrefectureUpsertBulk) Ignore() *PrefectureUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PrefectureUpsertBulk) DoNothing() *PrefectureUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PrefectureCreateBulk.OnConflict
+// documentation for more info.
+func (u *PrefectureUpsertBulk) Update(set func(*PrefectureUpsert)) *PrefectureUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PrefectureUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *PrefectureUpsertBulk) SetCreatedAt(v time.Time) *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *PrefectureUpsertBulk) UpdateCreatedAt() *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PrefectureUpsertBulk) SetUpdatedAt(v time.Time) *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PrefectureUpsertBulk) UpdateUpdatedAt() *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *PrefectureUpsertBulk) SetName(v string) *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *PrefectureUpsertBulk) UpdateName() *PrefectureUpsertBulk {
+	return u.Update(func(s *PrefectureUpsert) {
+		s.UpdateName()
+	})
+}
+
+// Exec executes the query.
+func (u *PrefectureUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the PrefectureCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for PrefectureCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PrefectureUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

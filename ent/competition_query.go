@@ -132,7 +132,7 @@ func (cq *CompetitionQuery) FirstIDX(ctx context.Context) string {
 }
 
 // Only returns a single Competition entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Competition entity is not found.
+// Returns a *NotSingularError when more than one Competition entity is found.
 // Returns a *NotFoundError when no Competition entities are found.
 func (cq *CompetitionQuery) Only(ctx context.Context) (*Competition, error) {
 	nodes, err := cq.Limit(2).All(ctx)
@@ -159,7 +159,7 @@ func (cq *CompetitionQuery) OnlyX(ctx context.Context) *Competition {
 }
 
 // OnlyID is like Only, but returns the only Competition ID in the query.
-// Returns a *NotSingularError when exactly one Competition ID is not found.
+// Returns a *NotSingularError when more than one Competition ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (cq *CompetitionQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
@@ -269,8 +269,9 @@ func (cq *CompetitionQuery) Clone() *CompetitionQuery {
 		predicates:       append([]predicate.Competition{}, cq.predicates...),
 		withRecruitments: cq.withRecruitments.Clone(),
 		// clone intermediate query.
-		sql:  cq.sql.Clone(),
-		path: cq.path,
+		sql:    cq.sql.Clone(),
+		path:   cq.path,
+		unique: cq.unique,
 	}
 }
 
@@ -404,6 +405,10 @@ func (cq *CompetitionQuery) sqlAll(ctx context.Context) ([]*Competition, error) 
 
 func (cq *CompetitionQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := cq.querySpec()
+	_spec.Node.Columns = cq.fields
+	if len(cq.fields) > 0 {
+		_spec.Unique = cq.unique != nil && *cq.unique
+	}
 	return sqlgraph.CountNodes(ctx, cq.driver, _spec)
 }
 
@@ -474,6 +479,9 @@ func (cq *CompetitionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if cq.sql != nil {
 		selector = cq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if cq.unique != nil && *cq.unique {
+		selector.Distinct()
 	}
 	for _, p := range cq.predicates {
 		p(selector)
@@ -753,9 +761,7 @@ func (cgb *CompetitionGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range cgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(cgb.fields...)...)

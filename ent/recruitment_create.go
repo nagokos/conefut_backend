@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/nagokos/connefut_backend/ent/applicant"
@@ -24,6 +26,7 @@ type RecruitmentCreate struct {
 	config
 	mutation *RecruitmentMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -390,50 +393,50 @@ func (rc *RecruitmentCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (rc *RecruitmentCreate) check() error {
 	if _, ok := rc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Recruitment.created_at"`)}
 	}
 	if _, ok := rc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Recruitment.updated_at"`)}
 	}
 	if _, ok := rc.mutation.Title(); !ok {
-		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "title"`)}
+		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Recruitment.title"`)}
 	}
 	if v, ok := rc.mutation.Title(); ok {
 		if err := recruitment.TitleValidator(v); err != nil {
-			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "title": %w`, err)}
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Recruitment.title": %w`, err)}
 		}
 	}
 	if _, ok := rc.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`ent: missing required field "type"`)}
+		return &ValidationError{Name: "type", err: errors.New(`ent: missing required field "Recruitment.type"`)}
 	}
 	if v, ok := rc.mutation.GetType(); ok {
 		if err := recruitment.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "type": %w`, err)}
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Recruitment.type": %w`, err)}
 		}
 	}
 	if v, ok := rc.mutation.Content(); ok {
 		if err := recruitment.ContentValidator(v); err != nil {
-			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "content": %w`, err)}
+			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "Recruitment.content": %w`, err)}
 		}
 	}
 	if _, ok := rc.mutation.Status(); !ok {
-		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "status"`)}
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Recruitment.status"`)}
 	}
 	if v, ok := rc.mutation.Status(); ok {
 		if err := recruitment.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "status": %w`, err)}
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Recruitment.status": %w`, err)}
 		}
 	}
 	if _, ok := rc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "user_id"`)}
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Recruitment.user_id"`)}
 	}
 	if v, ok := rc.mutation.ID(); ok {
 		if err := recruitment.IDValidator(v); err != nil {
-			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "id": %w`, err)}
+			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Recruitment.id": %w`, err)}
 		}
 	}
 	if _, ok := rc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user", err: errors.New("ent: missing required edge \"user\"")}
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Recruitment.user"`)}
 	}
 	return nil
 }
@@ -447,7 +450,11 @@ func (rc *RecruitmentCreate) sqlSave(ctx context.Context) (*Recruitment, error) 
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Recruitment.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -463,6 +470,7 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	_spec.OnConflict = rc.conflict
 	if id, ok := rc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
@@ -683,10 +691,699 @@ func (rc *RecruitmentCreate) createSpec() (*Recruitment, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Recruitment.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RecruitmentUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (rc *RecruitmentCreate) OnConflict(opts ...sql.ConflictOption) *RecruitmentUpsertOne {
+	rc.conflict = opts
+	return &RecruitmentUpsertOne{
+		create: rc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Recruitment.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (rc *RecruitmentCreate) OnConflictColumns(columns ...string) *RecruitmentUpsertOne {
+	rc.conflict = append(rc.conflict, sql.ConflictColumns(columns...))
+	return &RecruitmentUpsertOne{
+		create: rc,
+	}
+}
+
+type (
+	// RecruitmentUpsertOne is the builder for "upsert"-ing
+	//  one Recruitment node.
+	RecruitmentUpsertOne struct {
+		create *RecruitmentCreate
+	}
+
+	// RecruitmentUpsert is the "OnConflict" setter.
+	RecruitmentUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentUpsert) SetCreatedAt(v time.Time) *RecruitmentUpsert {
+	u.Set(recruitment.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateCreatedAt() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentUpsert) SetUpdatedAt(v time.Time) *RecruitmentUpsert {
+	u.Set(recruitment.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateUpdatedAt() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldUpdatedAt)
+	return u
+}
+
+// SetTitle sets the "title" field.
+func (u *RecruitmentUpsert) SetTitle(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldTitle, v)
+	return u
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateTitle() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldTitle)
+	return u
+}
+
+// SetType sets the "type" field.
+func (u *RecruitmentUpsert) SetType(v recruitment.Type) *RecruitmentUpsert {
+	u.Set(recruitment.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateType() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldType)
+	return u
+}
+
+// SetPlace sets the "place" field.
+func (u *RecruitmentUpsert) SetPlace(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldPlace, v)
+	return u
+}
+
+// UpdatePlace sets the "place" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdatePlace() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldPlace)
+	return u
+}
+
+// ClearPlace clears the value of the "place" field.
+func (u *RecruitmentUpsert) ClearPlace() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldPlace)
+	return u
+}
+
+// SetStartAt sets the "start_at" field.
+func (u *RecruitmentUpsert) SetStartAt(v time.Time) *RecruitmentUpsert {
+	u.Set(recruitment.FieldStartAt, v)
+	return u
+}
+
+// UpdateStartAt sets the "start_at" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateStartAt() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldStartAt)
+	return u
+}
+
+// ClearStartAt clears the value of the "start_at" field.
+func (u *RecruitmentUpsert) ClearStartAt() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldStartAt)
+	return u
+}
+
+// SetContent sets the "content" field.
+func (u *RecruitmentUpsert) SetContent(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldContent, v)
+	return u
+}
+
+// UpdateContent sets the "content" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateContent() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldContent)
+	return u
+}
+
+// ClearContent clears the value of the "content" field.
+func (u *RecruitmentUpsert) ClearContent() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldContent)
+	return u
+}
+
+// SetLocationLat sets the "locationLat" field.
+func (u *RecruitmentUpsert) SetLocationLat(v float64) *RecruitmentUpsert {
+	u.Set(recruitment.FieldLocationLat, v)
+	return u
+}
+
+// UpdateLocationLat sets the "locationLat" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateLocationLat() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldLocationLat)
+	return u
+}
+
+// AddLocationLat adds v to the "locationLat" field.
+func (u *RecruitmentUpsert) AddLocationLat(v float64) *RecruitmentUpsert {
+	u.Add(recruitment.FieldLocationLat, v)
+	return u
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (u *RecruitmentUpsert) ClearLocationLat() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldLocationLat)
+	return u
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (u *RecruitmentUpsert) SetLocationLng(v float64) *RecruitmentUpsert {
+	u.Set(recruitment.FieldLocationLng, v)
+	return u
+}
+
+// UpdateLocationLng sets the "locationLng" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateLocationLng() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldLocationLng)
+	return u
+}
+
+// AddLocationLng adds v to the "locationLng" field.
+func (u *RecruitmentUpsert) AddLocationLng(v float64) *RecruitmentUpsert {
+	u.Add(recruitment.FieldLocationLng, v)
+	return u
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (u *RecruitmentUpsert) ClearLocationLng() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldLocationLng)
+	return u
+}
+
+// SetCapacity sets the "capacity" field.
+func (u *RecruitmentUpsert) SetCapacity(v int) *RecruitmentUpsert {
+	u.Set(recruitment.FieldCapacity, v)
+	return u
+}
+
+// UpdateCapacity sets the "capacity" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateCapacity() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldCapacity)
+	return u
+}
+
+// AddCapacity adds v to the "capacity" field.
+func (u *RecruitmentUpsert) AddCapacity(v int) *RecruitmentUpsert {
+	u.Add(recruitment.FieldCapacity, v)
+	return u
+}
+
+// ClearCapacity clears the value of the "capacity" field.
+func (u *RecruitmentUpsert) ClearCapacity() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldCapacity)
+	return u
+}
+
+// SetClosingAt sets the "closing_at" field.
+func (u *RecruitmentUpsert) SetClosingAt(v time.Time) *RecruitmentUpsert {
+	u.Set(recruitment.FieldClosingAt, v)
+	return u
+}
+
+// UpdateClosingAt sets the "closing_at" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateClosingAt() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldClosingAt)
+	return u
+}
+
+// ClearClosingAt clears the value of the "closing_at" field.
+func (u *RecruitmentUpsert) ClearClosingAt() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldClosingAt)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *RecruitmentUpsert) SetStatus(v recruitment.Status) *RecruitmentUpsert {
+	u.Set(recruitment.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateStatus() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldStatus)
+	return u
+}
+
+// SetPrefectureID sets the "prefecture_id" field.
+func (u *RecruitmentUpsert) SetPrefectureID(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldPrefectureID, v)
+	return u
+}
+
+// UpdatePrefectureID sets the "prefecture_id" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdatePrefectureID() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldPrefectureID)
+	return u
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (u *RecruitmentUpsert) ClearPrefectureID() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldPrefectureID)
+	return u
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (u *RecruitmentUpsert) SetCompetitionID(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldCompetitionID, v)
+	return u
+}
+
+// UpdateCompetitionID sets the "competition_id" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateCompetitionID() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldCompetitionID)
+	return u
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (u *RecruitmentUpsert) ClearCompetitionID() *RecruitmentUpsert {
+	u.SetNull(recruitment.FieldCompetitionID)
+	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *RecruitmentUpsert) SetUserID(v string) *RecruitmentUpsert {
+	u.Set(recruitment.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *RecruitmentUpsert) UpdateUserID() *RecruitmentUpsert {
+	u.SetExcluded(recruitment.FieldUserID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.Recruitment.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(recruitment.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *RecruitmentUpsertOne) UpdateNewValues() *RecruitmentUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(recruitment.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(recruitment.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//  client.Recruitment.Create().
+//      OnConflict(sql.ResolveWithIgnore()).
+//      Exec(ctx)
+//
+func (u *RecruitmentUpsertOne) Ignore() *RecruitmentUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RecruitmentUpsertOne) DoNothing() *RecruitmentUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RecruitmentCreate.OnConflict
+// documentation for more info.
+func (u *RecruitmentUpsertOne) Update(set func(*RecruitmentUpsert)) *RecruitmentUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RecruitmentUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentUpsertOne) SetCreatedAt(v time.Time) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateCreatedAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentUpsertOne) SetUpdatedAt(v time.Time) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateUpdatedAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetTitle sets the "title" field.
+func (u *RecruitmentUpsertOne) SetTitle(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetTitle(v)
+	})
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateTitle() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateTitle()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *RecruitmentUpsertOne) SetType(v recruitment.Type) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateType() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetPlace sets the "place" field.
+func (u *RecruitmentUpsertOne) SetPlace(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetPlace(v)
+	})
+}
+
+// UpdatePlace sets the "place" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdatePlace() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdatePlace()
+	})
+}
+
+// ClearPlace clears the value of the "place" field.
+func (u *RecruitmentUpsertOne) ClearPlace() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearPlace()
+	})
+}
+
+// SetStartAt sets the "start_at" field.
+func (u *RecruitmentUpsertOne) SetStartAt(v time.Time) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetStartAt(v)
+	})
+}
+
+// UpdateStartAt sets the "start_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateStartAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateStartAt()
+	})
+}
+
+// ClearStartAt clears the value of the "start_at" field.
+func (u *RecruitmentUpsertOne) ClearStartAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearStartAt()
+	})
+}
+
+// SetContent sets the "content" field.
+func (u *RecruitmentUpsertOne) SetContent(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetContent(v)
+	})
+}
+
+// UpdateContent sets the "content" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateContent() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateContent()
+	})
+}
+
+// ClearContent clears the value of the "content" field.
+func (u *RecruitmentUpsertOne) ClearContent() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearContent()
+	})
+}
+
+// SetLocationLat sets the "locationLat" field.
+func (u *RecruitmentUpsertOne) SetLocationLat(v float64) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetLocationLat(v)
+	})
+}
+
+// AddLocationLat adds v to the "locationLat" field.
+func (u *RecruitmentUpsertOne) AddLocationLat(v float64) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddLocationLat(v)
+	})
+}
+
+// UpdateLocationLat sets the "locationLat" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateLocationLat() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateLocationLat()
+	})
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (u *RecruitmentUpsertOne) ClearLocationLat() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearLocationLat()
+	})
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (u *RecruitmentUpsertOne) SetLocationLng(v float64) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetLocationLng(v)
+	})
+}
+
+// AddLocationLng adds v to the "locationLng" field.
+func (u *RecruitmentUpsertOne) AddLocationLng(v float64) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddLocationLng(v)
+	})
+}
+
+// UpdateLocationLng sets the "locationLng" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateLocationLng() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateLocationLng()
+	})
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (u *RecruitmentUpsertOne) ClearLocationLng() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearLocationLng()
+	})
+}
+
+// SetCapacity sets the "capacity" field.
+func (u *RecruitmentUpsertOne) SetCapacity(v int) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCapacity(v)
+	})
+}
+
+// AddCapacity adds v to the "capacity" field.
+func (u *RecruitmentUpsertOne) AddCapacity(v int) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddCapacity(v)
+	})
+}
+
+// UpdateCapacity sets the "capacity" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateCapacity() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCapacity()
+	})
+}
+
+// ClearCapacity clears the value of the "capacity" field.
+func (u *RecruitmentUpsertOne) ClearCapacity() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearCapacity()
+	})
+}
+
+// SetClosingAt sets the "closing_at" field.
+func (u *RecruitmentUpsertOne) SetClosingAt(v time.Time) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetClosingAt(v)
+	})
+}
+
+// UpdateClosingAt sets the "closing_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateClosingAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateClosingAt()
+	})
+}
+
+// ClearClosingAt clears the value of the "closing_at" field.
+func (u *RecruitmentUpsertOne) ClearClosingAt() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearClosingAt()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *RecruitmentUpsertOne) SetStatus(v recruitment.Status) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateStatus() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetPrefectureID sets the "prefecture_id" field.
+func (u *RecruitmentUpsertOne) SetPrefectureID(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetPrefectureID(v)
+	})
+}
+
+// UpdatePrefectureID sets the "prefecture_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdatePrefectureID() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdatePrefectureID()
+	})
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (u *RecruitmentUpsertOne) ClearPrefectureID() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearPrefectureID()
+	})
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (u *RecruitmentUpsertOne) SetCompetitionID(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCompetitionID(v)
+	})
+}
+
+// UpdateCompetitionID sets the "competition_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateCompetitionID() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCompetitionID()
+	})
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (u *RecruitmentUpsertOne) ClearCompetitionID() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearCompetitionID()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *RecruitmentUpsertOne) SetUserID(v string) *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertOne) UpdateUserID() *RecruitmentUpsertOne {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// Exec executes the query.
+func (u *RecruitmentUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RecruitmentCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RecruitmentUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *RecruitmentUpsertOne) ID(ctx context.Context) (id string, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: RecruitmentUpsertOne.ID is not supported by MySQL driver. Use RecruitmentUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *RecruitmentUpsertOne) IDX(ctx context.Context) string {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // RecruitmentCreateBulk is the builder for creating many Recruitment entities in bulk.
 type RecruitmentCreateBulk struct {
 	config
 	builders []*RecruitmentCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Recruitment entities in the database.
@@ -713,6 +1410,7 @@ func (rcb *RecruitmentCreateBulk) Save(ctx context.Context) ([]*Recruitment, err
 					_, err = mutators[i+1].Mutate(root, rcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = rcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, rcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -759,6 +1457,419 @@ func (rcb *RecruitmentCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (rcb *RecruitmentCreateBulk) ExecX(ctx context.Context) {
 	if err := rcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Recruitment.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RecruitmentUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+//
+func (rcb *RecruitmentCreateBulk) OnConflict(opts ...sql.ConflictOption) *RecruitmentUpsertBulk {
+	rcb.conflict = opts
+	return &RecruitmentUpsertBulk{
+		create: rcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Recruitment.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+//
+func (rcb *RecruitmentCreateBulk) OnConflictColumns(columns ...string) *RecruitmentUpsertBulk {
+	rcb.conflict = append(rcb.conflict, sql.ConflictColumns(columns...))
+	return &RecruitmentUpsertBulk{
+		create: rcb,
+	}
+}
+
+// RecruitmentUpsertBulk is the builder for "upsert"-ing
+// a bulk of Recruitment nodes.
+type RecruitmentUpsertBulk struct {
+	create *RecruitmentCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Recruitment.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(recruitment.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+//
+func (u *RecruitmentUpsertBulk) UpdateNewValues() *RecruitmentUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(recruitment.FieldID)
+				return
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(recruitment.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Recruitment.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+//
+func (u *RecruitmentUpsertBulk) Ignore() *RecruitmentUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RecruitmentUpsertBulk) DoNothing() *RecruitmentUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RecruitmentCreateBulk.OnConflict
+// documentation for more info.
+func (u *RecruitmentUpsertBulk) Update(set func(*RecruitmentUpsert)) *RecruitmentUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RecruitmentUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RecruitmentUpsertBulk) SetCreatedAt(v time.Time) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateCreatedAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RecruitmentUpsertBulk) SetUpdatedAt(v time.Time) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateUpdatedAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetTitle sets the "title" field.
+func (u *RecruitmentUpsertBulk) SetTitle(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetTitle(v)
+	})
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateTitle() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateTitle()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *RecruitmentUpsertBulk) SetType(v recruitment.Type) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateType() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateType()
+	})
+}
+
+// SetPlace sets the "place" field.
+func (u *RecruitmentUpsertBulk) SetPlace(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetPlace(v)
+	})
+}
+
+// UpdatePlace sets the "place" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdatePlace() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdatePlace()
+	})
+}
+
+// ClearPlace clears the value of the "place" field.
+func (u *RecruitmentUpsertBulk) ClearPlace() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearPlace()
+	})
+}
+
+// SetStartAt sets the "start_at" field.
+func (u *RecruitmentUpsertBulk) SetStartAt(v time.Time) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetStartAt(v)
+	})
+}
+
+// UpdateStartAt sets the "start_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateStartAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateStartAt()
+	})
+}
+
+// ClearStartAt clears the value of the "start_at" field.
+func (u *RecruitmentUpsertBulk) ClearStartAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearStartAt()
+	})
+}
+
+// SetContent sets the "content" field.
+func (u *RecruitmentUpsertBulk) SetContent(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetContent(v)
+	})
+}
+
+// UpdateContent sets the "content" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateContent() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateContent()
+	})
+}
+
+// ClearContent clears the value of the "content" field.
+func (u *RecruitmentUpsertBulk) ClearContent() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearContent()
+	})
+}
+
+// SetLocationLat sets the "locationLat" field.
+func (u *RecruitmentUpsertBulk) SetLocationLat(v float64) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetLocationLat(v)
+	})
+}
+
+// AddLocationLat adds v to the "locationLat" field.
+func (u *RecruitmentUpsertBulk) AddLocationLat(v float64) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddLocationLat(v)
+	})
+}
+
+// UpdateLocationLat sets the "locationLat" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateLocationLat() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateLocationLat()
+	})
+}
+
+// ClearLocationLat clears the value of the "locationLat" field.
+func (u *RecruitmentUpsertBulk) ClearLocationLat() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearLocationLat()
+	})
+}
+
+// SetLocationLng sets the "locationLng" field.
+func (u *RecruitmentUpsertBulk) SetLocationLng(v float64) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetLocationLng(v)
+	})
+}
+
+// AddLocationLng adds v to the "locationLng" field.
+func (u *RecruitmentUpsertBulk) AddLocationLng(v float64) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddLocationLng(v)
+	})
+}
+
+// UpdateLocationLng sets the "locationLng" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateLocationLng() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateLocationLng()
+	})
+}
+
+// ClearLocationLng clears the value of the "locationLng" field.
+func (u *RecruitmentUpsertBulk) ClearLocationLng() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearLocationLng()
+	})
+}
+
+// SetCapacity sets the "capacity" field.
+func (u *RecruitmentUpsertBulk) SetCapacity(v int) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCapacity(v)
+	})
+}
+
+// AddCapacity adds v to the "capacity" field.
+func (u *RecruitmentUpsertBulk) AddCapacity(v int) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.AddCapacity(v)
+	})
+}
+
+// UpdateCapacity sets the "capacity" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateCapacity() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCapacity()
+	})
+}
+
+// ClearCapacity clears the value of the "capacity" field.
+func (u *RecruitmentUpsertBulk) ClearCapacity() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearCapacity()
+	})
+}
+
+// SetClosingAt sets the "closing_at" field.
+func (u *RecruitmentUpsertBulk) SetClosingAt(v time.Time) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetClosingAt(v)
+	})
+}
+
+// UpdateClosingAt sets the "closing_at" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateClosingAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateClosingAt()
+	})
+}
+
+// ClearClosingAt clears the value of the "closing_at" field.
+func (u *RecruitmentUpsertBulk) ClearClosingAt() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearClosingAt()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *RecruitmentUpsertBulk) SetStatus(v recruitment.Status) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateStatus() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetPrefectureID sets the "prefecture_id" field.
+func (u *RecruitmentUpsertBulk) SetPrefectureID(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetPrefectureID(v)
+	})
+}
+
+// UpdatePrefectureID sets the "prefecture_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdatePrefectureID() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdatePrefectureID()
+	})
+}
+
+// ClearPrefectureID clears the value of the "prefecture_id" field.
+func (u *RecruitmentUpsertBulk) ClearPrefectureID() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearPrefectureID()
+	})
+}
+
+// SetCompetitionID sets the "competition_id" field.
+func (u *RecruitmentUpsertBulk) SetCompetitionID(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetCompetitionID(v)
+	})
+}
+
+// UpdateCompetitionID sets the "competition_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateCompetitionID() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateCompetitionID()
+	})
+}
+
+// ClearCompetitionID clears the value of the "competition_id" field.
+func (u *RecruitmentUpsertBulk) ClearCompetitionID() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.ClearCompetitionID()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *RecruitmentUpsertBulk) SetUserID(v string) *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *RecruitmentUpsertBulk) UpdateUserID() *RecruitmentUpsertBulk {
+	return u.Update(func(s *RecruitmentUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// Exec executes the query.
+func (u *RecruitmentUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the RecruitmentCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RecruitmentCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RecruitmentUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
