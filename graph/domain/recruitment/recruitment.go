@@ -196,6 +196,23 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client)
 		return &model.Recruitment{}, err
 	}
 
+	if len(r.Tags) != 0 {
+		tags := r.Tags
+		bulk := make([]*ent.RecruitmentTagCreate, len(tags))
+		for i, tag := range tags {
+			bulk[i] = client.RecruitmentTag.
+				Create().
+				SetRecruitmentID(res.ID).
+				SetTagID(tag.ID)
+		}
+		_, err := client.RecruitmentTag.
+			CreateBulk(bulk...).
+			Save(ctx)
+		if err != nil {
+			logger.Log.Error().Msg(fmt.Sprintf("create recruitment_tags error: %s", err.Error()))
+		}
+	}
+
 	resRecruitment := &model.Recruitment{
 		ID:          res.ID,
 		Title:       res.Title,
