@@ -84,12 +84,8 @@ func CheckStocked(ctx context.Context, client ent.Client, recId string) (bool, e
 	res, err := client.Stock.
 		Query().
 		Where(
-			stock.HasUserWith(
-				user.ID(currentUser.ID),
-			),
-			stock.HasRecruitmentWith(
-				recruitment.ID(recId),
-			),
+			stock.UserID(currentUser.ID),
+			stock.RecruitmentID(recId),
 		).
 		Exist(ctx)
 	if err != nil {
