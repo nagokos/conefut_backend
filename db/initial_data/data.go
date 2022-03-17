@@ -91,6 +91,8 @@ func InsertTags(ctx context.Context, client *ent.Client) error {
 		"経験者",
 		"初心者歓迎",
 		"競技志向",
+		"急募",
+		"人工芝",
 	}
 	bulk := make([]*ent.TagCreate, len(tags))
 	for i, name := range tags {
