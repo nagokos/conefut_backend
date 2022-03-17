@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/tag"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
@@ -22,12 +24,13 @@ func existsTag() validation.RuleFunc {
 		var err error
 
 		s := v.(string)
+		lower := strings.ToLower(s)
 		ctx := context.Background()
 		client := db.DatabaseConnection()
 
 		res, _ := client.Tag.
 			Query().
-			Where(tag.NameEQ(s)).
+			Where(tag.Name(lower)).
 			Exist(ctx)
 
 		if res {
@@ -71,10 +74,37 @@ func GetTags(ctx context.Context, client *ent.Client) ([]*model.Tag, error) {
 	return tags, nil
 }
 
+func GetRecruitmentTags(ctx context.Context, client *ent.Client, recId string) ([]*model.Tag, error) {
+	var tags []*model.Tag
+	res, err := client.Recruitment.
+		Query().
+		Where(
+			recruitment.ID(recId),
+		).
+		QueryRecruitmentTags().
+		QueryTag().
+		All(ctx)
+	if err != nil {
+		logger.Log.Error().Msg(fmt.Sprintf("get recruitment tags error: %s", err.Error()))
+		return tags, err
+	}
+
+	for _, tag := range res {
+		tags = append(tags, &model.Tag{
+			ID:   tag.ID,
+			Name: tag.Name,
+		})
+	}
+
+	return tags, nil
+}
+
 func (t *Tag) CreateTag(ctx context.Context, client *ent.Client) (*model.Tag, error) {
+	lower := strings.ToLower(t.Name)
+
 	res, err := client.Tag.
 		Create().
-		SetName(t.Name).
+		SetName(lower).
 		Save(ctx)
 
 	if err != nil {
