@@ -149,9 +149,8 @@ const DefaultEmailVerificationStatus = EmailVerificationStatusPending
 
 // EmailVerificationStatus values.
 const (
-	EmailVerificationStatusUnnecessary EmailVerificationStatus = "unnecessary"
-	EmailVerificationStatusPending     EmailVerificationStatus = "pending"
-	EmailVerificationStatusVerified    EmailVerificationStatus = "verified"
+	EmailVerificationStatusPending  EmailVerificationStatus = "pending"
+	EmailVerificationStatusVerified EmailVerificationStatus = "verified"
 )
 
 func (evs EmailVerificationStatus) String() string {
@@ -161,7 +160,7 @@ func (evs EmailVerificationStatus) String() string {
 // EmailVerificationStatusValidator is a validator for the "email_verification_status" field enum values. It is called by the builders before save.
 func EmailVerificationStatusValidator(evs EmailVerificationStatus) error {
 	switch evs {
-	case EmailVerificationStatusUnnecessary, EmailVerificationStatusPending, EmailVerificationStatusVerified:
+	case EmailVerificationStatusPending, EmailVerificationStatusVerified:
 		return nil
 	default:
 		return fmt.Errorf("user: invalid enum value for email_verification_status field: %q", evs)
