@@ -158,4 +158,7 @@ type Mutation {
 
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
+
+  # applicant
+  applyForRecruitment(recruitmentId: String!, input: applicantInput): Boolean!
 }
