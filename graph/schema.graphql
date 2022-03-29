@@ -134,6 +134,10 @@ input createTagInput {
   name: String!
 }
 
+input applicantInput {
+  content: String!
+}
+
 type Mutation {
   # user
   createUser(input: createUserInput!): User!
