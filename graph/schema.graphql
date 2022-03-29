@@ -10,7 +10,6 @@ enum Role {
 }
 
 enum EmailVerificationStatus {
-  UNNECESSARY
   PENDING
   VERIFIED
 }
