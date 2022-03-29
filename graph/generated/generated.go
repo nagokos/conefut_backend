@@ -50,16 +50,17 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddRecruitmentTag func(childComplexity int, tagID string, recruitmentID string) int
-		CreateRecruitment func(childComplexity int, input model.RecruitmentInput) int
-		CreateStock       func(childComplexity int, recruitmentID string) int
-		CreateTag         func(childComplexity int, input model.CreateTagInput) int
-		CreateUser        func(childComplexity int, input model.CreateUserInput) int
-		DeleteRecruitment func(childComplexity int, id string) int
-		DeleteStock       func(childComplexity int, recruitmentID string) int
-		LoginUser         func(childComplexity int, input model.LoginUserInput) int
-		LogoutUser        func(childComplexity int) int
-		UpdateRecruitment func(childComplexity int, id string, input model.RecruitmentInput) int
+		AddRecruitmentTag   func(childComplexity int, tagID string, recruitmentID string) int
+		ApplyForRecruitment func(childComplexity int, recruitmentID string, input *model.ApplicantInput) int
+		CreateRecruitment   func(childComplexity int, input model.RecruitmentInput) int
+		CreateStock         func(childComplexity int, recruitmentID string) int
+		CreateTag           func(childComplexity int, input model.CreateTagInput) int
+		CreateUser          func(childComplexity int, input model.CreateUserInput) int
+		DeleteRecruitment   func(childComplexity int, id string) int
+		DeleteStock         func(childComplexity int, recruitmentID string) int
+		LoginUser           func(childComplexity int, input model.LoginUserInput) int
+		LogoutUser          func(childComplexity int) int
+		UpdateRecruitment   func(childComplexity int, id string, input model.RecruitmentInput) int
 	}
 
 	Prefecture struct {
@@ -127,6 +128,7 @@ type MutationResolver interface {
 	DeleteStock(ctx context.Context, recruitmentID string) (bool, error)
 	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error)
 	AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error)
+	ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (bool, error)
 }
 type QueryResolver interface {
 	GetPrefectures(ctx context.Context) ([]*model.Prefecture, error)
@@ -182,6 +184,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddRecruitmentTag(childComplexity, args["tagId"].(string), args["recruitmentId"].(string)), true
+
+	case "Mutation.applyForRecruitment":
+		if e.complexity.Mutation.ApplyForRecruitment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_applyForRecruitment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ApplyForRecruitment(childComplexity, args["recruitmentId"].(string), args["input"].(*model.ApplicantInput)), true
 
 	case "Mutation.createRecruitment":
 		if e.complexity.Mutation.CreateRecruitment == nil {
@@ -648,7 +662,6 @@ enum Role {
 }
 
 enum EmailVerificationStatus {
-  UNNECESSARY
   PENDING
   VERIFIED
 }
@@ -773,6 +786,10 @@ input createTagInput {
   name: String!
 }
 
+input applicantInput {
+  content: String!
+}
+
 type Mutation {
   # user
   createUser(input: createUserInput!): User!
@@ -793,6 +810,9 @@ type Mutation {
 
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
+
+  # applicant
+  applyForRecruitment(recruitmentId: String!, input: applicantInput): Boolean!
 }
 `, BuiltIn: false},
 }
@@ -823,6 +843,30 @@ func (ec *executionContext) field_Mutation_addRecruitmentTag_args(ctx context.Co
 		}
 	}
 	args["recruitmentId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_applyForRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	var arg1 *model.ApplicantInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalOapplicantInput2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐApplicantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -1535,6 +1579,48 @@ func (ec *executionContext) _Mutation_addRecruitmentTag(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddRecruitmentTag(rctx, args["tagId"].(string), args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_applyForRecruitment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_applyForRecruitment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ApplyForRecruitment(rctx, args["recruitmentId"].(string), args["input"].(*model.ApplicantInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4133,6 +4219,29 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, obj interface{}) (model.ApplicantInput, error) {
+	var it model.ApplicantInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "content":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
+			it.Content, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputcreateTagInput(ctx context.Context, obj interface{}) (model.CreateTagInput, error) {
 	var it model.CreateTagInput
 	asMap := map[string]interface{}{}
@@ -4537,6 +4646,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "addRecruitmentTag":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_addRecruitmentTag(ctx, field)
+			}
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "applyForRecruitment":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_applyForRecruitment(ctx, field)
 			}
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
@@ -6580,6 +6699,14 @@ func (ec *executionContext) marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgen�
 		return graphql.Null
 	}
 	return ec.___Type(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOapplicantInput2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐApplicantInput(ctx context.Context, v interface{}) (*model.ApplicantInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputapplicantInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOrecruitmentTagInput2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx context.Context, v interface{}) (*model.RecruitmentTagInput, error) {

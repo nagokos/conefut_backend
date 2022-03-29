@@ -53,6 +53,10 @@ type User struct {
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
 
+type ApplicantInput struct {
+	Content string `json:"content"`
+}
+
 type CreateTagInput struct {
 	Name string `json:"name"`
 }
@@ -92,20 +96,18 @@ type RecruitmentTagInput struct {
 type EmailVerificationStatus string
 
 const (
-	EmailVerificationStatusUnnecessary EmailVerificationStatus = "UNNECESSARY"
-	EmailVerificationStatusPending     EmailVerificationStatus = "PENDING"
-	EmailVerificationStatusVerified    EmailVerificationStatus = "VERIFIED"
+	EmailVerificationStatusPending  EmailVerificationStatus = "PENDING"
+	EmailVerificationStatusVerified EmailVerificationStatus = "VERIFIED"
 )
 
 var AllEmailVerificationStatus = []EmailVerificationStatus{
-	EmailVerificationStatusUnnecessary,
 	EmailVerificationStatusPending,
 	EmailVerificationStatusVerified,
 }
 
 func (e EmailVerificationStatus) IsValid() bool {
 	switch e {
-	case EmailVerificationStatusUnnecessary, EmailVerificationStatusPending, EmailVerificationStatusVerified:
+	case EmailVerificationStatusPending, EmailVerificationStatusVerified:
 		return true
 	}
 	return false
