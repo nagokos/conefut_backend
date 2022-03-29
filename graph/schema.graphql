@@ -10,7 +10,6 @@ enum Role {
 }
 
 enum EmailVerificationStatus {
-  UNNECESSARY
   PENDING
   VERIFIED
 }
@@ -135,6 +134,10 @@ input createTagInput {
   name: String!
 }
 
+input applicantInput {
+  content: String!
+}
+
 type Mutation {
   # user
   createUser(input: createUserInput!): User!
@@ -155,4 +158,7 @@ type Mutation {
 
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
+
+  # applicant
+  applyForRecruitment(recruitmentId: String!, input: applicantInput): Boolean!
 }

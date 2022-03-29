@@ -255,7 +255,7 @@ var (
 		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "general"}, Default: "general"},
 		{Name: "avatar", Type: field.TypeString, Default: "https://abs.twimg.com/sticky/default_profile_images/default_profile.png"},
 		{Name: "introduction", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(4000)"}},
-		{Name: "email_verification_status", Type: field.TypeEnum, Enums: []string{"unnecessary", "pending", "verified"}, Default: "pending"},
+		{Name: "email_verification_status", Type: field.TypeEnum, Enums: []string{"pending", "verified"}, Default: "pending"},
 		{Name: "email_verification_token", Type: field.TypeString, Nullable: true},
 		{Name: "email_verification_token_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "password_digest", Type: field.TypeString, Nullable: true},
