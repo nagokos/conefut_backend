@@ -52,7 +52,6 @@ func (User) Fields() []ent.Field {
 			Validate(validation.CheckStringLen(4000)),
 		field.Enum("email_verification_status").
 			Values(
-				"unnecessary",
 				"pending",
 				"verified",
 			).
