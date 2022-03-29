@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -96,7 +97,7 @@ func getUserByID(db *ent.Client, id string) (*model.User, error) {
 		Role:                    model.Role(res.Role),
 		Avatar:                  res.Avatar,
 		Introduction:            &res.Introduction,
-		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
+		EmailVerificationStatus: model.EmailVerificationStatus(strings.ToUpper(string(res.EmailVerificationStatus))),
 	}
 	return user, err
 }
