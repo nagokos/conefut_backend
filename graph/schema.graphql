@@ -153,6 +153,7 @@ input createTagInput {
 }
 
 input applicantInput {
+  managementStatus: ManagementStatus!
   content: String!
 }
 
