@@ -305,6 +305,15 @@ func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Re
 	return res, err
 }
 
+func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+	res, err := recruitment.GetAppliedRecruitments(ctx, *r.client)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
+}
+
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
 	res, err := stock.CheckStocked(ctx, *r.client, recruitmentID)
 	if err != nil {
