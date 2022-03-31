@@ -3,7 +3,6 @@ package tag
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -60,7 +59,7 @@ func GetTags(ctx context.Context, client *ent.Client) ([]*model.Tag, error) {
 		Query().
 		All(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get tags error: %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get tags error: %s", err.Error())
 		return nil, err
 	}
 
@@ -85,7 +84,7 @@ func GetRecruitmentTags(ctx context.Context, client *ent.Client, recId string) (
 		QueryTag().
 		All(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get recruitment tags error: %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get recruitment tags error: %s", err.Error())
 		return tags, err
 	}
 
@@ -108,7 +107,7 @@ func (t *Tag) CreateTag(ctx context.Context, client *ent.Client) (*model.Tag, er
 		Save(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("create tag error: %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("create tag error: %s", err.Error())
 		return nil, errors.New("タグの作成に失敗しました")
 	}
 

@@ -11,6 +11,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/ent"
+	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/ent/recruitment"
 	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
 	"github.com/nagokos/connefut_backend/ent/stock"
@@ -192,7 +193,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client)
 		SetUserID(currentUser.ID).
 		Save(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("recruitment create errors:", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment create errors:", err.Error())
 		return &model.Recruitment{}, err
 	}
 
@@ -209,7 +210,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client)
 			CreateBulk(bulk...).
 			Save(ctx)
 		if err != nil {
-			logger.Log.Error().Msg(fmt.Sprintf("create recruitment_tags error: %s", err.Error()))
+			logger.NewLogger().Sugar().Errorf("create recruitment_tags error: %s", err.Error())
 		}
 	}
 
@@ -249,7 +250,7 @@ func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*mode
 		).
 		All(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get currentUser recruitment error %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get currentUser recruitment error %s", err.Error())
 		return recruitments, err
 	}
 
@@ -291,7 +292,7 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 		).
 		Only(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get recruitment error %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get recruitment error %s", err.Error())
 		return nil, err
 	}
 
@@ -347,6 +348,65 @@ func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.R
 	return resRecruitment, nil
 }
 
+func GetAppliedRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+	var recruitments []*model.Recruitment
+
+	a := client.Applicant.Query().Where(applicant.UserID(currentUser.ID)).Order(ent.Desc(applicant.FieldCreatedAt)).QueryRecruitment().AllX(ctx)
+
+	for _, b := range a {
+		fmt.Println("---------------------------------------------------------------")
+		fmt.Println(b.Title)
+		fmt.Println("---------------------------------------------------------------")
+	}
+
+	res, err := client.Applicant.
+		Query().
+		Where(
+			applicant.UserID(currentUser.ID),
+		).
+		QueryRecruitment().
+		WithUser().
+		WithApplicants().
+		Order(
+			ent.Asc(applicant.FieldCreatedAt),
+		).
+		All(ctx)
+	if err != nil {
+		logger.NewLogger().Sugar().Errorf("get applied recruitments error: %s", err.Error())
+		return recruitments, err
+	}
+
+	for _, recruitment := range res {
+		withApplicant := client.User.
+			Query().
+			Where(
+				user.ID(currentUser.ID),
+			).
+			QueryApplicants().
+			Where(
+				applicant.RecruitmentID(recruitment.ID),
+			).
+			FirstX(ctx)
+		recruitments = append(recruitments, &model.Recruitment{
+			ID:    recruitment.ID,
+			Title: recruitment.Title,
+			Type:  model.Type(strings.ToUpper(string(recruitment.Type))),
+			Applicant: &model.Applicant{
+				ManagementStatus: model.ManagementStatus(strings.ToUpper(string(withApplicant.ManagementStatus))),
+				CreatedAt:        withApplicant.CreatedAt,
+			},
+			User: &model.User{
+				ID:     recruitment.Edges.User.ID,
+				Name:   recruitment.Edges.User.Name,
+				Avatar: recruitment.Edges.User.Avatar,
+			},
+		})
+	}
+
+	return recruitments, nil
+}
+
 func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
 	var resRecruitments []*model.Recruitment
 	res, err := client.Recruitment.
@@ -360,7 +420,7 @@ func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitme
 		WithUser().
 		All(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get recruitments error %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get recruitments error %s", err.Error())
 		return []*model.Recruitment{}, err
 	}
 
@@ -406,7 +466,7 @@ func GetStockedRecruitments(ctx context.Context, client ent.Client) ([]*model.Re
 		Order(ent.Desc(recruitment.FieldStatus)).
 		All(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("get stocked recruitments error %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get stocked recruitments error %s", err.Error())
 		return []*model.Recruitment{}, err
 	}
 
@@ -449,7 +509,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		).
 		Only(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment not found %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment not found %s", err.Error())
 		return nil, errors.New("recruitment not found")
 	}
 
@@ -473,7 +533,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		Save(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment update error %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment update error %s", err.Error())
 		return nil, err
 	}
 
@@ -515,7 +575,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		UpdateUpdatedAt().
 		Exec(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment_tag upsert error: %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment_tag upsert error: %s", err.Error())
 	}
 
 	if len(oldTags) != 0 {
@@ -527,9 +587,9 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 					recruitmenttag.TagID(tag.ID),
 				).
 				Exec(ctx)
-			logger.Log.Debug().Msg(fmt.Sprintln(i))
+			logger.NewLogger().Sugar().Debug(i)
 			if err != nil {
-				logger.Log.Error().Msg(fmt.Sprintf("delete recruitment tag error: %s", err.Error()))
+				logger.NewLogger().Sugar().Errorf("delete recruitment tag error: %s", err.Error())
 			}
 		}
 	}

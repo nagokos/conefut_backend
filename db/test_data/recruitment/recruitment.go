@@ -22,19 +22,19 @@ func main() {
 
 	comp, err := client.Competition.Query().First(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return
 	}
 
 	pref, err := client.Prefecture.Query().First(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return
 	}
 
 	user, err := client.User.Query().First(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return
 	}
 
@@ -77,6 +77,6 @@ func main() {
 
 	_, err = client.Recruitment.CreateBulk(bulk...).Save(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 	}
 }

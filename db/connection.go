@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -16,7 +15,7 @@ func DatabaseConnection() *ent.Client {
 	client, err := sql.Open("postgres", "host=db dbname=connefut_db port=5432 user=root password=password sslmode=disable")
 
 	if err != nil {
-		logger.Log.Fatal().Msg(fmt.Sprintf("failed opening connection to postgres: %v", err))
+		logger.NewLogger().Sugar().Fatalf("failed opening connection to postgres: %v", err)
 	}
 
 	db := sqldblogger.OpenDriver(

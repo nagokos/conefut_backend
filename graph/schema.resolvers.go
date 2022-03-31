@@ -11,6 +11,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/domain/applicant"
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
@@ -35,7 +36,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 	fmt.Println(err)
 
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
 		fmt.Println(errs)
@@ -67,7 +68,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 
 	err := u.AuthenticateUserValidate()
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -113,7 +114,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 
 	err := rm.RecruitmentValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("recruitment validation errors:", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors:", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -149,7 +150,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 
 	err := rm.RecruitmentValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -160,7 +161,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 
 	res, err := rm.UpdateRecruitment(ctx, *r.client, id)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return res, err
 	}
 
@@ -198,7 +199,7 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 
 	err := tag.CreateTagValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
