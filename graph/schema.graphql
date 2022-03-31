@@ -51,6 +51,11 @@ type Prefecture {
   name: String!
 }
 
+type Applicant {
+  managementStatus: ManagementStatus!
+  createdAt: DateTime!
+}
+
 type Competition {
   id: String!
   name: String!
