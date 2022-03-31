@@ -96,6 +96,12 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 }
 
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+	if model.Status(input.Status) == model.StatusPublished &&
+		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
+	}
+
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -132,6 +138,12 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 }
 
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+	if model.Status(input.Status) == model.StatusPublished &&
+		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
+	}
+
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -218,6 +230,20 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 
 func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (bool, error) {
+	currentUser := auth.ForContext(ctx)
+	if currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return false, errors.New("メールアドレスを認証してください")
+	}
+
+	res, err := applicant.CreateApplicant(ctx, *r.client, recruitmentID, input.ManagementStatus)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
