@@ -346,6 +346,23 @@ func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID st
 	return res, err
 }
 
+func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
+	res, err := applicant.CheckApplied(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return false, err
+	}
+	return res, err
+}
+
+func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error) {
+	res, err := applicant.GetAppliedCounts(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
