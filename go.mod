@@ -13,10 +13,10 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/lib/pq v1.10.4
 	github.com/rs/xid v1.4.0
-	github.com/rs/zerolog v1.26.1
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
 	github.com/vektah/gqlparser/v2 v2.4.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
+	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
 	golang.org/x/text v0.3.7
 	gopkg.in/yaml.v2 v2.4.0
@@ -44,6 +44,8 @@ require (
 	github.com/urfave/cli/v2 v2.4.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86 // indirect
 	golang.org/x/tools v0.1.10 // indirect
