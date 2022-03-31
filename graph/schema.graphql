@@ -101,6 +101,7 @@ type Query {
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
+  getAppliedRecruitments: [Recruitment!]!
 
   # stock
   checkStocked(recruitmentId: String!): Boolean!
@@ -109,6 +110,10 @@ type Query {
   # tag
   getTags: [Tag!]!
   getRecruitmentTags(recruitmentId: String!): [Tag]!
+
+  # applicant
+  checkApplied(recruitmentId: String!): Boolean!
+  getAppliedCounts(recruitmentId: String!): Int!
 }
 
 input createUserInput {
