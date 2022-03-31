@@ -78,6 +78,7 @@ type Recruitment {
   prefecture: Prefecture
   user: User!
   tags: [Tag]!
+  applicant: Applicant
 }
 
 type Tag {
