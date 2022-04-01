@@ -114,7 +114,7 @@ func HashGenerate(password string) string {
 	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
-		logger.Log.Err(err)
+		logger.NewLogger().Error(err.Error())
 	}
 	return string(hash)
 }
@@ -138,7 +138,7 @@ func CreateToken(userID string) (string, error) {
 	}
 	tokenString, err := token.SignedString([]byte("secretKey"))
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return "", err
 	}
 	return tokenString, nil
@@ -180,7 +180,7 @@ func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (*model.U
 	SendVerifyEmail(emailToken)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("fail send email: ", err))
+		logger.NewLogger().Sugar().Errorf("fail send email: %s", err)
 		return nil, err
 	}
 
@@ -196,19 +196,19 @@ func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*m
 
 	fmt.Println(res)
 	if res == nil {
-		logger.Log.Error().Msg(fmt.Sprintln("not create user"))
+		logger.NewLogger().Error("not create user")
 		return nil, errors.New("ユーザーが見つかりませんでした")
 	}
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
+		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
 		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
 		return nil, errors.New("フォームに不備があります")
 	}
 
 	err = CheckPasswordHash(res.PasswordDigest, u.Password)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("password is incorrect: %s", err))
+		logger.NewLogger().Sugar().Errorf("password is incorrect: %s", err)
 		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
 		return nil, errors.New("フォームに不備があります")
 	}
@@ -218,7 +218,7 @@ func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*m
 		SetLastSignInAt(time.Now()).
 		Save(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
+		logger.NewLogger().Sugar().Errorf("user update error: %s", err)
 		return nil, err
 	}
 
@@ -243,7 +243,7 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	if token == "" {
 		w.Write([]byte("無効なURLです"))
-		logger.Log.Error().Msg("Invalid URL")
+		logger.NewLogger().Error("Invalid URL")
 		return
 	}
 
@@ -254,13 +254,13 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.Write([]byte("ユーザーが見つかりませんでした"))
-		logger.Log.Error().Msg(fmt.Sprintf("user not found: %s", err))
+		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
 		return
 	}
 
 	if time.Now().After(res.EmailVerificationTokenExpiresAt) {
 		w.Write([]byte("有効期限が切れています"))
-		logger.Log.Error().Msg("token expires at expired")
+		logger.NewLogger().Error("token expires at expired")
 		return
 	}
 
@@ -270,7 +270,7 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		SetEmailVerificationToken("").
 		Save(ctx)
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("user update error: %s", err))
+		logger.NewLogger().Sugar().Errorf("user update error: %s", err)
 		return
 	}
 

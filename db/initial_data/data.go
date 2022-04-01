@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/ent"
@@ -110,18 +109,18 @@ func main() {
 
 	err := InsertPrefectures(ctx, client)
 	if err != nil {
-		logger.Log.Fatal().Msg(fmt.Sprintln("error prefectures: ", err))
+		logger.NewLogger().Fatal(err.Error())
 	}
 
 	err = InsertCompetitions(ctx, client)
 	if err != nil {
-		logger.Log.Fatal().Msg(fmt.Sprintln("error competitions: ", err))
+		logger.NewLogger().Fatal(err.Error())
 	}
 
 	err = InsertTags(ctx, client)
 	if err != nil {
-		logger.Log.Fatal().Msg(fmt.Sprintln("error tags: ", err))
+		logger.NewLogger().Fatal(err.Error())
 	}
 
-	logger.Log.Info().Msg("create initial data!")
+	logger.NewLogger().Info("create initial data!")
 }

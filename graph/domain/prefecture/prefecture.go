@@ -19,7 +19,7 @@ func GetPrefectures(client ent.PrefectureClient, ctx context.Context) ([]*model.
 		All(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("get prefectures: ", err))
+		logger.NewLogger().Sugar().Errorf(fmt.Sprintln("get prefectures: ", err))
 		return prefectures, err
 	}
 

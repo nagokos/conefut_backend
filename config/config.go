@@ -9,10 +9,11 @@ import (
 )
 
 type ConfigList struct {
-	DbName  string `yaml:"name"`
-	Driver  string `yaml:"driver"`
-	Port    int    `yaml:"port"`
-	LogFile string `yaml:"log"`
+	DbName       string `yaml:"name"`
+	Driver       string `yaml:"driver"`
+	Port         int    `yaml:"port"`
+	LogFile      string `yaml:"log"`
+	LogErrorFile string `yaml:"errorLog"`
 }
 
 var Config ConfigList
@@ -28,9 +29,10 @@ func init() {
 	yaml.Unmarshal(b, &c)
 
 	Config = ConfigList{
-		DbName:  c["db"].DbName,
-		Driver:  c["db"].Driver,
-		Port:    c["web"].Port,
-		LogFile: c["web"].LogFile,
+		DbName:       c["db"].DbName,
+		Driver:       c["db"].Driver,
+		Port:         c["web"].Port,
+		LogFile:      c["web"].LogFile,
+		LogErrorFile: c["web"].LogErrorFile,
 	}
 }

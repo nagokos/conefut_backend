@@ -49,9 +49,9 @@ func main() {
 		})
 	})
 
-	logger.Log.Info().Msg(fmt.Sprintf("connect to http://localhost:%d/ for GraphQL playground", port))
+	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), r)
 	if err != nil {
-		logger.Log.Err(err)
+		logger.NewLogger().Error(err.Error())
 	}
 }

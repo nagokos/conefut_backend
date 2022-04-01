@@ -4,34 +4,84 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/nagokos/connefut_backend/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	sqldblogger "github.com/simukti/sqldb-logger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Logger struct{}
 
-var Log zerolog.Logger
-
-func init() {
-	logPath := config.Config.LogFile
-
-	logfile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Printf("file=logFile err=%s", err.Error())
+func NewLogger() *zap.Logger {
+	encoderConcoleConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "name",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	output := zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false, TimeFormat: "2006-01-02 15:04:05"}
-	multiLogFile := io.MultiWriter(output, logfile)
+	encoderLogConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "name",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = output.TimeFormat
+	path := config.Config.LogFile
+	errPath := config.Config.LogErrorFile
 
-	Log = zerolog.New(multiLogFile).With().Timestamp().Caller().Logger()
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		NewLogger().Error(err.Error())
+	}
+
+	errFile, err := os.OpenFile(errPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		NewLogger().Error(err.Error())
+	}
+
+	consoleCore := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderConcoleConfig),
+		zapcore.AddSync(os.Stdout),
+		zapcore.DebugLevel,
+	)
+
+	logCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderLogConfig),
+		zapcore.AddSync(file),
+		zapcore.DebugLevel,
+	)
+
+	errLogCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderLogConfig),
+		zapcore.AddSync(errFile),
+		zapcore.ErrorLevel,
+	)
+
+	logger := zap.New(
+		zapcore.NewTee(
+			consoleCore,
+			logCore,
+			errLogCore,
+		),
+		zap.AddCaller(),
+	)
+
+	return logger
 }
 
 func (l *Logger) Log(ctx context.Context, level sqldblogger.Level, msg string, data map[string]interface{}) {
@@ -42,8 +92,7 @@ func (l *Logger) Log(ctx context.Context, level sqldblogger.Level, msg string, d
 			fmt.Fprintf(w, "\t%s:%v", k, v)
 		}
 
-		fmt.Fprintf(w, "\x1b[49m")
-		Log.Error().Msg(w.String())
+		NewLogger().Error(w.String())
 	} else {
 		w := bytes.NewBufferString(fmt.Sprintf("%s:%v", level, msg))
 
@@ -51,7 +100,6 @@ func (l *Logger) Log(ctx context.Context, level sqldblogger.Level, msg string, d
 			fmt.Fprintf(w, "\t%s:%v", k, v)
 		}
 
-		fmt.Fprintf(w, "\x1b[49m")
-		Log.Debug().Msg(w.String())
+		NewLogger().Debug(w.String())
 	}
 }

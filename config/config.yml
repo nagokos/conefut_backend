@@ -4,3 +4,4 @@ db:
 web:
   port: 8080
   log: log/connefut.log
+  errorLog: log/error.log

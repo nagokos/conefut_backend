@@ -44,6 +44,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Applicant struct {
+		CreatedAt        func(childComplexity int) int
+		ManagementStatus func(childComplexity int) int
+	}
+
 	Competition struct {
 		ID   func(childComplexity int) int
 		Name func(childComplexity int) int
@@ -69,7 +74,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		CheckApplied               func(childComplexity int, recruitmentID string) int
 		CheckStocked               func(childComplexity int, recruitmentID string) int
+		GetAppliedCounts           func(childComplexity int, recruitmentID string) int
+		GetAppliedRecruitments     func(childComplexity int) int
 		GetCompetitions            func(childComplexity int) int
 		GetCurrentUser             func(childComplexity int) int
 		GetCurrentUserRecruitments func(childComplexity int) int
@@ -83,6 +91,7 @@ type ComplexityRoot struct {
 	}
 
 	Recruitment struct {
+		Applicant   func(childComplexity int) int
 		Capacity    func(childComplexity int) int
 		ClosingAt   func(childComplexity int) int
 		Competition func(childComplexity int) int
@@ -138,10 +147,13 @@ type QueryResolver interface {
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
 	GetTags(ctx context.Context) ([]*model.Tag, error)
 	GetRecruitmentTags(ctx context.Context, recruitmentID string) ([]*model.Tag, error)
+	CheckApplied(ctx context.Context, recruitmentID string) (bool, error)
+	GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error)
 }
 
 type executableSchema struct {
@@ -158,6 +170,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Applicant.createdAt":
+		if e.complexity.Applicant.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Applicant.CreatedAt(childComplexity), true
+
+	case "Applicant.managementStatus":
+		if e.complexity.Applicant.ManagementStatus == nil {
+			break
+		}
+
+		return e.complexity.Applicant.ManagementStatus(childComplexity), true
 
 	case "Competition.id":
 		if e.complexity.Competition.ID == nil {
@@ -314,6 +340,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Prefecture.Name(childComplexity), true
 
+	case "Query.checkApplied":
+		if e.complexity.Query.CheckApplied == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkApplied_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CheckApplied(childComplexity, args["recruitmentId"].(string)), true
+
 	case "Query.checkStocked":
 		if e.complexity.Query.CheckStocked == nil {
 			break
@@ -325,6 +363,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CheckStocked(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Query.getAppliedCounts":
+		if e.complexity.Query.GetAppliedCounts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getAppliedCounts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAppliedCounts(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Query.getAppliedRecruitments":
+		if e.complexity.Query.GetAppliedRecruitments == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAppliedRecruitments(childComplexity), true
 
 	case "Query.getCompetitions":
 		if e.complexity.Query.GetCompetitions == nil {
@@ -410,6 +467,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetTags(childComplexity), true
+
+	case "Recruitment.applicant":
+		if e.complexity.Recruitment.Applicant == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.Applicant(childComplexity), true
 
 	case "Recruitment.capacity":
 		if e.complexity.Recruitment.Capacity == nil {
@@ -661,6 +725,13 @@ enum Role {
   GENERAL
 }
 
+enum ManagementStatus {
+  UNNECESSARY
+  BACKLOG
+  ACCEPTED
+  REJECTED
+}
+
 enum EmailVerificationStatus {
   PENDING
   VERIFIED
@@ -696,6 +767,11 @@ type Prefecture {
   name: String!
 }
 
+type Applicant {
+  managementStatus: ManagementStatus!
+  createdAt: DateTime!
+}
+
 type Competition {
   id: String!
   name: String!
@@ -718,6 +794,7 @@ type Recruitment {
   prefecture: Prefecture
   user: User!
   tags: [Tag]!
+  applicant: Applicant
 }
 
 type Tag {
@@ -740,6 +817,7 @@ type Query {
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
+  getAppliedRecruitments: [Recruitment!]!
 
   # stock
   checkStocked(recruitmentId: String!): Boolean!
@@ -748,6 +826,10 @@ type Query {
   # tag
   getTags: [Tag!]!
   getRecruitmentTags(recruitmentId: String!): [Tag]!
+
+  # applicant
+  checkApplied(recruitmentId: String!): Boolean!
+  getAppliedCounts(recruitmentId: String!): Int!
 }
 
 input createUserInput {
@@ -787,6 +869,7 @@ input createTagInput {
 }
 
 input applicantInput {
+  managementStatus: ManagementStatus!
   content: String!
 }
 
@@ -1014,7 +1097,37 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_checkApplied_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_checkStocked_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getAppliedCounts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1111,6 +1224,76 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Applicant_managementStatus(ctx context.Context, field graphql.CollectedField, obj *model.Applicant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Applicant",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManagementStatus, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ManagementStatus)
+	fc.Result = res
+	return ec.marshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Applicant_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Applicant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Applicant",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Competition_id(ctx context.Context, field graphql.CollectedField, obj *model.Competition) (ret graphql.Marshaler) {
 	defer func() {
@@ -1956,6 +2139,41 @@ func (ec *executionContext) _Query_getStockedRecruitments(ctx context.Context, f
 	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getAppliedRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAppliedRecruitments(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Recruitment)
+	fc.Result = res
+	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2115,6 +2333,90 @@ func (ec *executionContext) _Query_getRecruitmentTags(ctx context.Context, field
 	res := resTmp.([]*model.Tag)
 	fc.Result = res
 	return ec.marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_checkApplied(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_checkApplied_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckApplied(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getAppliedCounts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getAppliedCounts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAppliedCounts(rctx, args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2719,6 +3021,38 @@ func (ec *executionContext) _Recruitment_tags(ctx context.Context, field graphql
 	res := resTmp.([]*model.Tag)
 	fc.Result = res
 	return ec.marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Recruitment_applicant(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Recruitment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Applicant, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Applicant)
+	fc.Result = res
+	return ec.marshalOApplicant2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐApplicant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
@@ -4228,6 +4562,14 @@ func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, ob
 
 	for k, v := range asMap {
 		switch k {
+		case "managementStatus":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("managementStatus"))
+			it.ManagementStatus, err = ec.unmarshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "content":
 			var err error
 
@@ -4492,6 +4834,47 @@ func (ec *executionContext) unmarshalInputrecruitmentTagInput(ctx context.Contex
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var applicantImplementors = []string{"Applicant"}
+
+func (ec *executionContext) _Applicant(ctx context.Context, sel ast.SelectionSet, obj *model.Applicant) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, applicantImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Applicant")
+		case "managementStatus":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Applicant_managementStatus(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createdAt":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Applicant_createdAt(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var competitionImplementors = []string{"Competition"}
 
@@ -4892,6 +5275,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "getAppliedRecruitments":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAppliedRecruitments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "checkStocked":
 			field := field
 
@@ -4971,6 +5377,52 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getRecruitmentTags(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "checkApplied":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkApplied(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getAppliedCounts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAppliedCounts(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5152,6 +5604,13 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "applicant":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Recruitment_applicant(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5824,6 +6283,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) unmarshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx context.Context, v interface{}) (model.ManagementStatus, error) {
+	var res model.ManagementStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx context.Context, sel ast.SelectionSet, v model.ManagementStatus) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Prefecture) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -6379,6 +6848,13 @@ func (ec *executionContext) unmarshalNrecruitmentTagInput2ᚕᚖgithubᚗcomᚋn
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) marshalOApplicant2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐApplicant(ctx context.Context, sel ast.SelectionSet, v *model.Applicant) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Applicant(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

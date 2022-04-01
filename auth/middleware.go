@@ -58,12 +58,12 @@ func ForContext(ctx context.Context) *model.User {
 
 func validateAndGetUserID(c *http.Cookie) (userID string, err error) {
 	if time.Now().Before(c.Expires) {
-		logger.Log.Error().Msg("expired...")
+		logger.NewLogger().Error("expired...")
 		return
 	}
 
 	if c.Value == "" {
-		logger.Log.Error().Msg("jwt emypty!")
+		logger.NewLogger().Error("jwt empty!")
 		return
 	}
 
@@ -72,7 +72,7 @@ func validateAndGetUserID(c *http.Cookie) (userID string, err error) {
 	})
 
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return
 	}
 
@@ -80,7 +80,7 @@ func validateAndGetUserID(c *http.Cookie) (userID string, err error) {
 
 	userID = claims["user_id"].(string)
 	if userID == "" {
-		logger.Log.Error().Msg("user_id not found")
+		logger.NewLogger().Error("user_id not found")
 		return
 	}
 

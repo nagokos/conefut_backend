@@ -11,6 +11,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/domain/applicant"
 	"github.com/nagokos/connefut_backend/graph/domain/competition"
 	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
 	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
@@ -35,7 +36,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 	fmt.Println(err)
 
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
 		fmt.Println(errs)
@@ -67,7 +68,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 
 	err := u.AuthenticateUserValidate()
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -95,6 +96,12 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 }
 
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+	if model.Status(input.Status) == model.StatusPublished &&
+		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
+	}
+
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -113,7 +120,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 
 	err := rm.RecruitmentValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("recruitment validation errors:", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors:", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -131,6 +138,12 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 }
 
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+	if model.Status(input.Status) == model.StatusPublished &&
+		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
+	}
+
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -149,7 +162,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 
 	err := rm.RecruitmentValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -160,7 +173,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 
 	res, err := rm.UpdateRecruitment(ctx, *r.client, id)
 	if err != nil {
-		logger.Log.Error().Msg(err.Error())
+		logger.NewLogger().Error(err.Error())
 		return res, err
 	}
 
@@ -198,7 +211,7 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 
 	err := tag.CreateTagValidate()
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintf("recruitment validation errors %s", err.Error()))
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
 		errs := err.(validation.Errors)
 
 		for k, errMessage := range errs {
@@ -217,6 +230,20 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 
 func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (bool, error) {
+	currentUser := auth.ForContext(ctx)
+	if currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		return false, errors.New("メールアドレスを認証してください")
+	}
+
+	res, err := applicant.CreateApplicant(ctx, *r.client, recruitmentID, input.ManagementStatus)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
@@ -278,6 +305,15 @@ func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Re
 	return res, err
 }
 
+func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+	res, err := recruitment.GetAppliedRecruitments(ctx, *r.client)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
+}
+
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
 	res, err := stock.CheckStocked(ctx, *r.client, recruitmentID)
 	if err != nil {
@@ -308,6 +344,23 @@ func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID st
 		return res, err
 	}
 	return res, err
+}
+
+func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
+	res, err := applicant.CheckApplied(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return false, err
+	}
+	return res, err
+}
+
+func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error) {
+	res, err := applicant.GetAppliedCounts(ctx, *r.client, recruitmentID)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

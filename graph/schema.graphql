@@ -9,6 +9,13 @@ enum Role {
   GENERAL
 }
 
+enum ManagementStatus {
+  UNNECESSARY
+  BACKLOG
+  ACCEPTED
+  REJECTED
+}
+
 enum EmailVerificationStatus {
   PENDING
   VERIFIED
@@ -44,6 +51,11 @@ type Prefecture {
   name: String!
 }
 
+type Applicant {
+  managementStatus: ManagementStatus!
+  createdAt: DateTime!
+}
+
 type Competition {
   id: String!
   name: String!
@@ -66,6 +78,7 @@ type Recruitment {
   prefecture: Prefecture
   user: User!
   tags: [Tag]!
+  applicant: Applicant
 }
 
 type Tag {
@@ -88,6 +101,7 @@ type Query {
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
+  getAppliedRecruitments: [Recruitment!]!
 
   # stock
   checkStocked(recruitmentId: String!): Boolean!
@@ -96,6 +110,10 @@ type Query {
   # tag
   getTags: [Tag!]!
   getRecruitmentTags(recruitmentId: String!): [Tag]!
+
+  # applicant
+  checkApplied(recruitmentId: String!): Boolean!
+  getAppliedCounts(recruitmentId: String!): Int!
 }
 
 input createUserInput {
@@ -135,6 +153,7 @@ input createTagInput {
 }
 
 input applicantInput {
+  managementStatus: ManagementStatus!
   content: String!
 }
 

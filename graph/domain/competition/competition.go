@@ -2,7 +2,6 @@ package competition
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/competition"
@@ -17,7 +16,7 @@ func GetCompetitions(ctx context.Context, client *ent.CompetitionClient) ([]*mod
 		All(ctx)
 
 	if err != nil {
-		logger.Log.Error().Msg(fmt.Sprintln("get competitions error:", err.Error()))
+		logger.NewLogger().Sugar().Errorf("get competitions error:", err.Error())
 		return nil, err
 	}
 
