@@ -13,7 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph"
-	"github.com/nagokos/connefut_backend/graph/domain/user"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -24,7 +24,7 @@ func init() {
 func main() {
 	port := config.Config.Port
 
-	client := db.DatabaseConnection()
+	client, dbConnection := db.DatabaseConnection()
 	defer client.Close()
 
 	r := chi.NewRouter()
@@ -33,11 +33,11 @@ func main() {
 			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
 			AllowCredentials: true,
 		}),
-		auth.Middleware(client),
+		auth.Middleware(dbConnection),
 		auth.CookieMiddleWare(),
 	)
 
-	srv := handler.NewDefaultServer(graph.NewSchema(client))
+	srv := handler.NewDefaultServer(graph.NewSchema(client, dbConnection))
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", srv)
