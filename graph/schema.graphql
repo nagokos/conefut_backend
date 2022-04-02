@@ -159,8 +159,8 @@ input applicantInput {
 
 type Mutation {
   # user
-  createUser(input: createUserInput!): User!
-  loginUser(input: loginUserInput!): User!
+  createUser(input: createUserInput!): Boolean!
+  loginUser(input: loginUserInput!): Boolean!
   logoutUser: Boolean!
 
   # recruitment
