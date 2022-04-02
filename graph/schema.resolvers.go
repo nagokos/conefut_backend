@@ -11,20 +11,20 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
-	"github.com/nagokos/connefut_backend/graph/domain/applicant"
-	"github.com/nagokos/connefut_backend/graph/domain/competition"
-	"github.com/nagokos/connefut_backend/graph/domain/prefecture"
-	"github.com/nagokos/connefut_backend/graph/domain/recruitment"
-	"github.com/nagokos/connefut_backend/graph/domain/stock"
-	"github.com/nagokos/connefut_backend/graph/domain/tag"
-	"github.com/nagokos/connefut_backend/graph/domain/user"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/applicant"
+	"github.com/nagokos/connefut_backend/graph/models/competition"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
+	"github.com/nagokos/connefut_backend/graph/models/recruitment"
+	"github.com/nagokos/connefut_backend/graph/models/stock"
+	"github.com/nagokos/connefut_backend/graph/models/tag"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (bool, error) {
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
@@ -33,34 +33,30 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 
 	err := u.CreateUserValidate()
 
-	fmt.Println(err)
-
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
-
-		fmt.Println(errs)
 
 		for k, errMessage := range errs {
 			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return nil, errors.New("フォームに不備があります")
+		return false, errors.New("フォームに不備があります")
 	}
 
-	res, err := u.CreateUser(r.client.User, ctx)
+	userID, err := u.Insert(r.dbConnection)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	token, _ := user.CreateToken(res.ID)
+	token, _ := user.CreateToken(userID)
 
 	auth.SetAuthCookie(ctx, token)
 
-	return res, nil
+	return true, nil
 }
 
-func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error) {
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (bool, error) {
 	u := user.User{
 		Email:    input.Email,
 		Password: input.Password,
@@ -75,19 +71,19 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return nil, errors.New("フォームに不備があります")
+		return false, errors.New("フォームに不備があります")
 	}
 
-	res, err := u.AuthenticateUser(r.client.User, ctx)
+	userID, err := u.Authenticate(r.dbConnection, ctx)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	token, _ := user.CreateToken(res.ID)
+	token, _ := user.CreateToken(userID)
 
 	auth.SetAuthCookie(ctx, token)
 
-	return res, nil
+	return true, nil
 }
 
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
@@ -189,7 +185,7 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bo
 }
 
 func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.CreateStock(ctx, *r.client, recruitmentID)
+	_, err := stock.CreateStock(ctx, r.dbConnection, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -197,7 +193,7 @@ func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string
 }
 
 func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.DeleteStock(ctx, *r.client, recruitmentID)
+	_, err := stock.DeleteStock(ctx, *r.dbConnection, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -220,7 +216,7 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 		return nil, errors.New("タグの作成に失敗しました")
 	}
 
-	res, err := tag.CreateTag(ctx, r.client)
+	res, err := tag.CreateTag(r.dbConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +327,7 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 }
 
 func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
-	res, err := tag.GetTags(ctx, r.client)
+	res, err := tag.GetTags(r.dbConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +335,7 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 }
 
 func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID string) ([]*model.Tag, error) {
-	res, err := tag.GetRecruitmentTags(ctx, r.client, recruitmentID)
+	res, err := tag.GetRecruitmentTags(r.dbConnection, recruitmentID)
 	if err != nil {
 		return res, err
 	}
