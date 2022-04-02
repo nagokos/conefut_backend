@@ -102,7 +102,7 @@ func InsertTags(ctx context.Context, client *ent.Client) error {
 }
 
 func main() {
-	client := db.DatabaseConnection()
+	client, _ := db.DatabaseConnection()
 	defer client.Close()
 
 	ctx := context.Background()

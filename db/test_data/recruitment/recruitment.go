@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	client := db.DatabaseConnection()
+	client, _ := db.DatabaseConnection()
 	defer client.Close()
 
 	ctx := context.Background()

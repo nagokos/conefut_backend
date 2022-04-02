@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"crypto/md5"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,11 +18,11 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/nagokos/connefut_backend/db"
-	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
+	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -47,19 +48,23 @@ func checkExistsEmail() validation.RuleFunc {
 	return func(v interface{}) error {
 		var err error
 
-		s := v.(string)
-		ctx := context.Background()
-		client := db.DatabaseConnection()
+		email := v.(string)
+		_, dbConnection := db.DatabaseConnection()
 
-		res, _ := client.User.
-			Query().
-			Where(user.Email(s)).
-			Exist(ctx)
+		cmd := fmt.Sprintf("SELECT COUNT(DISTINCT id) FROM %s WHERE email = $1", db.UserTable)
+		row := dbConnection.QueryRow(cmd, email)
 
-		if res {
-			err = errors.New("このメールアドレスは既に使用されています")
-		} else {
-			err = nil
+		var count int
+		err = row.Scan(&count)
+
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return err
+		}
+
+		if count == 1 {
+			logger.NewLogger().Error("This email address is already exists")
+			err = errors.New("このメールアドレスは既に存在します")
 		}
 
 		return err
@@ -131,16 +136,18 @@ func (u *User) GenerateEmailVerificationToken() string {
 }
 
 func CreateToken(userID string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	token.Claims = jwt.MapClaims{
+	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
 	tokenString, err := token.SignedString([]byte("secretKey"))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return "", err
 	}
+
 	return tokenString, nil
 }
 
@@ -154,88 +161,73 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) CreateUser(client *ent.UserClient, ctx context.Context) (*model.User, error) {
+func (u *User) Insert(dbConnection *sql.DB) (string, error) {
+	var ID string
+
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
-	res, err := client.
-		Create().
-		SetName(u.Name).
-		SetEmail(u.Email).
-		SetPasswordDigest(pwdHash).
-		SetEmailVerificationToken(emailToken).
-		SetEmailVerificationTokenExpiresAt(tokenExpiresAt).
-		SetLastSignInAt(time.Now()).
-		Save(ctx)
+	cmd := fmt.Sprintf(`
+		INSERT INTO %s 
+			( id, name, email, password_digest, email_verification_token, 
+				email_verification_token_expires_at, last_sign_in_at, created_at, updated_at
+			) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+		RETURNING id`, db.UserTable,
+	)
 
-	resUser = model.User{
-		ID:                      res.ID,
-		Name:                    res.Name,
-		Email:                   res.Email,
-		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
+	row := dbConnection.QueryRow(
+		cmd,
+		xid.New().String(), u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
+	)
+
+	err := row.Scan(&ID)
+
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return ID, err
 	}
 
 	// 本番環境と開発環境では違う
-	SendVerifyEmail(emailToken)
+	err = SendVerifyEmail(emailToken)
 
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("fail send email: %s", err)
-		return nil, err
+		return ID, err
 	}
 
-	return &resUser, nil
+	return ID, nil
 }
 
-func (u *User) AuthenticateUser(client *ent.UserClient, ctx context.Context) (*model.User, error) {
+func (u *User) Authenticate(dbConnection *sql.DB, ctx context.Context) (string, error) {
+	var ID string
+	var passwordDigest string
 
-	res, err := client.
-		Query().
-		Where(user.Email(u.Email)).
-		Only(ctx)
+	cmd := fmt.Sprintf("SELECT id, password_digest FROM %s WHERE email = $1", db.UserTable)
+	row := dbConnection.QueryRow(cmd, u.Email)
 
-	fmt.Println(res)
-	if res == nil {
-		logger.NewLogger().Error("not create user")
-		return nil, errors.New("ユーザーが見つかりませんでした")
-	}
+	err := row.Scan(&ID, &passwordDigest)
 
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
 		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
-		return nil, errors.New("フォームに不備があります")
+		return ID, errors.New("フォームに不備があります")
 	}
 
-	err = CheckPasswordHash(res.PasswordDigest, u.Password)
+	err = CheckPasswordHash(passwordDigest, u.Password)
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("password is incorrect: %s", err)
 		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
-		return nil, errors.New("フォームに不備があります")
+		return ID, errors.New("フォームに不備があります")
 	}
 
-	res, err = client.
-		UpdateOneID(res.ID).
-		SetLastSignInAt(time.Now()).
-		Save(ctx)
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("user update error: %s", err)
-		return nil, err
-	}
-
-	resUser = model.User{
-		ID:                      res.ID,
-		Name:                    res.Name,
-		Avatar:                  res.Avatar,
-		Email:                   res.Email,
-		EmailVerificationStatus: model.EmailVerificationStatus(res.EmailVerificationStatus),
-	}
-
-	return &resUser, nil
+	return ID, nil
 }
 
 // ** メール認証 **
 func EmailVerification(w http.ResponseWriter, r *http.Request) {
-	client := db.DatabaseConnection()
+	client, _ := db.DatabaseConnection()
 	defer client.Close()
 
 	ctx := context.Background()

@@ -2,14 +2,16 @@ package auth
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/nagokos/connefut_backend/ent"
-	"github.com/nagokos/connefut_backend/graph/domain/user"
+	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -20,7 +22,7 @@ type contextKey struct {
 	name string
 }
 
-func Middleware(db *ent.Client) func(http.Handler) http.Handler {
+func Middleware(dbConnection *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c, err := r.Cookie("jwt")
@@ -36,7 +38,7 @@ func Middleware(db *ent.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			user, err := getUserByID(db, userId)
+			user, err := getUserByID(dbConnection, userId)
 			if err != nil {
 				http.Error(w, "user not found", http.StatusForbidden)
 				next.ServeHTTP(w, r)
@@ -56,15 +58,15 @@ func ForContext(ctx context.Context) *model.User {
 	return raw
 }
 
-func validateAndGetUserID(c *http.Cookie) (userID string, err error) {
+func validateAndGetUserID(c *http.Cookie) (string, error) {
 	if time.Now().Before(c.Expires) {
 		logger.NewLogger().Error("expired...")
-		return
+		return "", nil
 	}
 
 	if c.Value == "" {
 		logger.NewLogger().Error("jwt empty!")
-		return
+		return "", nil
 	}
 
 	token, err := jwt.Parse(c.Value, func(t *jwt.Token) (interface{}, error) {
@@ -73,33 +75,36 @@ func validateAndGetUserID(c *http.Cookie) (userID string, err error) {
 
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return
+		return "", err
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		logger.NewLogger().Error("Couldt't parse claims")
+		return "", errors.New("Couldt't parse claims")
+	}
 
-	userID = claims["user_id"].(string)
+	userID := claims["user_id"].(string)
 	if userID == "" {
 		logger.NewLogger().Error("user_id not found")
-		return
+		return "", errors.New("user_id not found")
 	}
 
 	return userID, nil
 }
 
-func getUserByID(db *ent.Client, id string) (*model.User, error) {
-	ctx := context.Background()
-	res, err := db.User.Get(ctx, id)
-	user := &model.User{
-		ID:                      res.ID,
-		Name:                    res.Name,
-		Email:                   res.Email,
-		Role:                    model.Role(res.Role),
-		Avatar:                  res.Avatar,
-		Introduction:            &res.Introduction,
-		EmailVerificationStatus: model.EmailVerificationStatus(strings.ToUpper(string(res.EmailVerificationStatus))),
+func getUserByID(dbConnection *sql.DB, ID string) (*model.User, error) {
+	var u model.User
+
+	cmd := fmt.Sprintf("SELECT id, name, email, role, avatar, introduction, email_verification_status FROM %s WHERE id = $1", db.UserTable)
+	row := dbConnection.QueryRow(cmd, ID)
+	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Avatar, &u.Introduction, &u.EmailVerificationStatus)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
-	return user, err
+
+	return &u, nil
 }
 
 func CookieMiddleWare() func(http.Handler) http.Handler {

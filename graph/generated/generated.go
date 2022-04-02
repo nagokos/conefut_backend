@@ -127,8 +127,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error)
-	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error)
+	CreateUser(ctx context.Context, input model.CreateUserInput) (bool, error)
+	LoginUser(ctx context.Context, input model.LoginUserInput) (bool, error)
 	LogoutUser(ctx context.Context) (bool, error)
 	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error)
 	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
@@ -875,8 +875,8 @@ input applicantInput {
 
 type Mutation {
   # user
-  createUser(input: createUserInput!): User!
-  loginUser(input: loginUserInput!): User!
+  createUser(input: createUserInput!): Boolean!
+  loginUser(input: loginUserInput!): Boolean!
   logoutUser: Boolean!
 
   # recruitment
@@ -1402,9 +1402,9 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_loginUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1444,9 +1444,9 @@ func (ec *executionContext) _Mutation_loginUser(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_logoutUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6544,10 +6544,6 @@ func (ec *executionContext) unmarshalNType2githubᚗcomᚋnagokosᚋconnefut_bac
 
 func (ec *executionContext) marshalNType2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐType(ctx context.Context, sel ast.SelectionSet, v model.Type) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) marshalNUser2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
-	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

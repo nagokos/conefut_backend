@@ -40,11 +40,6 @@ generate:
 	${DC_WEB} go generate ./...
 
 # ** DB関係 **
-init_schema: schema_name
-	${DC_WEB} go get -d entgo.io/ent/cmd/internal/printer@v0.9.2-0.20210821141344-368a8f7a2e9a && \
-	          go get -d entgo.io/ent/cmd/ent@v0.9.2-0.20210821141344-368a8f7a2e9a && \
-	          go run entgo.io/ent/cmd/ent init ${SCHEMA_NAME} 
-
 install_migrate:
 	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
@@ -52,11 +47,6 @@ install_migrate:
 # SEQ_NAMEはcreate_users_tableの部分
 init_migration: seq_name
 	${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
-
-# SQLのみを発行
-# make generate後に使用
-sql_migration:
-	${DC_WEB} go run db/migrations/migrate.go
 
 # データベースに反映
 migrate_up:
