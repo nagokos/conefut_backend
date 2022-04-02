@@ -11,7 +11,18 @@ import (
 	sqldblogger "github.com/simukti/sqldb-logger"
 )
 
-func DatabaseConnection() *ent.Client {
+const (
+	ApplicantTable       = "applicants"
+	CompetitionTable     = "competitions"
+	PrefectureTable      = "prefectures"
+	RecruitmentTable     = "recruitments"
+	RecruitmentTagsTable = "recruitment_tags"
+	StockTable           = "stocks"
+	TagTable             = "tags"
+	UserTable            = "users"
+)
+
+func DatabaseConnection() (*ent.Client, *sql.DB) {
 	client, err := sql.Open("postgres", "host=db dbname=connefut_db port=5432 user=root password=password sslmode=disable")
 
 	if err != nil {
@@ -30,5 +41,5 @@ func DatabaseConnection() *ent.Client {
 	)
 
 	drv := entsql.OpenDB(dialect.Postgres, db)
-	return ent.NewClient(ent.Driver(drv))
+	return ent.NewClient(ent.Driver(drv)), db
 }
