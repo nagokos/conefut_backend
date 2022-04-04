@@ -3,8 +3,6 @@ module github.com/nagokos/connefut_backend
 go 1.18
 
 require (
-	entgo.io/contrib v0.2.0
-	entgo.io/ent v0.10.1
 	github.com/99designs/gqlgen v0.17.2
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
