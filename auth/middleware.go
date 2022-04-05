@@ -4,12 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
@@ -96,7 +95,7 @@ func validateAndGetUserID(c *http.Cookie) (string, error) {
 func getUserByID(dbConnection *sql.DB, ID string) (*model.User, error) {
 	var u model.User
 
-	cmd := fmt.Sprintf("SELECT id, name, email, role, avatar, introduction, email_verification_status FROM %s WHERE id = $1", db.UserTable)
+	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 	row := dbConnection.QueryRow(cmd, ID)
 	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Avatar, &u.Introduction, &u.EmailVerificationStatus)
 	if err != nil {
