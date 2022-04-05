@@ -35,7 +35,6 @@ start_server:
 mod_tidy:
 	${DC_WEB} go mod tidy
 
-# entとgqlgenの両方更新される
 generate:
 	${DC_WEB} go generate ./...
 
