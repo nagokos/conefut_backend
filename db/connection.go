@@ -30,6 +30,5 @@ func DatabaseConnection() *sql.DB {
 		sqldblogger.WithExecerLevel(sqldblogger.LevelDebug),
 	)
 
-	drv := entsql.OpenDB(dialect.Postgres, db)
-	return ent.NewClient(ent.Driver(drv)), db
+	return db
 }
