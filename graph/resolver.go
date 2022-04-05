@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/nagokos/connefut_backend/ent"
 	"github.com/nagokos/connefut_backend/graph/generated"
 )
 
@@ -14,12 +13,11 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	client       *ent.Client
 	dbConnection *sql.DB
 }
 
-func NewSchema(client *ent.Client, db *sql.DB) graphql.ExecutableSchema {
+func NewSchema(db *sql.DB) graphql.ExecutableSchema {
 	return generated.NewExecutableSchema(generated.Config{
-		Resolvers: &Resolver{client, db},
+		Resolvers: &Resolver{db},
 	})
 }
