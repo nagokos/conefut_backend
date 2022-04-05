@@ -1,10 +1,8 @@
 package competition
 
 import (
-	"context"
+	"database/sql"
 
-	"github.com/nagokos/connefut_backend/ent"
-	"github.com/nagokos/connefut_backend/ent/competition"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
