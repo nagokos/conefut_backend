@@ -3,7 +3,6 @@ package tag
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -23,9 +22,9 @@ func existsTag() validation.RuleFunc {
 
 		s := v.(string)
 		lower := strings.ToLower(s)
-		_, dbConnection := db.DatabaseConnection()
+		dbConnection := db.DatabaseConnection()
 
-		cmd := fmt.Sprintf("SELECT COUNT(DISTINCT id) FROM %s WHERE name = $1", db.TagTable)
+		cmd := "SELECT COUNT(DISTINCT id) FROM tags WHERE name = $1"
 		row := dbConnection.QueryRow(cmd, lower)
 
 		var count int
@@ -58,7 +57,7 @@ func (t Tag) CreateTagValidate() error {
 func GetTags(dbConnection *sql.DB) ([]*model.Tag, error) {
 	var tags []*model.Tag
 
-	cmd := fmt.Sprintf("SELECT id, name FROM %s", db.TagTable)
+	cmd := "SELECT id, name FROM tags"
 	rows, err := dbConnection.Query(cmd)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -87,13 +86,13 @@ func GetTags(dbConnection *sql.DB) ([]*model.Tag, error) {
 func GetRecruitmentTags(dbConnection *sql.DB, recId string) ([]*model.Tag, error) {
 	var tags []*model.Tag
 
-	cmd := fmt.Sprintf(`
+	cmd := `
 	  SELECT tags.id, tags.name 
-		FROM %s
-		  INNER JOIN %s
+		FROM tags
+		  INNER JOIN recruitment_tags
 			  ON tags.id = recruitment_tags.tag_id
 		WHERE recruitment_tags.recruitment_id = $1
-	`, db.TagTable, db.RecruitmentTagsTable)
+	`
 
 	rows, err := dbConnection.Query(cmd, recId)
 	if err != nil {
@@ -124,7 +123,7 @@ func (t *Tag) CreateTag(dbConnection *sql.DB) (*model.Tag, error) {
 	lower := strings.ToLower(t.Name)
 	timeNow := time.Now().Local()
 
-	cmd := fmt.Sprintf("INSERT INTO %s (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name", db.TagTable)
+	cmd := "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
 	row := dbConnection.QueryRow(cmd, xid.New().String(), lower, timeNow, timeNow)
 
 	var tag model.Tag

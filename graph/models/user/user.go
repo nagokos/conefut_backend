@@ -18,7 +18,6 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/nagokos/connefut_backend/db"
-	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
@@ -49,9 +48,9 @@ func checkExistsEmail() validation.RuleFunc {
 		var err error
 
 		email := v.(string)
-		_, dbConnection := db.DatabaseConnection()
+		dbConnection := db.DatabaseConnection()
 
-		cmd := fmt.Sprintf("SELECT COUNT(DISTINCT id) FROM %s WHERE email = $1", db.UserTable)
+		cmd := "SELECT COUNT(DISTINCT id) FROM users WHERE email = $1"
 		row := dbConnection.QueryRow(cmd, email)
 
 		var count int
@@ -168,14 +167,14 @@ func (u *User) Insert(dbConnection *sql.DB) (string, error) {
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
-	cmd := fmt.Sprintf(`
-		INSERT INTO %s 
+	cmd := `
+		INSERT INTO users
 			( id, name, email, password_digest, email_verification_token, 
 				email_verification_token_expires_at, last_sign_in_at, created_at, updated_at
 			) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-		RETURNING id`, db.UserTable,
-	)
+		RETURNING id
+		`
 
 	row := dbConnection.QueryRow(
 		cmd,
@@ -204,7 +203,7 @@ func (u *User) Authenticate(dbConnection *sql.DB, ctx context.Context) (string, 
 	var ID string
 	var passwordDigest string
 
-	cmd := fmt.Sprintf("SELECT id, password_digest FROM %s WHERE email = $1", db.UserTable)
+	cmd := "SELECT id, password_digest FROM users WHERE email = $1"
 	row := dbConnection.QueryRow(cmd, u.Email)
 
 	err := row.Scan(&ID, &passwordDigest)
@@ -227,10 +226,8 @@ func (u *User) Authenticate(dbConnection *sql.DB, ctx context.Context) (string, 
 
 // ** メール認証 **
 func EmailVerification(w http.ResponseWriter, r *http.Request) {
-	client, _ := db.DatabaseConnection()
-	defer client.Close()
-
-	ctx := context.Background()
+	dbConnection := db.DatabaseConnection()
+	defer dbConnection.Close()
 
 	token := chi.URLParam(r, "token")
 	if token == "" {
@@ -239,10 +236,12 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := client.User.
-		Query().
-		Where(user.EmailVerificationToken(token)).
-		Only(ctx)
+	cmd := "SELECT id, email_verification_token_expires_at FROM users WHERE email_verification_token = $1"
+	row := dbConnection.QueryRow(cmd, token)
+
+	var ID string
+	var tokenExpiresAt time.Time
+	err := row.Scan(&ID, &tokenExpiresAt)
 
 	if err != nil {
 		w.Write([]byte("ユーザーが見つかりませんでした"))
@@ -250,23 +249,25 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if time.Now().After(res.EmailVerificationTokenExpiresAt) {
+	if time.Now().After(tokenExpiresAt) {
 		w.Write([]byte("有効期限が切れています"))
 		logger.NewLogger().Error("token expires at expired")
 		return
 	}
 
-	res, err = client.User.
-		UpdateOneID(res.ID).
-		SetEmailVerificationStatus(user.EmailVerificationStatusVerified).
-		SetEmailVerificationToken("").
-		Save(ctx)
+	cmd = "UPDATE users SET email_verification_status = "
+
+	// res, err = client.User.
+	// 	UpdateOneID(res.ID).
+	// 	SetEmailVerificationStatus(user.EmailVerificationStatusVerified).
+	// 	SetEmailVerificationToken("").
+	// 	Save(ctx)
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("user update error: %s", err)
 		return
 	}
 
-	jwt, _ := CreateToken(res.ID)
+	jwt, _ := CreateToken(ID)
 	cookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    jwt,

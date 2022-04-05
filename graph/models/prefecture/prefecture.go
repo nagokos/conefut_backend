@@ -1,33 +1,36 @@
 package prefecture
 
 import (
-	"context"
-	"fmt"
+	"database/sql"
 
-	"github.com/nagokos/connefut_backend/ent"
-	"github.com/nagokos/connefut_backend/ent/prefecture"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func GetPrefectures(client ent.PrefectureClient, ctx context.Context) ([]*model.Prefecture, error) {
+func GetPrefectures(dbConnection *sql.DB) ([]*model.Prefecture, error) {
 	var prefectures []*model.Prefecture
 
-	res, err := client.
-		Query().
-		Order(ent.Asc(prefecture.FieldID)).
-		All(ctx)
-
+	cmd := "SELECT id, name FROM prefectures"
+	rows, err := dbConnection.Query(cmd)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf(fmt.Sprintln("get prefectures: ", err))
-		return prefectures, err
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var prefecture model.Prefecture
+		err := rows.Scan(&prefecture.ID, &prefecture.Name)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		prefectures = append(prefectures, &prefecture)
 	}
 
-	for _, prefecture := range res {
-		prefectures = append(prefectures, &model.Prefecture{
-			ID:   prefecture.ID,
-			Name: prefecture.Name,
-		})
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
 
 	return prefectures, nil

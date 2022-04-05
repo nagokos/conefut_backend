@@ -2,22 +2,16 @@ package recruitment
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
-	"github.com/nagokos/connefut_backend/ent"
-	"github.com/nagokos/connefut_backend/ent/applicant"
-	"github.com/nagokos/connefut_backend/ent/recruitment"
-	"github.com/nagokos/connefut_backend/ent/recruitmenttag"
-	"github.com/nagokos/connefut_backend/ent/stock"
-	"github.com/nagokos/connefut_backend/ent/user"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
+	"github.com/rs/xid"
 )
 
 type Recruitment struct {
@@ -53,8 +47,6 @@ func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
 			difference := start.Sub(*s)
 			if difference < 0 {
 				err = errors.New("募集期限は開催日時よりも前に設定してください")
-			} else {
-				err = nil
 			}
 		}
 		return err
@@ -170,379 +162,360 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, client *ent.Client) (*model.Recruitment, error) {
+func (r *Recruitment) CreateRecruitment(ctx context.Context, dbConnection *sql.DB) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
 	}
 
-	res, err := client.Recruitment.
-		Create().
-		SetTitle(r.Title).
-		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
-		SetNillableCapacity(r.Capacity).
-		SetNillableStartAt(r.StartAt).
-		SetNillableContent(r.Content).
-		SetNillablePlace(r.Place).
-		SetNillableLocationLat(r.LocationLat).
-		SetNillableLocationLng(r.LocationLng).
-		SetStatus(recruitment.Status(strings.ToLower(string(r.Status)))).
-		SetNillableClosingAt(r.ClosingAt).
-		SetNillableCompetitionID(r.CompetitionID).
-		SetNillablePrefectureID(r.PrefectureID).
-		SetUserID(currentUser.ID).
-		Save(ctx)
+	cmd := `
+	  INSERT INTO recruitments 
+		  (id, title, competition_id, type, content, prefecture_id, place, capacity, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at)
+		VALUES
+		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		RETURNING id, title, status 
+		`
+
+	timeNow := time.Now().Local()
+	row := dbConnection.QueryRow(
+		cmd,
+		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place, r.Capacity, r.StartAt,
+		r.ClosingAt, r.LocationLat, r.LocationLng, r.Status, currentUser.ID, timeNow, timeNow,
+	)
+
+	var recruitment model.Recruitment
+	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Status)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment create errors:", err.Error())
-		return &model.Recruitment{}, err
-	}
-
-	if len(r.Tags) != 0 {
-		tags := r.Tags
-		bulk := make([]*ent.RecruitmentTagCreate, len(tags))
-		for i, tag := range tags {
-			bulk[i] = client.RecruitmentTag.
-				Create().
-				SetRecruitmentID(res.ID).
-				SetTagID(tag.ID)
-		}
-		_, err := client.RecruitmentTag.
-			CreateBulk(bulk...).
-			Save(ctx)
-		if err != nil {
-			logger.NewLogger().Sugar().Errorf("create recruitment_tags error: %s", err.Error())
-		}
-	}
-
-	resRecruitment := &model.Recruitment{
-		ID:          res.ID,
-		Title:       res.Title,
-		Type:        model.Type(res.Type),
-		Place:       &res.Place,
-		StartAt:     &res.StartAt,
-		Content:     &res.Content,
-		LocationLat: &res.LocationLat,
-		LocationLng: &res.LocationLng,
-		Status:      model.Status(res.Status),
-		Capacity:    &res.Capacity,
-		ClosingAt:   &res.ClosingAt,
-		User:        &model.User{},
-	}
-
-	return resRecruitment, nil
-}
-
-func GetCurrentUserRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
-	var recruitments []*model.Recruitment
-
-	currentUser := auth.ForContext(ctx)
-
-	res, err := client.User.
-		Query().
-		Where(
-			user.ID(currentUser.ID),
-		).
-		QueryRecruitments().
-		WithCompetition().
-		Order(
-			ent.Desc(recruitment.FieldStatus),
-			ent.Desc(recruitment.FieldUpdatedAt),
-		).
-		All(ctx)
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get currentUser recruitment error %s", err.Error())
-		return recruitments, err
-	}
-
-	for _, recruitment := range res {
-		var compName string
-		if recruitment.Edges.Competition != nil {
-			compName = recruitment.Edges.Competition.Name
-		}
-		recruitments = append(recruitments, &model.Recruitment{
-			ID:     recruitment.ID,
-			Title:  recruitment.Title,
-			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
-			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
-			Competition: &model.Competition{
-				Name: compName,
-			},
-		})
-	}
-
-	return recruitments, nil
-}
-
-func GetRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
-	var prefecture *model.Prefecture
-	var competition *model.Competition
-	var user *model.User
-	var tags []*model.Tag
-
-	res, err := client.Recruitment.
-		Query().
-		Where(recruitment.ID(id)).
-		WithCompetition().
-		WithPrefecture().
-		WithUser().
-		WithRecruitmentTags(
-			func(rtq *ent.RecruitmentTagQuery) {
-				rtq.WithTag().All(ctx)
-			},
-		).
-		Only(ctx)
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get recruitment error %s", err.Error())
+		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	if res.Edges.Prefecture != nil {
-		prefecture = &model.Prefecture{
-			ID:   res.Edges.Prefecture.ID,
-			Name: res.Edges.Prefecture.Name,
+	if len(r.Tags) != 0 {
+		tx, err := dbConnection.Begin()
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		defer tx.Rollback()
+
+		stmt, err := tx.Prepare("INSERT INTO recruitment_tags (id, recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)")
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		defer stmt.Close()
+
+		for _, tag := range r.Tags {
+			if _, err := stmt.Exec(xid.New().String(), recruitment.ID, tag.ID, timeNow, timeNow); err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			logger.NewLogger().Error(err.Error())
 		}
 	}
 
-	if res.Edges.Competition != nil {
-		competition = &model.Competition{
-			ID:   res.Edges.Competition.ID,
-			Name: res.Edges.Competition.Name,
-		}
-	}
-
-	if res.Edges.RecruitmentTags != nil {
-		for _, recTag := range res.Edges.RecruitmentTags {
-			tags = append(tags, &model.Tag{
-				ID:   recTag.Edges.Tag.ID,
-				Name: recTag.Edges.Tag.Name,
-			})
-		}
-	}
-
-	if res.Edges.User != nil {
-		user = &model.User{
-			ID:     res.Edges.User.ID,
-			Name:   res.Edges.User.Name,
-			Avatar: res.Edges.User.Avatar,
-		}
-	}
-
-	resRecruitment := &model.Recruitment{
-		ID:          res.ID,
-		Title:       res.Title,
-		Type:        model.Type(strings.ToUpper(string(res.Type))),
-		Place:       &res.Place,
-		StartAt:     &res.StartAt,
-		Content:     &res.Content,
-		LocationLat: &res.LocationLat,
-		LocationLng: &res.LocationLng,
-		Status:      model.Status(strings.ToUpper(string(res.Status))),
-		Capacity:    &res.Capacity,
-		ClosingAt:   &res.ClosingAt,
-		Prefecture:  prefecture,
-		Competition: competition,
-		UpdatedAt:   res.UpdatedAt,
-		User:        user,
-		Tags:        tags,
-	}
-	return resRecruitment, nil
+	return &recruitment, nil
 }
 
-func GetAppliedRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
-	var recruitments []*model.Recruitment
 
-	a := client.Applicant.Query().Where(applicant.UserID(currentUser.ID)).Order(ent.Desc(applicant.FieldCreatedAt)).QueryRecruitment().AllX(ctx)
-
-	for _, b := range a {
-		fmt.Println("---------------------------------------------------------------")
-		fmt.Println(b.Title)
-		fmt.Println("---------------------------------------------------------------")
-	}
-
-	res, err := client.Applicant.
-		Query().
-		Where(
-			applicant.UserID(currentUser.ID),
-		).
-		QueryRecruitment().
-		WithUser().
-		WithApplicants().
-		Order(
-			ent.Asc(applicant.FieldCreatedAt),
-		).
-		All(ctx)
+	cmd := `
+	  SELECT r.id, r.title, r.type, r.status
+		FROM recruitments AS r
+		WHERE r.user_id = $1
+		`
+	rows, err := dbConnection.Query(cmd, currentUser.ID)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get applied recruitments error: %s", err.Error())
-		return recruitments, err
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recruitments []*model.Recruitment
+	for rows.Next() {
+		var recruitment model.Recruitment
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
+		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+		recruitments = append(recruitments, &recruitment)
 	}
 
-	for _, recruitment := range res {
-		withApplicant := client.User.
-			Query().
-			Where(
-				user.ID(currentUser.ID),
-			).
-			QueryApplicants().
-			Where(
-				applicant.RecruitmentID(recruitment.ID),
-			).
-			FirstX(ctx)
-		recruitments = append(recruitments, &model.Recruitment{
-			ID:    recruitment.ID,
-			Title: recruitment.Title,
-			Type:  model.Type(strings.ToUpper(string(recruitment.Type))),
-			Applicant: &model.Applicant{
-				ManagementStatus: model.ManagementStatus(strings.ToUpper(string(withApplicant.ManagementStatus))),
-				CreatedAt:        withApplicant.CreatedAt,
-			},
-			User: &model.User{
-				ID:     recruitment.Edges.User.ID,
-				Name:   recruitment.Edges.User.Name,
-				Avatar: recruitment.Edges.User.Avatar,
-			},
-		})
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
 
 	return recruitments, nil
 }
 
-func GetRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
-	var resRecruitments []*model.Recruitment
-	res, err := client.Recruitment.
-		Query().
-		Where(
-			recruitment.StatusEQ(recruitment.StatusPublished),
-			recruitment.ClosingAtGT(time.Now().Local()),
-		).
-		WithCompetition().
-		WithPrefecture().
-		WithUser().
-		All(ctx)
+func GetRecruitment(dbConnection *sql.DB, recID string) (*model.Recruitment, error) {
+	cmd := `
+		SELECT r.id, r.title, r.type, r.status, r.content, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
+		       c.id AS comp_id, c.name AS comp_name, 
+					 p.id AS pref_id, p.name AS pref_name, 
+					 u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
+		FROM recruitments AS r
+		LEFT OUTER JOIN competitions AS c
+			ON r.competition_id = c.id
+		LEFT OUTER JOIN prefectures AS p 
+			ON r.prefecture_id = p.id
+		INNER JOIN users AS u 
+			ON r.user_id = u.id
+		WHERE r.id = $1
+		ORDER BY id ASC
+	`
+
+	row := dbConnection.QueryRow(cmd, recID)
+
+	var recruitment model.Recruitment
+	var competition model.Competition
+	var prefecture model.Prefecture
+	var user model.User
+	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
+		&recruitment.Content, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
+		&competition.ID, &competition.Name, &prefecture.ID, &prefecture.Name, &user.ID, &user.Name, &user.Avatar,
+	)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get recruitments error %s", err.Error())
-		return []*model.Recruitment{}, err
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	recruitment.Competition = &competition
+	recruitment.Prefecture = &prefecture
+	recruitment.User = &user
+	recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
+	recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+
+	cmd = `
+		SELECT t.id, t.name
+		FROM tags AS t
+		INNER JOIN recruitment_tags AS r_t
+			ON r_t.tag_id = t.id
+		WHERE r_t.recruitment_id = $1
+	`
+
+	rows, err := dbConnection.Query(cmd, recruitment.ID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tag model.Tag
+		err := rows.Scan(&tag.ID, &tag.Name)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.Tags = append(recruitment.Tags, &tag)
 	}
 
-	for _, recruitment := range res {
-		resRecruitments = append(resRecruitments, &model.Recruitment{
-			ID:        recruitment.ID,
-			Title:     recruitment.Title,
-			Type:      model.Type(strings.ToUpper(string(recruitment.Type))),
-			Content:   &recruitment.Content,
-			StartAt:   &recruitment.StartAt,
-			UpdatedAt: recruitment.UpdatedAt,
-			ClosingAt: &recruitment.ClosingAt,
-			Capacity:  &recruitment.Capacity,
-			Place:     &recruitment.Place,
-			User: &model.User{
-				Name:   recruitment.Edges.User.Name,
-				Avatar: recruitment.Edges.User.Avatar,
-			},
-			Prefecture: &model.Prefecture{
-				Name: recruitment.Edges.Prefecture.Name,
-			},
-			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
-		})
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
 
-	fmt.Println(resRecruitments)
-	return resRecruitments, nil
+	return &recruitment, nil
 }
 
-func GetStockedRecruitments(ctx context.Context, client ent.Client) ([]*model.Recruitment, error) {
-	var recruitments []*model.Recruitment
-
+func GetAppliedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 
-	res, err := client.Recruitment.
-		Query().
-		WithUser().
-		Where(
-			recruitment.HasStocksWith(
-				stock.UserID(currentUser.ID),
-			),
-		).
-		Order(ent.Desc(recruitment.FieldStatus)).
-		All(ctx)
+	cmd := `
+	  SELECT r.id, r.title, r.type, a.created_at AS app_created_at, a.management_status AS app_management_status, u.name AS usr_name, u.avatar AS usr_avatar
+		FROM recruitments AS r
+		INNER JOIN applicants AS a 
+		  ON r.id = a.recruitment_id
+		INNER JOIN users AS u 
+		  ON u.id = r.user_id
+		WHERE r.user_id = $1
+	`
+
+	rows, err := dbConnection.Query(cmd, currentUser.ID)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get stocked recruitments error %s", err.Error())
-		return []*model.Recruitment{}, err
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recruitments []*model.Recruitment
+	for rows.Next() {
+		var recruitment model.Recruitment
+		var applicant model.Applicant
+		var user model.User
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &applicant.CreatedAt,
+			&applicant.ManagementStatus, &user.Name, &user.Avatar,
+		)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.Applicant = &applicant
+		recruitment.User = &user
+		recruitments = append(recruitments, &recruitment)
 	}
 
-	for _, recruitment := range res {
-		var user *ent.User
-		if recruitment.Edges.User != nil {
-			user = recruitment.Edges.User
-		}
-
-		recruitments = append(recruitments, &model.Recruitment{
-			ID:     recruitment.ID,
-			Title:  recruitment.Title,
-			Type:   model.Type(strings.ToUpper(string(recruitment.Type))),
-			Status: model.Status(strings.ToUpper(string(recruitment.Status))),
-			User: &model.User{
-				ID:     user.ID,
-				Name:   user.Name,
-				Avatar: user.Avatar,
-			},
-		})
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
 
 	return recruitments, nil
 }
 
-func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, id string) (*model.Recruitment, error) {
+func GetRecruitments(dbConnection *sql.DB) ([]*model.Recruitment, error) {
+	cmd := `
+	  SELECT r.id, r.title, r.type, r.updated_at, r.closing_at, u.name AS usr_name, u.avatar AS usr_avatar, p.name AS pref_name
+		FROM recruitments AS r
+		INNER JOIN prefectures AS p 
+		  ON r.prefecture_id = p.id
+		INNER JOIN users AS u 
+		  ON r.user_id = u.id
+	`
+
+	rows, err := dbConnection.Query(cmd)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recruitments []*model.Recruitment
+	for rows.Next() {
+		var recruitment model.Recruitment
+		var user model.User
+		var prefecture model.Prefecture
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.UpdatedAt, &recruitment.ClosingAt,
+			&user.Name, &user.Avatar, &prefecture.Name,
+		)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.User = &user
+		recruitment.Prefecture = &prefecture
+		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+		recruitments = append(recruitments, &recruitment)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return recruitments, nil
+}
+
+func GetStockedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
+	currentUser := auth.ForContext(ctx)
+
+	cmd := `
+	  SELECT r.id, r.title, r.type, r.status, u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
+		FROM recruitments AS r 
+		INNER JOIN stocks AS s 
+		  ON s.user_id = $1
+		INNER JOIN users AS u 
+		  ON r.user_id = u.id
+	`
+
+	rows, err := dbConnection.Query(cmd, currentUser.ID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recruitments []*model.Recruitment
+	for rows.Next() {
+		var recruitment model.Recruitment
+		var user model.User
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
+			&user.ID, &user.Name, &user.Avatar,
+		)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.User = &user
+		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
+		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+		recruitments = append(recruitments, &recruitment)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return recruitments, nil
+}
+
+func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.DB, recID string) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return nil, errors.New("ログインしてください")
 	}
 
-	entRecruitment, err := client.User.
-		Query().
-		Where(
-			user.ID(currentUser.ID),
-		).
-		QueryRecruitments().
-		Where(
-			recruitment.ID(id),
-		).
-		Only(ctx)
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment not found %s", err.Error())
-		return nil, errors.New("recruitment not found")
-	}
+	cmd := `
+	  UPDATE recruitments AS r
+		SET title = $1, competition_id = $2, type = $3, content = $4, prefecture_id = $5, place = $6, capacity = $7, 
+		    closing_at = $8, start_at = $9, location_lat = $10, location_lng = $11, updated_at = $12
+		WHERE r.id = $13
+		AND r.user_id = $14
+		RETURNING id
+	`
 
-	res, err := entRecruitment.
-		Update().
-		ClearCapacity().
-		ClearLocationLat().
-		ClearLocationLng().
-		SetTitle(r.Title).
-		SetType(recruitment.Type(strings.ToLower(string(r.Type)))).
-		SetNillableCapacity(r.Capacity).
-		SetNillableStartAt(r.StartAt).
-		SetNillableContent(r.Content).
-		SetNillablePlace(r.Place).
-		SetNillableLocationLat(r.LocationLat).
-		SetNillableLocationLng(r.LocationLng).
-		SetStatus(recruitment.Status(strings.ToLower(string(r.Status)))).
-		SetNillableClosingAt(r.ClosingAt).
-		SetNillableCompetitionID(r.CompetitionID).
-		SetNillablePrefectureID(r.PrefectureID).
-		Save(ctx)
+	row := dbConnection.QueryRow(
+		cmd,
+		r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place, r.Capacity,
+		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), recID, currentUser.ID,
+	)
 
+	var ID string
+	err := row.Scan(&ID)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment update error %s", err.Error())
+		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	currentTags, _ := res.
-		QueryRecruitmentTags().
-		QueryTag().
-		All(ctx)
+	cmd = `
+	  SELECT t.id, t.name 
+		FROM tags AS t
+		INNER JOIN recruitment_tags AS r_t
+		  ON r_t.tag_id = t.id
+		WHERE r_t.recruitment_id = $1
+		
+	`
 
-	var oldTags []*ent.Tag // チェックを外されたタグ(削除するもの)
+	rows, err := dbConnection.Query(cmd, ID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var currentTags []*model.Tag
+	for rows.Next() {
+		var tag model.Tag
+		err := rows.Scan(&tag.ID, &tag.Name)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		currentTags = append(currentTags, &tag)
+	}
+
+	err = row.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	var oldTags []*model.Tag // チェックを外されたタグ(削除するもの)
 
 	// 削除するタグを見つける処理
 	for _, currentTag := range currentTags {
@@ -557,70 +530,94 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, client ent.Client, 
 		}
 	}
 
-	bulk := make([]*ent.RecruitmentTagCreate, len(r.Tags))
-	for i, tag := range r.Tags {
-		bulk[i] = client.RecruitmentTag.
-			Create().
-			SetRecruitmentID(res.ID).
-			SetTagID(tag.ID)
-	}
-	err = client.RecruitmentTag.
-		CreateBulk(bulk...).
-		OnConflict(
-			sql.ConflictColumns(
-				recruitmenttag.FieldRecruitmentID,
-				recruitmenttag.FieldTagID,
-			),
-		).
-		UpdateUpdatedAt().
-		Exec(ctx)
+	cmd = `
+	  INSERT INTO recruitment_tags 
+		  (id, recruitment_id, tag_id, created_at, updated_at) 
+		VALUES 
+		  ($1, $2, $3, $4, $5)
+		ON CONFLICT 
+		  ON CONSTRAINT 
+			  recruitment_tags_recruitment_id_tag_id_key
+		DO UPDATE SET updated_at = $6
+	`
+
+	tx, err := dbConnection.Begin()
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment_tag upsert error: %s", err.Error())
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
 
-	if len(oldTags) != 0 {
-		for _, tag := range oldTags {
-			i, err := client.RecruitmentTag.
-				Delete().
-				Where(
-					recruitmenttag.RecruitmentID(res.ID),
-					recruitmenttag.TagID(tag.ID),
-				).
-				Exec(ctx)
-			logger.NewLogger().Sugar().Debug(i)
-			if err != nil {
-				logger.NewLogger().Sugar().Errorf("delete recruitment tag error: %s", err.Error())
-			}
+	stmt, err := tx.Prepare(cmd)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+
+	for _, tag := range r.Tags {
+		timeNow := time.Now().Local()
+		if _, err := stmt.Exec(xid.New().String(), ID, tag.ID, timeNow, timeNow, timeNow); err != nil {
+			logger.NewLogger().Error(err.Error())
+			tx.Rollback()
+			return nil, err
+		}
+	}
+	stmt.Close()
+
+	cmd = `
+	  DELETE FROM recruitment_tags AS r_t
+		WHERE r_t.recruitment_id = $1 AND r_t.tag_id = $2
+	`
+
+	stmt, err = tx.Prepare(cmd)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+
+	for _, tag := range oldTags {
+		logger.NewLogger().Info(tag.ID)
+		if _, err := stmt.Exec(ID, tag.ID); err != nil {
+			logger.NewLogger().Error(err.Error())
+			tx.Rollback()
+			return nil, err
 		}
 	}
 
-	resRecruitment := &model.Recruitment{
-		ID:     res.ID,
-		Title:  res.Title,
-		Status: model.Status(strings.ToUpper(string(res.Status))),
+	stmt.Close()
+	tx.Commit()
+
+	cmd = `
+	  SELECT r.id, r.title, r.status
+		FROM recruitments AS r 
+		WHERE r.id = $1
+	`
+
+	row = dbConnection.QueryRow(cmd, ID)
+
+	var recruitment model.Recruitment
+	err = row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Status)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
 	}
-	return resRecruitment, nil
+
+	return &recruitment, nil
 }
 
-func DeleteRecruitment(ctx context.Context, client ent.Client, id string) (bool, error) {
+func DeleteRecruitment(ctx context.Context, dbConnection *sql.DB, recID string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return false, errors.New("ログインしてください")
 	}
 
-	res, err := client.Recruitment.
-		Delete().
-		Where(
-			recruitment.ID(id),
-			recruitment.UserID(currentUser.ID),
-		).
-		Exec(ctx)
-
-	if res == 0 {
-		return false, errors.New("募集の削除に失敗しました")
-	}
+	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2"
+	_, err := dbConnection.Exec(cmd, recID, currentUser.ID)
 	if err != nil {
+		logger.NewLogger().Error(err.Error())
 		return false, err
 	}
+
 	return true, nil
 }
