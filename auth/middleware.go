@@ -102,7 +102,7 @@ func getUserByID(dbConnection *sql.DB, ID string) (*model.User, error) {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-
+	u.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(u.EmailVerificationStatus)))
 	return &u, nil
 }
 
