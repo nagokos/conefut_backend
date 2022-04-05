@@ -2,12 +2,10 @@ package applicant
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"strings"
 
 	"github.com/nagokos/connefut_backend/auth"
-	"github.com/nagokos/connefut_backend/ent"
-	"github.com/nagokos/connefut_backend/ent/applicant"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
