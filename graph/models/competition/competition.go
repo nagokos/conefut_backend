@@ -7,23 +7,30 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func GetCompetitions(ctx context.Context, client *ent.CompetitionClient) ([]*model.Competition, error) {
-	res, err := client.
-		Query().
-		Order(ent.Asc(competition.FieldID)).
-		All(ctx)
-
+func GetCompetitions(dbConnection *sql.DB) ([]*model.Competition, error) {
+	cmd := "SELECT id, name FROM competitions"
+	rows, err := dbConnection.Query(cmd)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("get competitions error:", err.Error())
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var competitions []*model.Competition
+	for rows.Next() {
+		var competition model.Competition
+		err := rows.Scan(&competition.ID, &competition.Name)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		competitions = append(competitions, &competition)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	var competitions []*model.Competition
-	for _, v := range res {
-		competitions = append(competitions, &model.Competition{
-			ID:   v.ID,
-			Name: v.Name,
-		})
-	}
 	return competitions, nil
 }
