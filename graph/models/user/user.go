@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"crypto/md5"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
@@ -43,15 +43,21 @@ type User struct {
 	EmailVerificationTokenExpiresAt time.Time
 }
 
+type NullableUser struct {
+	ID     *string
+	Name   *string
+	Avatar *string
+}
+
 func checkExistsEmail() validation.RuleFunc {
 	return func(v interface{}) error {
 		var err error
 
 		email := v.(string)
-		dbConnection := db.DatabaseConnection()
+		dbPool := db.DatabaseConnection()
 
 		cmd := "SELECT COUNT(DISTINCT id) FROM users WHERE email = $1"
-		row := dbConnection.QueryRow(cmd, email)
+		row := dbPool.QueryRow(context.Background(), cmd, email)
 
 		var count int
 		err = row.Scan(&count)
@@ -160,7 +166,7 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) Insert(dbConnection *sql.DB) (string, error) {
+func (u *User) Insert(ctx context.Context, dbPool *pgxpool.Pool) (string, error) {
 	var ID string
 
 	pwdHash := HashGenerate(u.Password)
@@ -176,8 +182,8 @@ func (u *User) Insert(dbConnection *sql.DB) (string, error) {
 		RETURNING id
 		`
 
-	row := dbConnection.QueryRow(
-		cmd,
+	row := dbPool.QueryRow(
+		ctx, cmd,
 		xid.New().String(), u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
@@ -199,12 +205,12 @@ func (u *User) Insert(dbConnection *sql.DB) (string, error) {
 	return ID, nil
 }
 
-func (u *User) Authenticate(dbConnection *sql.DB, ctx context.Context) (string, error) {
+func (u *User) Authenticate(ctx context.Context, dbPool *pgxpool.Pool) (string, error) {
 	var ID string
 	var passwordDigest string
 
 	cmd := "SELECT id, password_digest FROM users WHERE email = $1"
-	row := dbConnection.QueryRow(cmd, u.Email)
+	row := dbPool.QueryRow(ctx, cmd, u.Email)
 
 	err := row.Scan(&ID, &passwordDigest)
 
@@ -226,8 +232,8 @@ func (u *User) Authenticate(dbConnection *sql.DB, ctx context.Context) (string, 
 
 // ** メール認証 **
 func EmailVerification(w http.ResponseWriter, r *http.Request) {
-	dbConnection := db.DatabaseConnection()
-	defer dbConnection.Close()
+	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
 
 	token := chi.URLParam(r, "token")
 	if token == "" {
@@ -236,8 +242,10 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := context.Background()
+
 	cmd := "SELECT id, email_verification_token_expires_at FROM users WHERE email_verification_token = $1"
-	row := dbConnection.QueryRow(cmd, token)
+	row := dbPool.QueryRow(ctx, cmd, token)
 
 	var ID string
 	var tokenExpiresAt time.Time
@@ -255,15 +263,15 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd = "UPDATE users SET email_verification_status = "
-
-	// res, err = client.User.
-	// 	UpdateOneID(res.ID).
-	// 	SetEmailVerificationStatus(user.EmailVerificationStatusVerified).
-	// 	SetEmailVerificationToken("").
-	// 	Save(ctx)
+	cmd = `
+	  UPDATE users AS u
+		SET email_verification_status = $1, email_verification_token = $2, updated_at = $3
+		WHERE u.id = $4
+	`
+	_, err = dbPool.Exec(ctx, cmd, "verified", nil, time.Now().Local(), ID)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("user update error: %s", err)
+		logger.NewLogger().Error(err.Error())
+		w.Write([]byte("メールアドレスの認証に失敗しました"))
 		return
 	}
 

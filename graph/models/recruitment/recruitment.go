@@ -2,14 +2,17 @@ package recruitment
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/competition"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -162,7 +165,7 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, dbConnection *sql.DB) (*model.Recruitment, error) {
+func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
@@ -177,8 +180,8 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbConnection *sql.D
 		`
 
 	timeNow := time.Now().Local()
-	row := dbConnection.QueryRow(
-		cmd,
+	row := dbPool.QueryRow(
+		ctx, cmd,
 		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place, r.Capacity, r.StartAt,
 		r.ClosingAt, r.LocationLat, r.LocationLng, r.Status, currentUser.ID, timeNow, timeNow,
 	)
@@ -191,25 +194,21 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbConnection *sql.D
 	}
 
 	if len(r.Tags) != 0 {
-		tx, err := dbConnection.Begin()
+		tx, err := dbPool.Begin(ctx)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		defer tx.Rollback()
+		defer tx.Rollback(ctx)
 
-		stmt, err := tx.Prepare("INSERT INTO recruitment_tags (id, recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)")
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		defer stmt.Close()
+		cmd := "INSERT INTO recruitment_tags (id, recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
 
 		for _, tag := range r.Tags {
-			if _, err := stmt.Exec(xid.New().String(), recruitment.ID, tag.ID, timeNow, timeNow); err != nil {
+			if _, err := tx.Exec(ctx, cmd, xid.New().String(), recruitment.ID, tag.ID, timeNow, timeNow); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
 		}
 
-		if err := tx.Commit(); err != nil {
+		if err := tx.Commit(ctx); err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
 	}
@@ -217,15 +216,17 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbConnection *sql.D
 	return &recruitment, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
 	  SELECT r.id, r.title, r.type, r.status
 		FROM recruitments AS r
 		WHERE r.user_id = $1
+		ORDER BY r.status DESC, r.updated_at DESC
 		`
-	rows, err := dbConnection.Query(cmd, currentUser.ID)
+
+	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -253,7 +254,7 @@ func GetCurrentUserRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*m
 	return recruitments, nil
 }
 
-func GetRecruitment(dbConnection *sql.DB, recID string) (*model.Recruitment, error) {
+func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
 	cmd := `
 		SELECT r.id, r.title, r.type, r.status, r.content, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
 		       c.id AS comp_id, c.name AS comp_name, 
@@ -270,23 +271,36 @@ func GetRecruitment(dbConnection *sql.DB, recID string) (*model.Recruitment, err
 		ORDER BY id ASC
 	`
 
-	row := dbConnection.QueryRow(cmd, recID)
+	row := dbPool.QueryRow(ctx, cmd, recID)
 
 	var recruitment model.Recruitment
-	var competition model.Competition
-	var prefecture model.Prefecture
-	var user model.User
+	var comp competition.NullableCompetition
+	var pref prefecture.NullablePrefecture
+	var usr user.NullableUser
 	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Content, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
-		&competition.ID, &competition.Name, &prefecture.ID, &prefecture.Name, &user.ID, &user.Name, &user.Avatar,
+		&comp.ID, &comp.Name, &pref.ID, &pref.Name, &usr.ID, &usr.Name, &usr.Avatar,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	recruitment.Competition = &competition
-	recruitment.Prefecture = &prefecture
-	recruitment.User = &user
+
+	var initialComp competition.NullableCompetition
+	if comp != initialComp {
+		recruitment.Competition = &model.Competition{ID: *comp.ID, Name: *comp.Name}
+	}
+
+	var initialPref prefecture.NullablePrefecture
+	if pref != initialPref {
+		recruitment.Prefecture = &model.Prefecture{ID: *pref.ID, Name: *pref.Name}
+	}
+
+	var initialUsr user.NullableUser
+	if usr != initialUsr {
+		recruitment.User = &model.User{ID: *usr.ID, Name: *usr.Name, Avatar: *usr.Avatar}
+	}
+
 	recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
 	recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 
@@ -298,7 +312,7 @@ func GetRecruitment(dbConnection *sql.DB, recID string) (*model.Recruitment, err
 		WHERE r_t.recruitment_id = $1
 	`
 
-	rows, err := dbConnection.Query(cmd, recruitment.ID)
+	rows, err := dbPool.Query(ctx, cmd, recruitment.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -323,7 +337,7 @@ func GetRecruitment(dbConnection *sql.DB, recID string) (*model.Recruitment, err
 	return &recruitment, nil
 }
 
-func GetAppliedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
+func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
@@ -333,10 +347,11 @@ func GetAppliedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model
 		  ON r.id = a.recruitment_id
 		INNER JOIN users AS u 
 		  ON u.id = r.user_id
-		WHERE r.user_id = $1
+		WHERE a.user_id = $1
+		ORDER BY a.created_at DESC
 	`
 
-	rows, err := dbConnection.Query(cmd, currentUser.ID)
+	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -356,48 +371,7 @@ func GetAppliedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model
 		}
 		recruitment.Applicant = &applicant
 		recruitment.User = &user
-		recruitments = append(recruitments, &recruitment)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	return recruitments, nil
-}
-
-func GetRecruitments(dbConnection *sql.DB) ([]*model.Recruitment, error) {
-	cmd := `
-	  SELECT r.id, r.title, r.type, r.updated_at, r.closing_at, u.name AS usr_name, u.avatar AS usr_avatar, p.name AS pref_name
-		FROM recruitments AS r
-		INNER JOIN prefectures AS p 
-		  ON r.prefecture_id = p.id
-		INNER JOIN users AS u 
-		  ON r.user_id = u.id
-	`
-
-	rows, err := dbConnection.Query(cmd)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
-
-	var recruitments []*model.Recruitment
-	for rows.Next() {
-		var recruitment model.Recruitment
-		var user model.User
-		var prefecture model.Prefecture
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.UpdatedAt, &recruitment.ClosingAt,
-			&user.Name, &user.Avatar, &prefecture.Name,
-		)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		recruitment.User = &user
-		recruitment.Prefecture = &prefecture
+		recruitment.Applicant.ManagementStatus = model.ManagementStatus(strings.ToUpper(string(recruitment.Applicant.ManagementStatus)))
 		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 		recruitments = append(recruitments, &recruitment)
 	}
@@ -411,11 +385,57 @@ func GetRecruitments(dbConnection *sql.DB) ([]*model.Recruitment, error) {
 	return recruitments, nil
 }
 
-func GetStockedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model.Recruitment, error) {
+func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
+	cmd := `
+	  SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, u.name AS usr_name, u.avatar AS usr_avatar, p.name AS pref_name
+		FROM recruitments AS r
+		INNER JOIN prefectures AS p 
+		  ON r.prefecture_id = p.id
+		INNER JOIN users AS u 
+		  ON r.user_id = u.id
+		WHERE r.closing_at > now()
+		AND r.status = $1
+	`
+
+	rows, err := dbPool.Query(ctx, cmd, "published")
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recruitments []*model.Recruitment
+	for rows.Next() {
+		var recruitment model.Recruitment
+		var user model.User
+		var prefecture model.Prefecture
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.UpdatedAt, &recruitment.ClosingAt,
+			&user.Name, &user.Avatar, &prefecture.Name,
+		)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		recruitment.User = &user
+		recruitment.Prefecture = &prefecture
+		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
+		recruitments = append(recruitments, &recruitment)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return recruitments, nil
+}
+
+func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
-	  SELECT r.id, r.title, r.type, r.status, u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
+	  SELECT DISTINCT r.id, r.title, r.type, r.status, u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
 		FROM recruitments AS r 
 		INNER JOIN stocks AS s 
 		  ON s.user_id = $1
@@ -423,7 +443,7 @@ func GetStockedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model
 		  ON r.user_id = u.id
 	`
 
-	rows, err := dbConnection.Query(cmd, currentUser.ID)
+	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -455,7 +475,7 @@ func GetStockedRecruitments(ctx context.Context, dbConnection *sql.DB) ([]*model
 	return recruitments, nil
 }
 
-func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.DB, recID string) (*model.Recruitment, error) {
+func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return nil, errors.New("ログインしてください")
@@ -464,16 +484,16 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 	cmd := `
 	  UPDATE recruitments AS r
 		SET title = $1, competition_id = $2, type = $3, content = $4, prefecture_id = $5, place = $6, capacity = $7, 
-		    closing_at = $8, start_at = $9, location_lat = $10, location_lng = $11, updated_at = $12
-		WHERE r.id = $13
-		AND r.user_id = $14
+		    closing_at = $8, start_at = $9, location_lat = $10, location_lng = $11, updated_at = $12, status = $13
+		WHERE r.id = $14
+		AND r.user_id = $15
 		RETURNING id
 	`
 
-	row := dbConnection.QueryRow(
-		cmd,
+	row := dbPool.QueryRow(
+		ctx, cmd,
 		r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place, r.Capacity,
-		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), recID, currentUser.ID,
+		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), recID, currentUser.ID,
 	)
 
 	var ID string
@@ -492,7 +512,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 		
 	`
 
-	rows, err := dbConnection.Query(cmd, ID)
+	rows, err := dbPool.Query(ctx, cmd, ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -509,7 +529,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 		currentTags = append(currentTags, &tag)
 	}
 
-	err = row.Err()
+	err = rows.Err()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -541,52 +561,41 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 		DO UPDATE SET updated_at = $6
 	`
 
-	tx, err := dbConnection.Begin()
+	tx, err := dbPool.Begin(ctx)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	stmt, err := tx.Prepare(cmd)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		tx.Rollback()
 		return nil, err
 	}
 
 	for _, tag := range r.Tags {
 		timeNow := time.Now().Local()
-		if _, err := stmt.Exec(xid.New().String(), ID, tag.ID, timeNow, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, xid.New().String(), ID, tag.ID, timeNow, timeNow, timeNow); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback()
+			tx.Rollback(ctx)
 			return nil, err
 		}
 	}
-	stmt.Close()
 
 	cmd = `
 	  DELETE FROM recruitment_tags AS r_t
 		WHERE r_t.recruitment_id = $1 AND r_t.tag_id = $2
 	`
 
-	stmt, err = tx.Prepare(cmd)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		tx.Rollback()
-		return nil, err
-	}
-
 	for _, tag := range oldTags {
 		logger.NewLogger().Info(tag.ID)
-		if _, err := stmt.Exec(ID, tag.ID); err != nil {
+		if _, err := tx.Exec(ctx, cmd, ID, tag.ID); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback()
+			tx.Rollback(ctx)
 			return nil, err
 		}
 	}
 
-	stmt.Close()
-	tx.Commit()
+	err = tx.Commit(ctx)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		tx.Rollback(ctx)
+		return nil, err
+	}
 
 	cmd = `
 	  SELECT r.id, r.title, r.status
@@ -594,7 +603,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 		WHERE r.id = $1
 	`
 
-	row = dbConnection.QueryRow(cmd, ID)
+	row = dbPool.QueryRow(ctx, cmd, ID)
 
 	var recruitment model.Recruitment
 	err = row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Status)
@@ -606,14 +615,14 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbConnection *sql.D
 	return &recruitment, nil
 }
 
-func DeleteRecruitment(ctx context.Context, dbConnection *sql.DB, recID string) (bool, error) {
+func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return false, errors.New("ログインしてください")
 	}
 
 	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2"
-	_, err := dbConnection.Exec(cmd, recID, currentUser.ID)
+	_, err := dbPool.Exec(ctx, cmd, recID, currentUser.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
