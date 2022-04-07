@@ -1,13 +1,9 @@
 package logger
 
 import (
-	"bytes"
-	"context"
-	"fmt"
 	"os"
 
 	"github.com/nagokos/connefut_backend/config"
-	sqldblogger "github.com/simukti/sqldb-logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -82,24 +78,4 @@ func NewLogger() *zap.Logger {
 	)
 
 	return logger
-}
-
-func (l *Logger) Log(ctx context.Context, level sqldblogger.Level, msg string, data map[string]interface{}) {
-	if string(level) == "error" {
-		w := bytes.NewBufferString(fmt.Sprintf("%s:%v", level, msg))
-
-		for k, v := range data {
-			fmt.Fprintf(w, "\t%s:%v", k, v)
-		}
-
-		NewLogger().Error(w.String())
-	} else {
-		w := bytes.NewBufferString(fmt.Sprintf("%s:%v", level, msg))
-
-		for k, v := range data {
-			fmt.Fprintf(w, "\t%s:%v", k, v)
-		}
-
-		NewLogger().Debug(w.String())
-	}
 }
