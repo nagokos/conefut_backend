@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -30,11 +31,13 @@ type recruitment struct {
 }
 
 func main() {
-	dbConnection := db.DatabaseConnection()
-	defer dbConnection.Close()
+	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
+
+	ctx := context.Background()
 
 	cmd := "SELECT id FROM competitions LIMIT 1"
-	row := dbConnection.QueryRow(cmd)
+	row := dbPool.QueryRow(ctx, cmd)
 
 	var competitionID string
 	err := row.Scan(&competitionID)
@@ -43,7 +46,7 @@ func main() {
 	}
 
 	cmd = "SELECT id FROM prefectures LIMIT 1"
-	row = dbConnection.QueryRow(cmd)
+	row = dbPool.QueryRow(ctx, cmd)
 
 	var prefectureID string
 	err = row.Scan(&prefectureID)
@@ -52,7 +55,7 @@ func main() {
 	}
 
 	cmd = "SELECT id FROM users LIMIT 1"
-	row = dbConnection.QueryRow(cmd)
+	row = dbPool.QueryRow(ctx, cmd)
 
 	var userID string
 	err = row.Scan(&userID)
@@ -116,25 +119,22 @@ func main() {
 		recruitments = append(recruitments, recruitment)
 	}
 
-	tx, err := dbConnection.Begin()
+	tx, err := dbPool.Begin(ctx)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
-	stmt, err := tx.Prepare(`
+	cmd = `
 	  INSERT INTO recruitments 
 		  (id, title, type, place, start_at, content, capacity, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status)
 		VALUES 
-		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-	)
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	defer stmt.Close()
+		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		`
 
 	for _, recruitment := range recruitments {
-		if _, err := stmt.Exec(
+		if _, err := tx.Exec(
+			ctx, cmd,
 			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.content, recruitment.capacity,
 			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status,
 		); err != nil {
@@ -142,7 +142,7 @@ func main() {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
 
