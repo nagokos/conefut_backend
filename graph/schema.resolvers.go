@@ -125,7 +125,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		return &model.Recruitment{}, err
 	}
 
-	resRecruitment, err := rm.CreateRecruitment(ctx, r.client)
+	resRecruitment, err := rm.CreateRecruitment(ctx, r.dbConnection)
 	if err != nil {
 		return &model.Recruitment{}, err
 	}
@@ -167,7 +167,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		return &model.Recruitment{}, err
 	}
 
-	res, err := rm.UpdateRecruitment(ctx, *r.client, id)
+	res, err := rm.UpdateRecruitment(ctx, r.dbConnection, id)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return res, err
@@ -177,7 +177,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 }
 
 func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
-	res, err := recruitment.DeleteRecruitment(ctx, *r.client, id)
+	res, err := recruitment.DeleteRecruitment(ctx, r.dbConnection, id)
 	if err != nil {
 		return res, err
 	}
@@ -234,7 +234,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 		return false, errors.New("メールアドレスを認証してください")
 	}
 
-	res, err := applicant.CreateApplicant(ctx, *r.client, recruitmentID, input.ManagementStatus)
+	res, err := applicant.CreateApplicant(ctx, r.dbConnection, recruitmentID, input.ManagementStatus)
 	if err != nil {
 		return res, err
 	}
@@ -243,7 +243,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
-	res, err := prefecture.GetPrefectures(*r.client.Prefecture, ctx)
+	res, err := prefecture.GetPrefectures(r.dbConnection)
 	if err != nil {
 		return res, err
 	}
@@ -260,7 +260,7 @@ func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error)
 }
 
 func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
-	res, err := competition.GetCompetitions(ctx, r.client.Competition)
+	res, err := competition.GetCompetitions(r.dbConnection)
 	if err != nil {
 		return res, err
 	}
@@ -269,7 +269,7 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 }
 
 func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitments(ctx, *r.client)
+	res, err := recruitment.GetRecruitments(r.dbConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitme
 }
 
 func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, *r.client)
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*mode
 }
 
 func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitment(ctx, *r.client, id)
+	res, err := recruitment.GetRecruitment(r.dbConnection, id)
 	if err != nil {
 		return res, err
 	}
@@ -293,7 +293,7 @@ func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.R
 }
 
 func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetStockedRecruitments(ctx, *r.client)
+	res, err := recruitment.GetStockedRecruitments(ctx, r.dbConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Re
 }
 
 func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetAppliedRecruitments(ctx, *r.client)
+	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbConnection)
 	if err != nil {
 		return res, err
 	}
@@ -311,7 +311,7 @@ func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Re
 }
 
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := stock.CheckStocked(ctx, *r.client, recruitmentID)
+	res, err := stock.CheckStocked(ctx, r.dbConnection, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -319,7 +319,7 @@ func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) 
 }
 
 func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := stock.GetStockedCount(ctx, *r.client, recruitmentID)
+	res, err := stock.GetStockedCount(r.dbConnection, recruitmentID)
 	if err != nil {
 		return 0, err
 	}
@@ -343,7 +343,7 @@ func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID st
 }
 
 func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := applicant.CheckApplied(ctx, *r.client, recruitmentID)
+	res, err := applicant.CheckApplied(ctx, r.dbConnection, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -351,7 +351,7 @@ func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) 
 }
 
 func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := applicant.GetAppliedCounts(ctx, *r.client, recruitmentID)
+	res, err := applicant.GetAppliedCounts(r.dbConnection, recruitmentID)
 	if err != nil {
 		return res, err
 	}
