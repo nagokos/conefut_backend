@@ -1,15 +1,16 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
 
-func InsertPrefectures(dbConnection *sql.DB) {
+func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
 
 	prefectures := []struct {
 		name string
@@ -63,34 +64,30 @@ func InsertPrefectures(dbConnection *sql.DB) {
 		{"沖縄県"},
 	}
 
-	tx, err := dbConnection.Begin()
+	tx, err := dbPool.Begin(ctx)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
-	stmt, err := tx.Prepare("INSERT INTO prefectures (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)")
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	defer stmt.Close()
+	cmd := "INSERT INTO prefectures (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
 
 	for _, prefecture := range prefectures {
 		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := stmt.Exec(ID, prefecture.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, ID, prefecture.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
 
 	logger.NewLogger().Info("create prefectures data!")
 }
 
-func InsertCompetitions(dbConnection *sql.DB) {
+func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
 	competitions := []struct {
 		name string
 	}{
@@ -99,34 +96,33 @@ func InsertCompetitions(dbConnection *sql.DB) {
 		{"ソサイチ"},
 	}
 
-	tx, err := dbConnection.Begin()
+	tx, err := dbPool.Begin(ctx)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
-	stmt, err := tx.Prepare("INSERT INTO competitions (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)")
+	cmd := "INSERT INTO competitions (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer stmt.Close()
 
 	for _, competition := range competitions {
 		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := stmt.Exec(ID, competition.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, ID, competition.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
 
 	logger.NewLogger().Info("create competitions data!")
 }
 
-func InsertTags(dbConnection *sql.DB) {
+func InsertTags(ctx context.Context, dbPool *pgxpool.Pool) {
 	tags := []struct {
 		name string
 	}{
@@ -142,27 +138,23 @@ func InsertTags(dbConnection *sql.DB) {
 		{"人工芝"},
 	}
 
-	tx, err := dbConnection.Begin()
+	tx, err := dbPool.Begin(ctx)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
-	stmt, err := tx.Prepare("INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)")
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	defer stmt.Close()
+	cmd := "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
 
 	for _, tag := range tags {
 		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := stmt.Exec(ID, tag.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, ID, tag.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
 
@@ -170,10 +162,12 @@ func InsertTags(dbConnection *sql.DB) {
 }
 
 func main() {
-	dbConnection := db.DatabaseConnection()
-	defer dbConnection.Close()
+	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
 
-	InsertPrefectures(dbConnection)
-	InsertCompetitions(dbConnection)
-	InsertTags(dbConnection)
+	ctx := context.Background()
+
+	InsertPrefectures(ctx, dbPool)
+	InsertCompetitions(ctx, dbPool)
+	InsertTags(ctx, dbPool)
 }

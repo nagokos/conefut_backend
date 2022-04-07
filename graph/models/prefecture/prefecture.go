@@ -1,17 +1,23 @@
 package prefecture
 
 import (
-	"database/sql"
+	"context"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func GetPrefectures(dbConnection *sql.DB) ([]*model.Prefecture, error) {
+type NullablePrefecture struct {
+	ID   *string
+	Name *string
+}
+
+func GetPrefectures(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Prefecture, error) {
 	var prefectures []*model.Prefecture
 
 	cmd := "SELECT id, name FROM prefectures"
-	rows, err := dbConnection.Query(cmd)
+	rows, err := dbPool.Query(ctx, cmd)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err

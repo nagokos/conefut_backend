@@ -24,8 +24,8 @@ func init() {
 func main() {
 	port := config.Config.Port
 
-	dbConnection := db.DatabaseConnection()
-	defer dbConnection.Close()
+	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
 
 	r := chi.NewRouter()
 	r.Use(
@@ -33,11 +33,11 @@ func main() {
 			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
 			AllowCredentials: true,
 		}),
-		auth.Middleware(dbConnection),
+		auth.Middleware(dbPool),
 		auth.CookieMiddleWare(),
 	)
 
-	srv := handler.NewDefaultServer(graph.NewSchema(dbConnection))
+	srv := handler.NewDefaultServer(graph.NewSchema(dbPool))
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", srv)

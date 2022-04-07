@@ -2,13 +2,13 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
@@ -21,7 +21,7 @@ type contextKey struct {
 	name string
 }
 
-func Middleware(dbConnection *sql.DB) func(http.Handler) http.Handler {
+func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c, err := r.Cookie("jwt")
@@ -37,7 +37,7 @@ func Middleware(dbConnection *sql.DB) func(http.Handler) http.Handler {
 				return
 			}
 
-			user, err := getUserByID(dbConnection, userId)
+			user, err := getUserByID(dbPool, userId)
 			if err != nil {
 				http.Error(w, "user not found", http.StatusForbidden)
 				next.ServeHTTP(w, r)
@@ -77,11 +77,7 @@ func validateAndGetUserID(c *http.Cookie) (string, error) {
 		return "", err
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		logger.NewLogger().Error("Couldt't parse claims")
-		return "", errors.New("Couldt't parse claims")
-	}
+	claims := token.Claims.(jwt.MapClaims)
 
 	userID := claims["user_id"].(string)
 	if userID == "" {
@@ -92,11 +88,11 @@ func validateAndGetUserID(c *http.Cookie) (string, error) {
 	return userID, nil
 }
 
-func getUserByID(dbConnection *sql.DB, ID string) (*model.User, error) {
+func getUserByID(dbPool *pgxpool.Pool, ID string) (*model.User, error) {
 	var u model.User
 
 	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
-	row := dbConnection.QueryRow(cmd, ID)
+	row := dbPool.QueryRow(context.Background(), cmd, ID)
 	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Avatar, &u.Introduction, &u.EmailVerificationStatus)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())

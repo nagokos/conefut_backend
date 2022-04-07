@@ -2,15 +2,18 @@ package applicant
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+	"strings"
+	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
+	"github.com/rs/xid"
 )
 
-func CheckApplied(ctx context.Context, dbConnection *sql.DB, recID string) (bool, error) {
+func CheckApplied(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
@@ -20,7 +23,7 @@ func CheckApplied(ctx context.Context, dbConnection *sql.DB, recID string) (bool
 		AND a.recruitment_id = $2
 	`
 
-	row := dbConnection.QueryRow(cmd, currentUser.ID, recID)
+	row := dbPool.QueryRow(ctx, cmd, currentUser.ID, recID)
 
 	var count int
 	err := row.Scan(&count)
@@ -37,13 +40,13 @@ func CheckApplied(ctx context.Context, dbConnection *sql.DB, recID string) (bool
 	return isApplied, nil
 }
 
-func GetAppliedCounts(dbConnection *sql.DB, recID string) (int, error) {
+func GetAppliedCounts(ctx context.Context, dbPool *pgxpool.Pool, recID string) (int, error) {
 	cmd := `
 	  SELECT COUNT(DISTINCT a.id)
 		FROM applicants AS a
 		WHERE a.recruitment_id = $1
 	`
-	row := dbConnection.QueryRow(cmd, recID)
+	row := dbPool.QueryRow(ctx, cmd, recID)
 
 	var count int
 	err := row.Scan(&count)
@@ -55,10 +58,44 @@ func GetAppliedCounts(dbConnection *sql.DB, recID string) (int, error) {
 	return count, nil
 }
 
-func CreateApplicant(ctx context.Context, dbConnection *sql.DB, recId string, status model.ManagementStatus) (bool, error) {
+func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recId string, status model.ManagementStatus) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return false, errors.New("ログインしてください")
+	}
+
+	cmd := "SELECT r.user_id FROM recruitments AS r WHERE r.id = $1"
+	row := dbPool.QueryRow(ctx, cmd, recId)
+
+	var userID string
+	err := row.Scan(&userID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
+	}
+
+	if currentUser.ID == userID {
+		logger.NewLogger().Error("This is a self-generated recruitment")
+		return false, errors.New("自分が作成した募集には応募できません")
+	}
+
+	cmd = `
+	  INSERT INTO applicants 
+		  (id, management_status, recruitment_id, user_id, created_at, updated_at)
+		VALUES 
+		  ($1, $2, $3, $4, $5, $6)
+	`
+
+	timeNow := time.Now().Local()
+
+	_, err = dbPool.Exec(
+		ctx, cmd,
+		xid.New().String(), strings.ToLower(string(status)), recId, currentUser.ID, timeNow, timeNow,
+	)
+
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
 	}
 
 	return true, nil

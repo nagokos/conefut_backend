@@ -1,12 +1,13 @@
 package tag
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
@@ -22,10 +23,10 @@ func existsTag() validation.RuleFunc {
 
 		s := v.(string)
 		lower := strings.ToLower(s)
-		dbConnection := db.DatabaseConnection()
+		dbPool := db.DatabaseConnection()
 
 		cmd := "SELECT COUNT(DISTINCT id) FROM tags WHERE name = $1"
-		row := dbConnection.QueryRow(cmd, lower)
+		row := dbPool.QueryRow(context.Background(), cmd, lower)
 
 		var count int
 		err := row.Scan(&count)
@@ -54,11 +55,11 @@ func (t Tag) CreateTagValidate() error {
 	)
 }
 
-func GetTags(dbConnection *sql.DB) ([]*model.Tag, error) {
+func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 	var tags []*model.Tag
 
 	cmd := "SELECT id, name FROM tags"
-	rows, err := dbConnection.Query(cmd)
+	rows, err := dbPool.Query(ctx, cmd)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -83,7 +84,7 @@ func GetTags(dbConnection *sql.DB) ([]*model.Tag, error) {
 	return tags, nil
 }
 
-func GetRecruitmentTags(dbConnection *sql.DB, recId string) ([]*model.Tag, error) {
+func GetRecruitmentTags(ctx context.Context, dbPool *pgxpool.Pool, recId string) ([]*model.Tag, error) {
 	var tags []*model.Tag
 
 	cmd := `
@@ -94,7 +95,7 @@ func GetRecruitmentTags(dbConnection *sql.DB, recId string) ([]*model.Tag, error
 		WHERE recruitment_tags.recruitment_id = $1
 	`
 
-	rows, err := dbConnection.Query(cmd, recId)
+	rows, err := dbPool.Query(ctx, cmd, recId)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -119,12 +120,12 @@ func GetRecruitmentTags(dbConnection *sql.DB, recId string) ([]*model.Tag, error
 	return tags, nil
 }
 
-func (t *Tag) CreateTag(dbConnection *sql.DB) (*model.Tag, error) {
+func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Tag, error) {
 	lower := strings.ToLower(t.Name)
 	timeNow := time.Now().Local()
 
 	cmd := "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
-	row := dbConnection.QueryRow(cmd, xid.New().String(), lower, timeNow, timeNow)
+	row := dbPool.QueryRow(ctx, cmd, xid.New().String(), lower, timeNow, timeNow)
 
 	var tag model.Tag
 	err := row.Scan(&tag.ID, &tag.Name)

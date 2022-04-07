@@ -44,7 +44,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 		return false, errors.New("フォームに不備があります")
 	}
 
-	userID, err := u.Insert(r.dbConnection)
+	userID, err := u.Insert(ctx, r.dbPool)
 	if err != nil {
 		return false, err
 	}
@@ -74,7 +74,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		return false, errors.New("フォームに不備があります")
 	}
 
-	userID, err := u.Authenticate(r.dbConnection, ctx)
+	userID, err := u.Authenticate(ctx, r.dbPool)
 	if err != nil {
 		return false, err
 	}
@@ -125,7 +125,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		return &model.Recruitment{}, err
 	}
 
-	resRecruitment, err := rm.CreateRecruitment(ctx, r.dbConnection)
+	resRecruitment, err := rm.CreateRecruitment(ctx, r.dbPool)
 	if err != nil {
 		return &model.Recruitment{}, err
 	}
@@ -167,7 +167,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		return &model.Recruitment{}, err
 	}
 
-	res, err := rm.UpdateRecruitment(ctx, r.dbConnection, id)
+	res, err := rm.UpdateRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return res, err
@@ -177,7 +177,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 }
 
 func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
-	res, err := recruitment.DeleteRecruitment(ctx, r.dbConnection, id)
+	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		return res, err
 	}
@@ -185,7 +185,7 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bo
 }
 
 func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.CreateStock(ctx, r.dbConnection, recruitmentID)
+	_, err := stock.CreateStock(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -193,7 +193,7 @@ func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string
 }
 
 func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.DeleteStock(ctx, *r.dbConnection, recruitmentID)
+	_, err := stock.DeleteStock(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return false, err
 	}
@@ -216,7 +216,7 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 		return nil, errors.New("タグの作成に失敗しました")
 	}
 
-	res, err := tag.CreateTag(r.dbConnection)
+	res, err := tag.CreateTag(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 		return false, errors.New("メールアドレスを認証してください")
 	}
 
-	res, err := applicant.CreateApplicant(ctx, r.dbConnection, recruitmentID, input.ManagementStatus)
+	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID, input.ManagementStatus)
 	if err != nil {
 		return res, err
 	}
@@ -243,7 +243,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
-	res, err := prefecture.GetPrefectures(r.dbConnection)
+	res, err := prefecture.GetPrefectures(ctx, r.dbPool)
 	if err != nil {
 		return res, err
 	}
@@ -260,7 +260,7 @@ func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error)
 }
 
 func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
-	res, err := competition.GetCompetitions(r.dbConnection)
+	res, err := competition.GetCompetitions(ctx, r.dbPool)
 	if err != nil {
 		return res, err
 	}
@@ -269,7 +269,7 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 }
 
 func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitments(r.dbConnection)
+	res, err := recruitment.GetRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitme
 }
 
 func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbConnection)
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*mode
 }
 
 func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitment(r.dbConnection, id)
+	res, err := recruitment.GetRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		return res, err
 	}
@@ -293,7 +293,7 @@ func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.R
 }
 
 func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetStockedRecruitments(ctx, r.dbConnection)
+	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Re
 }
 
 func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbConnection)
+	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return res, err
 	}
@@ -311,15 +311,15 @@ func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Re
 }
 
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := stock.CheckStocked(ctx, r.dbConnection, recruitmentID)
+	res, err := stock.CheckStocked(ctx, r.dbPool, recruitmentID)
 	if err != nil {
-		return false, err
+		return res, err
 	}
 	return res, nil
 }
 
 func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := stock.GetStockedCount(r.dbConnection, recruitmentID)
+	res, err := stock.GetStockedCount(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return 0, err
 	}
@@ -327,7 +327,7 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 }
 
 func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
-	res, err := tag.GetTags(r.dbConnection)
+	res, err := tag.GetTags(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,7 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 }
 
 func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID string) ([]*model.Tag, error) {
-	res, err := tag.GetRecruitmentTags(r.dbConnection, recruitmentID)
+	res, err := tag.GetRecruitmentTags(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}
@@ -343,15 +343,15 @@ func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID st
 }
 
 func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := applicant.CheckApplied(ctx, r.dbConnection, recruitmentID)
+	res, err := applicant.CheckApplied(ctx, r.dbPool, recruitmentID)
 	if err != nil {
-		return false, err
+		return res, err
 	}
 	return res, err
 }
 
 func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := applicant.GetAppliedCounts(r.dbConnection, recruitmentID)
+	res, err := applicant.GetAppliedCounts(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}

@@ -1,9 +1,8 @@
 package graph
 
 import (
-	"database/sql"
-
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/generated"
 )
 
@@ -13,11 +12,11 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	dbConnection *sql.DB
+	dbPool *pgxpool.Pool
 }
 
-func NewSchema(db *sql.DB) graphql.ExecutableSchema {
+func NewSchema(dbPool *pgxpool.Pool) graphql.ExecutableSchema {
 	return generated.NewExecutableSchema(generated.Config{
-		Resolvers: &Resolver{db},
+		Resolvers: &Resolver{dbPool: dbPool},
 	})
 }
