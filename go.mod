@@ -3,7 +3,7 @@ module github.com/nagokos/connefut_backend
 go 1.18
 
 require (
-	github.com/99designs/gqlgen v0.17.3
+	github.com/99designs/gqlgen v0.17.5
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
@@ -35,7 +35,6 @@ require (
 	github.com/matryer/moq v0.2.7 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/urfave/cli/v2 v2.4.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
