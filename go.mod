@@ -3,14 +3,14 @@ module github.com/nagokos/connefut_backend
 go 1.18
 
 require (
-	github.com/99designs/gqlgen v0.17.6
+	github.com/99designs/gqlgen v0.17.9
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/rs/xid v1.4.0
-	github.com/vektah/gqlparser/v2 v2.4.3-0.20220508162109-d3d9eb001575
+	github.com/vektah/gqlparser/v2 v2.4.4
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220331220935-ae2d96664a29
 	golang.org/x/text v0.3.7
@@ -35,7 +35,8 @@ require (
 	github.com/matryer/moq v0.2.7 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/urfave/cli/v2 v2.4.0 // indirect
+	github.com/urfave/cli/v2 v2.8.1 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
