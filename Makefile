@@ -38,6 +38,9 @@ mod_tidy:
 generate:
 	${DC_WEB} go generate ./...
 
+init_recruitments_data:
+	${DC_WEB} go run db/test_data/recruitment/recruitment.go
+
 # ** DB関係 **
 install_migrate:
 	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
