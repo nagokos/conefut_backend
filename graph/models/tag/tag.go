@@ -84,42 +84,6 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 	return tags, nil
 }
 
-func GetRecruitmentTags(ctx context.Context, dbPool *pgxpool.Pool, recId string) ([]*model.Tag, error) {
-	var tags []*model.Tag
-
-	cmd := `
-	  SELECT tags.id, tags.name 
-		FROM tags
-		  INNER JOIN recruitment_tags
-			  ON tags.id = recruitment_tags.tag_id
-		WHERE recruitment_tags.recruitment_id = $1
-	`
-
-	rows, err := dbPool.Query(ctx, cmd, recId)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var tag model.Tag
-		err := rows.Scan(&tag.ID, &tag.Name)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		tags = append(tags, &tag)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	return tags, nil
-}
-
 func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Tag, error) {
 	lower := strings.ToLower(t.Name)
 	timeNow := time.Now().Local()
