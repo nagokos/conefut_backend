@@ -462,7 +462,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	err = rows.Err()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return nil, err
+		return &model.RecruitmentConnection{}, err
 	}
 
 	if len(recConnection.Edges) > 0 {
@@ -487,6 +487,8 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 		pageInfo.EndCursor = endCursor
 
 		recConnection.PageInfo = &pageInfo
+	} else {
+		recConnection.PageInfo = &model.PageInfo{}
 	}
 
 	return &recConnection, nil
