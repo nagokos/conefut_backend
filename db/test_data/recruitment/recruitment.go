@@ -25,9 +25,9 @@ type recruitment struct {
 	prefectureID  string
 	userID        string
 	status        string
+	published_at  time.Time
 	createdAt     time.Time
 	updatedAt     time.Time
-	capacity      int
 }
 
 func main() {
@@ -103,7 +103,7 @@ func main() {
 		recruitment := &recruitment{
 			id:            xid.New().String(),
 			recType:       "opponent",
-			title:         fmt.Sprintf("%v 対戦相手募集 朝霞中央公園陸上競技場(人工芝)", i+1),
+			title:         fmt.Sprintf("対戦相手募集 朝霞中央公園陸上競技場(人工芝) %v", i+1),
 			place:         "朝霞中央公園陸上競技場",
 			startAt:       time.Now().Add(time.Hour * 240).Local(),
 			closingAt:     time.Now().Add(time.Hour * 230).Local(),
@@ -113,8 +113,8 @@ func main() {
 			status:        "published",
 			createdAt:     time.Now().Local(),
 			updatedAt:     time.Now().Local(),
-			capacity:      1,
 			content:       content,
+			published_at:  time.Now().Local(),
 		}
 		recruitments = append(recruitments, recruitment)
 	}
@@ -127,7 +127,7 @@ func main() {
 
 	cmd = `
 	  INSERT INTO recruitments 
-		  (id, title, type, place, start_at, content, capacity, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status)
+		  (id, title, type, place, start_at, content, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
 		VALUES 
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		`
@@ -135,8 +135,8 @@ func main() {
 	for _, recruitment := range recruitments {
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.content, recruitment.capacity,
-			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status,
+			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.content,
+			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
 		); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
