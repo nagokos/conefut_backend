@@ -267,7 +267,7 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 	return res, nil
 }
 
-func (r *queryResolver) GetRecruitments(ctx context.Context, input *model.PaginationInput) (*model.RecruitmentConnection, error) {
+func (r *queryResolver) GetRecruitments(ctx context.Context, input model.PaginationInput) (*model.RecruitmentConnection, error) {
 	sp, err := search.NewSearchParams(input.After, input.Before, input.First, input.Last, input.Options)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (r *queryResolver) GetRecruitments(ctx context.Context, input *model.Pagina
 		return nil, err
 	}
 
-	return res, err
+	return res, nil
 }
 
 func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
@@ -337,14 +337,6 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 		return nil, err
 	}
 	return res, nil
-}
-
-func (r *queryResolver) GetRecruitmentTags(ctx context.Context, recruitmentID string) ([]*model.Tag, error) {
-	res, err := tag.GetRecruitmentTags(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return res, err
-	}
-	return res, err
 }
 
 func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
