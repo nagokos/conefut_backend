@@ -22,7 +22,6 @@ enum EmailVerificationStatus {
 }
 
 enum Type {
-  UNNECESSARY
   OPPONENT
   INDIVIDUAL
   MEMBER
@@ -34,6 +33,28 @@ enum Status {
   DRAFT
   PUBLISHED
   CLOSED
+}
+
+type PageInfo {
+  startCursor: String!
+  endCursor: String!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+input paginationInput {
+  first: Int
+  after: String
+  last: Int
+  before: String
+  options: searchRecruitmentInput
+}
+
+input searchRecruitmentInput {
+  competitionId: String
+  prefectureId: String
+  type: String
+  startAt: DateTime
 }
 
 type User {
@@ -71,14 +92,25 @@ type Recruitment {
   locationLat: Float
   locationLng: Float
   status: Status!
-  capacity: Int
   closingAt: DateTime
   updatedAt: DateTime!
+  createdAt: DateTime!
+  published_at: DateTime
   competition: Competition
   prefecture: Prefecture
   user: User!
   tags: [Tag]!
   applicant: Applicant
+}
+
+type RecruitmentConnection {
+  pageInfo: PageInfo!
+  edges: [RecruitmentEdge!]!
+}
+
+type RecruitmentEdge {
+  cursor: String!
+  node: Recruitment!
 }
 
 type Tag {
@@ -97,7 +129,7 @@ type Query {
   getCompetitions: [Competition!]!
 
   # recruitment
-  getRecruitments: [Recruitment!]!
+  getRecruitments(input: paginationInput): RecruitmentConnection!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
@@ -129,23 +161,23 @@ input loginUserInput {
 
 input recruitmentInput {
   title: String!
-  content: String
+  competitionId: String!
   type: Type!
+  content: String
+  prefectureId: String
   place: String
   startAt: DateTime
+  closingAt: DateTime
   locationLat: Float
   locationLng: Float
-  capacity: Int
   status: Status!
-  closingAt: DateTime
-  competitionId: String
-  prefectureId: String
   tags: [recruitmentTagInput]!
 }
 
 input recruitmentTagInput {
   id: String!
   name: String!
+  isNew: Boolean!
 }
 
 input createTagInput {
@@ -166,7 +198,7 @@ type Mutation {
   # recruitment
   createRecruitment(input: recruitmentInput!): Recruitment!
   updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): Boolean!
+  deleteRecruitment(id: String!): Recruitment!
 
   # stock
   createStock(recruitmentId: String!): Boolean!
