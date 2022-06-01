@@ -129,7 +129,7 @@ type Query {
   getCompetitions: [Competition!]!
 
   # recruitment
-  getRecruitments(input: paginationInput): RecruitmentConnection!
+  getRecruitments(input: paginationInput!): RecruitmentConnection!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
