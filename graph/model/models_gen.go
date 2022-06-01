@@ -19,6 +19,13 @@ type Competition struct {
 	Name string `json:"name"`
 }
 
+type PageInfo struct {
+	StartCursor     string `json:"startCursor"`
+	EndCursor       string `json:"endCursor"`
+	HasNextPage     bool   `json:"hasNextPage"`
+	HasPreviousPage bool   `json:"hasPreviousPage"`
+}
+
 type Prefecture struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -34,14 +41,25 @@ type Recruitment struct {
 	LocationLat *float64     `json:"locationLat"`
 	LocationLng *float64     `json:"locationLng"`
 	Status      Status       `json:"status"`
-	Capacity    *int         `json:"capacity"`
 	ClosingAt   *time.Time   `json:"closingAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	PublishedAt *time.Time   `json:"published_at"`
 	Competition *Competition `json:"competition"`
 	Prefecture  *Prefecture  `json:"prefecture"`
 	User        *User        `json:"user"`
 	Tags        []*Tag       `json:"tags"`
 	Applicant   *Applicant   `json:"applicant"`
+}
+
+type RecruitmentConnection struct {
+	PageInfo *PageInfo          `json:"pageInfo"`
+	Edges    []*RecruitmentEdge `json:"edges"`
+}
+
+type RecruitmentEdge struct {
+	Cursor string       `json:"cursor"`
+	Node   *Recruitment `json:"node"`
 }
 
 type Tag struct {
@@ -79,25 +97,40 @@ type LoginUserInput struct {
 	Password string `json:"password"`
 }
 
+type PaginationInput struct {
+	First   *int                    `json:"first"`
+	After   *string                 `json:"after"`
+	Last    *int                    `json:"last"`
+	Before  *string                 `json:"before"`
+	Options *SearchRecruitmentInput `json:"options"`
+}
+
 type RecruitmentInput struct {
 	Title         string                 `json:"title"`
-	Content       *string                `json:"content"`
+	CompetitionID string                 `json:"competitionId"`
 	Type          Type                   `json:"type"`
+	Content       *string                `json:"content"`
+	PrefectureID  *string                `json:"prefectureId"`
 	Place         *string                `json:"place"`
 	StartAt       *time.Time             `json:"startAt"`
+	ClosingAt     *time.Time             `json:"closingAt"`
 	LocationLat   *float64               `json:"locationLat"`
 	LocationLng   *float64               `json:"locationLng"`
-	Capacity      *int                   `json:"capacity"`
 	Status        Status                 `json:"status"`
-	ClosingAt     *time.Time             `json:"closingAt"`
-	CompetitionID *string                `json:"competitionId"`
-	PrefectureID  *string                `json:"prefectureId"`
 	Tags          []*RecruitmentTagInput `json:"tags"`
 }
 
 type RecruitmentTagInput struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	IsNew bool   `json:"isNew"`
+}
+
+type SearchRecruitmentInput struct {
+	CompetitionID *string    `json:"competitionId"`
+	PrefectureID  *string    `json:"prefectureId"`
+	Type          *string    `json:"type"`
+	StartAt       *time.Time `json:"startAt"`
 }
 
 type EmailVerificationStatus string
@@ -273,16 +306,14 @@ func (e Status) MarshalGQL(w io.Writer) {
 type Type string
 
 const (
-	TypeUnnecessary Type = "UNNECESSARY"
-	TypeOpponent    Type = "OPPONENT"
-	TypeIndividual  Type = "INDIVIDUAL"
-	TypeMember      Type = "MEMBER"
-	TypeJoining     Type = "JOINING"
-	TypeOthers      Type = "OTHERS"
+	TypeOpponent   Type = "OPPONENT"
+	TypeIndividual Type = "INDIVIDUAL"
+	TypeMember     Type = "MEMBER"
+	TypeJoining    Type = "JOINING"
+	TypeOthers     Type = "OTHERS"
 )
 
 var AllType = []Type{
-	TypeUnnecessary,
 	TypeOpponent,
 	TypeIndividual,
 	TypeMember,
@@ -292,7 +323,7 @@ var AllType = []Type{
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeUnnecessary, TypeOpponent, TypeIndividual, TypeMember, TypeJoining, TypeOthers:
+	case TypeOpponent, TypeIndividual, TypeMember, TypeJoining, TypeOthers:
 		return true
 	}
 	return false
