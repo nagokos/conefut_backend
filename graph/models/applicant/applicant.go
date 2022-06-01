@@ -16,6 +16,10 @@ import (
 func CheckApplied(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 
+	if currentUser == nil {
+		return false, nil
+	}
+
 	cmd := `
 	  SELECT COUNT(DISTINCT a.id) 
 		FROM applicants AS a
