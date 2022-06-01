@@ -17,6 +17,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/models/competition"
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
+	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
 	"github.com/nagokos/connefut_backend/graph/models/tag"
 	"github.com/nagokos/connefut_backend/graph/models/user"
@@ -103,7 +104,6 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		Type:          input.Type,
 		Content:       input.Content,
 		StartAt:       input.StartAt,
-		Capacity:      input.Capacity,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
@@ -145,7 +145,6 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		Type:          input.Type,
 		Content:       input.Content,
 		StartAt:       input.StartAt,
-		Capacity:      input.Capacity,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
@@ -176,7 +175,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 	return res, nil
 }
 
-func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (bool, error) {
+func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
 	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		return res, err
@@ -268,11 +267,17 @@ func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competiti
 	return res, nil
 }
 
-func (r *queryResolver) GetRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitments(ctx, r.dbPool)
+func (r *queryResolver) GetRecruitments(ctx context.Context, input *model.PaginationInput) (*model.RecruitmentConnection, error) {
+	sp, err := search.NewSearchParams(input.After, input.Before, input.First, input.Last, input.Options)
 	if err != nil {
 		return nil, err
 	}
+
+	res, err := recruitment.GetRecruitments(ctx, r.dbPool, sp)
+	if err != nil {
+		return nil, err
+	}
+
 	return res, err
 }
 
