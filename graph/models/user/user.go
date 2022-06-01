@@ -82,11 +82,12 @@ func (u User) CreateUserValidate() error {
 		validation.Field(
 			&u.Name,
 			validation.Required.Error("名前を入力してください"),
-			validation.RuneLength(1, 50).Error("名前は50文字以内で入力してください"),
+			validation.RuneLength(1, 20).Error("名前は50文字以内で入力してください"),
 		),
 		validation.Field(
 			&u.Email,
 			validation.Required.Error("メールアドレスを入力してください"),
+			validation.RuneLength(1, 100).Error("メールアドレスは100文字以内で入力してください"),
 			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
 				Error("メールアドレスを正しく入力してください"),
 			validation.By(checkExistsEmail()),
@@ -94,7 +95,7 @@ func (u User) CreateUserValidate() error {
 		validation.Field(
 			&u.Password,
 			validation.Required.Error("パスワードを入力してください"),
-			validation.RuneLength(8, 100).Error("パスワードは8文字以上で入力してください"),
+			validation.RuneLength(8, 100).Error("パスワードは8~100文字で入力してください"),
 			validation.Match(regexp.MustCompile("[a-z]")).Error("パスワードを正しく入力してください"),
 			validation.Match(regexp.MustCompile(`\d`)).Error("パスワードを正しく入力してください"),
 		),

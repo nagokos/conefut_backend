@@ -53,8 +53,6 @@ func NewSearchParams(after *string, before *string, first *int, last *int, optio
 		return SearchParams{}, errors.New("{first}, {after, first}, {before, last}のいずれかの組み合わせで指定してください")
 	}
 
-	fmt.Println(options)
-
 	var srp = SearchRecruitmentParams{}
 
 	srp.UseCompetition = (options.CompetitionID != nil)
@@ -117,7 +115,7 @@ func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID string, pa
 	return isNextPage, nil
 }
 
-func PreviousPageExits(ctx context.Context, dbPool *pgxpool.Pool, previousID string, params SearchParams, sort string) (bool, error) {
+func PreviousPageExists(ctx context.Context, dbPool *pgxpool.Pool, previousID string, params SearchParams, sort string) (bool, error) {
 	cmd := fmt.Sprintf(`
 		SELECT COUNT(DISTINCT r.id)
 		FROM 
