@@ -141,7 +141,6 @@ type Query {
 
   # tag
   getTags: [Tag!]!
-  getRecruitmentTags(recruitmentId: String!): [Tag]!
 
   # applicant
   checkApplied(recruitmentId: String!): Boolean!
