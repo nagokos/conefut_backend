@@ -53,8 +53,6 @@ func NewSearchParams(after *string, before *string, first *int, last *int, optio
 		return SearchParams{}, errors.New("{first}, {after, first}, {before, last}のいずれかの組み合わせで指定してください")
 	}
 
-	fmt.Println(options)
-
 	var srp = SearchRecruitmentParams{}
 
 	srp.UseCompetition = (options.CompetitionID != nil)
