@@ -85,7 +85,7 @@ type Competition {
 type Recruitment {
   id: String!
   title: String!
-  content: String
+  detail: String
   type: Type!
   place: String
   startAt: DateTime
@@ -162,7 +162,7 @@ input recruitmentInput {
   title: String!
   competitionId: String!
   type: Type!
-  content: String
+  detail: String
   prefectureId: String
   place: String
   startAt: DateTime
@@ -185,7 +185,7 @@ input createTagInput {
 
 input applicantInput {
   managementStatus: ManagementStatus!
-  content: String!
+  detail: String!
 }
 
 type Mutation {

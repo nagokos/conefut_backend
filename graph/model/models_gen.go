@@ -34,7 +34,7 @@ type Prefecture struct {
 type Recruitment struct {
 	ID          string       `json:"id"`
 	Title       string       `json:"title"`
-	Content     *string      `json:"content"`
+	Detail      *string      `json:"detail"`
 	Type        Type         `json:"type"`
 	Place       *string      `json:"place"`
 	StartAt     *time.Time   `json:"startAt"`
@@ -79,7 +79,7 @@ type User struct {
 
 type ApplicantInput struct {
 	ManagementStatus ManagementStatus `json:"managementStatus"`
-	Content          string           `json:"content"`
+	Detail           string           `json:"detail"`
 }
 
 type CreateTagInput struct {
@@ -109,7 +109,7 @@ type RecruitmentInput struct {
 	Title         string                 `json:"title"`
 	CompetitionID string                 `json:"competitionId"`
 	Type          Type                   `json:"type"`
-	Content       *string                `json:"content"`
+	Detail        *string                `json:"detail"`
 	PrefectureID  *string                `json:"prefectureId"`
 	Place         *string                `json:"place"`
 	StartAt       *time.Time             `json:"startAt"`

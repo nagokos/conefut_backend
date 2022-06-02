@@ -17,7 +17,7 @@ type recruitment struct {
 	id            string
 	recType       string
 	title         string
-	content       string
+	detail        string
 	place         string
 	startAt       time.Time
 	closingAt     time.Time
@@ -65,7 +65,7 @@ func main() {
 
 	var recruitments []*recruitment
 	for i := 0; i < 20; i++ {
-		content := `初めまして。
+		detail := `初めまして。
 東京都社会人3部リーグに所属しているFortuna TOKYOと申します。
 下記の通りグラウンドが取得できましたので、対戦相手の募集をいたします。
 ※先着順ではございません。
@@ -113,7 +113,7 @@ func main() {
 			status:        "published",
 			createdAt:     time.Now().Local(),
 			updatedAt:     time.Now().Local(),
-			content:       content,
+			detail:        detail,
 			published_at:  time.Now().Local(),
 		}
 		recruitments = append(recruitments, recruitment)
@@ -127,7 +127,7 @@ func main() {
 
 	cmd = `
 	  INSERT INTO recruitments 
-		  (id, title, type, place, start_at, content, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
+		  (id, title, type, place, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
 		VALUES 
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		`
@@ -135,7 +135,7 @@ func main() {
 	for _, recruitment := range recruitments {
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.content,
+			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.detail,
 			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
 		); err != nil {
 			logger.NewLogger().Fatal(err.Error())

@@ -101,8 +101,8 @@ type ComplexityRoot struct {
 		Applicant   func(childComplexity int) int
 		ClosingAt   func(childComplexity int) int
 		Competition func(childComplexity int) int
-		Content     func(childComplexity int) int
 		CreatedAt   func(childComplexity int) int
+		Detail      func(childComplexity int) int
 		ID          func(childComplexity int) int
 		LocationLat func(childComplexity int) int
 		LocationLng func(childComplexity int) int
@@ -527,19 +527,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.Competition(childComplexity), true
 
-	case "Recruitment.content":
-		if e.complexity.Recruitment.Content == nil {
-			break
-		}
-
-		return e.complexity.Recruitment.Content(childComplexity), true
-
 	case "Recruitment.createdAt":
 		if e.complexity.Recruitment.CreatedAt == nil {
 			break
 		}
 
 		return e.complexity.Recruitment.CreatedAt(childComplexity), true
+
+	case "Recruitment.detail":
+		if e.complexity.Recruitment.Detail == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.Detail(childComplexity), true
 
 	case "Recruitment.id":
 		if e.complexity.Recruitment.ID == nil {
@@ -886,7 +886,7 @@ type Competition {
 type Recruitment {
   id: String!
   title: String!
-  content: String
+  detail: String
   type: Type!
   place: String
   startAt: DateTime
@@ -963,7 +963,7 @@ input recruitmentInput {
   title: String!
   competitionId: String!
   type: Type!
-  content: String
+  detail: String
   prefectureId: String
   place: String
   startAt: DateTime
@@ -986,7 +986,7 @@ input createTagInput {
 
 input applicantInput {
   managementStatus: ManagementStatus!
-  content: String!
+  detail: String!
 }
 
 type Mutation {
@@ -1714,8 +1714,8 @@ func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -1807,8 +1807,8 @@ func (ec *executionContext) fieldContext_Mutation_updateRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -1900,8 +1900,8 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2756,8 +2756,8 @@ func (ec *executionContext) fieldContext_Query_getCurrentUserRecruitments(ctx co
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2838,8 +2838,8 @@ func (ec *executionContext) fieldContext_Query_getRecruitment(ctx context.Contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2931,8 +2931,8 @@ func (ec *executionContext) fieldContext_Query_getStockedRecruitments(ctx contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -3013,8 +3013,8 @@ func (ec *executionContext) fieldContext_Query_getAppliedRecruitments(ctx contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -3539,8 +3539,8 @@ func (ec *executionContext) fieldContext_Recruitment_title(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Recruitment_content(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Recruitment_content(ctx, field)
+func (ec *executionContext) _Recruitment_detail(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Recruitment_detail(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3553,7 +3553,7 @@ func (ec *executionContext) _Recruitment_content(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Content, nil
+		return obj.Detail, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3567,7 +3567,7 @@ func (ec *executionContext) _Recruitment_content(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Recruitment_content(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Recruitment_detail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Recruitment",
 		Field:      field,
@@ -4444,8 +4444,8 @@ func (ec *executionContext) fieldContext_RecruitmentEdge_node(ctx context.Contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -6666,11 +6666,11 @@ func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "content":
+		case "detail":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("detail"))
+			it.Detail, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6861,11 +6861,11 @@ func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "content":
+		case "detail":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("detail"))
+			it.Detail, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7678,9 +7678,9 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "content":
+		case "detail":
 
-			out.Values[i] = ec._Recruitment_content(ctx, field, obj)
+			out.Values[i] = ec._Recruitment_detail(ctx, field, obj)
 
 		case "type":
 

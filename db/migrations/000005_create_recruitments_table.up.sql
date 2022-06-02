@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "recruitments"(
   "level" varchar NOT NULL DEFAULT 'unnecessary',
   "place" varchar NULL,
   "start_at" timestamp with time zone NULL,
-  "content" varchar(10000) NULL,
+  "detail" varchar(10000) NULL,
   "location_url" varchar NULL,
   "capacity" bigint NULL,
   "closing_at" timestamp with time zone NULL,

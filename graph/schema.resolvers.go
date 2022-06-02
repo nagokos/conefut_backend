@@ -102,7 +102,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
-		Content:       input.Content,
+		Detail:        input.Detail,
 		StartAt:       input.StartAt,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
@@ -143,7 +143,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
-		Content:       input.Content,
+		Detail:        input.Detail,
 		StartAt:       input.StartAt,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,

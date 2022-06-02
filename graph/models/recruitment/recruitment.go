@@ -24,7 +24,7 @@ type Recruitment struct {
 	Type          model.Type
 	Place         *string
 	StartAt       *time.Time
-	Content       *string
+	Detail        *string
 	LocationLat   *float64
 	LocationLng   *float64
 	Status        model.Status
@@ -100,7 +100,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			),
 		),
 		validation.Field(
-			&r.Content,
+			&r.Detail,
 			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集の詳細を入力してください"),
 				validation.RuneLength(1, 10000).Error("募集の詳細は10000文字以内で入力してください"),
@@ -159,7 +159,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	cmd := `
 	  INSERT INTO recruitments 
-		  (id, title, competition_id, type, content, prefecture_id, place, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
+		  (id, title, competition_id, type, detail, prefecture_id, place, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
 		VALUES
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING id, title, status 
@@ -167,7 +167,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place, r.StartAt,
+		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place, r.StartAt,
 		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.ID, timeNow, timeNow, published_at,
 	)
 
@@ -261,7 +261,7 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
 	cmd := `
-		SELECT r.id, r.title, r.type, r.status, r.content, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
+		SELECT r.id, r.title, r.type, r.status, r.detail, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
 		       c.id AS comp_id, c.name AS comp_name, 
 					 p.id AS pref_id, p.name AS pref_name, 
 					 u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
@@ -283,7 +283,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*m
 	var pref prefecture.NullablePrefecture
 	var usr user.NullableUser
 	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
-		&recruitment.Content, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
+		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
 		&comp.ID, &comp.Name, &pref.ID, &pref.Name, &usr.ID, &usr.Name, &usr.Avatar,
 	)
 	if err != nil {
@@ -555,7 +555,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	cmd := `
 	  UPDATE recruitments AS r
-		SET title = $1, competition_id = $2, type = $3, content = $4, prefecture_id = $5, place = $6,
+		SET title = $1, competition_id = $2, type = $3, detail = $4, prefecture_id = $5, place = $6,
 		    closing_at = $7, start_at = $8, location_lat = $9, location_lng = $10, updated_at = $11, status = $12,
 				published_at = CASE 
 												 WHEN r.published_at IS NULL 
@@ -569,7 +569,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		r.Title, r.CompetitionID, r.Type, r.Content, r.PrefectureID, r.Place,
+		r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place,
 		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), published_at, recID, currentUser.ID,
 	)
 
