@@ -10,8 +10,7 @@ import (
 )
 
 type Applicant struct {
-	ManagementStatus ManagementStatus `json:"managementStatus"`
-	CreatedAt        time.Time        `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type Competition struct {
@@ -34,7 +33,7 @@ type Prefecture struct {
 type Recruitment struct {
 	ID          string       `json:"id"`
 	Title       string       `json:"title"`
-	Content     *string      `json:"content"`
+	Detail      *string      `json:"detail"`
 	Type        Type         `json:"type"`
 	Place       *string      `json:"place"`
 	StartAt     *time.Time   `json:"startAt"`
@@ -78,8 +77,7 @@ type User struct {
 }
 
 type ApplicantInput struct {
-	ManagementStatus ManagementStatus `json:"managementStatus"`
-	Content          string           `json:"content"`
+	Message string `json:"message"`
 }
 
 type CreateTagInput struct {
@@ -109,7 +107,7 @@ type RecruitmentInput struct {
 	Title         string                 `json:"title"`
 	CompetitionID string                 `json:"competitionId"`
 	Type          Type                   `json:"type"`
-	Content       *string                `json:"content"`
+	Detail        *string                `json:"detail"`
 	PrefectureID  *string                `json:"prefectureId"`
 	Place         *string                `json:"place"`
 	StartAt       *time.Time             `json:"startAt"`
@@ -171,51 +169,6 @@ func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type ManagementStatus string
-
-const (
-	ManagementStatusUnnecessary ManagementStatus = "UNNECESSARY"
-	ManagementStatusBacklog     ManagementStatus = "BACKLOG"
-	ManagementStatusAccepted    ManagementStatus = "ACCEPTED"
-	ManagementStatusRejected    ManagementStatus = "REJECTED"
-)
-
-var AllManagementStatus = []ManagementStatus{
-	ManagementStatusUnnecessary,
-	ManagementStatusBacklog,
-	ManagementStatusAccepted,
-	ManagementStatusRejected,
-}
-
-func (e ManagementStatus) IsValid() bool {
-	switch e {
-	case ManagementStatusUnnecessary, ManagementStatusBacklog, ManagementStatusAccepted, ManagementStatusRejected:
-		return true
-	}
-	return false
-}
-
-func (e ManagementStatus) String() string {
-	return string(e)
-}
-
-func (e *ManagementStatus) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = ManagementStatus(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid ManagementStatus", str)
-	}
-	return nil
-}
-
-func (e ManagementStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

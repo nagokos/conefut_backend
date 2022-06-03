@@ -102,7 +102,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
-		Content:       input.Content,
+		Detail:        input.Detail,
 		StartAt:       input.StartAt,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
@@ -143,7 +143,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
-		Content:       input.Content,
+		Detail:        input.Detail,
 		StartAt:       input.StartAt,
 		Place:         input.Place,
 		LocationLat:   input.LocationLat,
@@ -233,7 +233,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 		return false, errors.New("メールアドレスを認証してください")
 	}
 
-	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID, input.ManagementStatus)
+	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}
@@ -339,8 +339,8 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 	return res, nil
 }
 
-func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := applicant.CheckApplied(ctx, r.dbPool, recruitmentID)
+func (r *queryResolver) CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (bool, error) {
+	res, err := applicant.CheckAppliedForRecruitment(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}

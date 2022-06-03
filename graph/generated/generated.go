@@ -46,8 +46,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Applicant struct {
-		CreatedAt        func(childComplexity int) int
-		ManagementStatus func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
 	}
 
 	Competition struct {
@@ -82,7 +81,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		CheckApplied               func(childComplexity int, recruitmentID string) int
+		CheckAppliedForRecruitment func(childComplexity int, recruitmentID string) int
 		CheckStocked               func(childComplexity int, recruitmentID string) int
 		GetAppliedCounts           func(childComplexity int, recruitmentID string) int
 		GetAppliedRecruitments     func(childComplexity int) int
@@ -101,8 +100,8 @@ type ComplexityRoot struct {
 		Applicant   func(childComplexity int) int
 		ClosingAt   func(childComplexity int) int
 		Competition func(childComplexity int) int
-		Content     func(childComplexity int) int
 		CreatedAt   func(childComplexity int) int
+		Detail      func(childComplexity int) int
 		ID          func(childComplexity int) int
 		LocationLat func(childComplexity int) int
 		LocationLng func(childComplexity int) int
@@ -169,7 +168,7 @@ type QueryResolver interface {
 	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
 	GetTags(ctx context.Context) ([]*model.Tag, error)
-	CheckApplied(ctx context.Context, recruitmentID string) (bool, error)
+	CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (bool, error)
 	GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error)
 }
 
@@ -194,13 +193,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Applicant.CreatedAt(childComplexity), true
-
-	case "Applicant.managementStatus":
-		if e.complexity.Applicant.ManagementStatus == nil {
-			break
-		}
-
-		return e.complexity.Applicant.ManagementStatus(childComplexity), true
 
 	case "Competition.id":
 		if e.complexity.Competition.ID == nil {
@@ -385,17 +377,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Prefecture.Name(childComplexity), true
 
-	case "Query.checkApplied":
-		if e.complexity.Query.CheckApplied == nil {
+	case "Query.checkAppliedForRecruitment":
+		if e.complexity.Query.CheckAppliedForRecruitment == nil {
 			break
 		}
 
-		args, err := ec.field_Query_checkApplied_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_checkAppliedForRecruitment_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.CheckApplied(childComplexity, args["recruitmentId"].(string)), true
+		return e.complexity.Query.CheckAppliedForRecruitment(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Query.checkStocked":
 		if e.complexity.Query.CheckStocked == nil {
@@ -527,19 +519,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.Competition(childComplexity), true
 
-	case "Recruitment.content":
-		if e.complexity.Recruitment.Content == nil {
-			break
-		}
-
-		return e.complexity.Recruitment.Content(childComplexity), true
-
 	case "Recruitment.createdAt":
 		if e.complexity.Recruitment.CreatedAt == nil {
 			break
 		}
 
 		return e.complexity.Recruitment.CreatedAt(childComplexity), true
+
+	case "Recruitment.detail":
+		if e.complexity.Recruitment.Detail == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.Detail(childComplexity), true
 
 	case "Recruitment.id":
 		if e.complexity.Recruitment.ID == nil {
@@ -810,13 +802,6 @@ enum Role {
   GENERAL
 }
 
-enum ManagementStatus {
-  UNNECESSARY
-  BACKLOG
-  ACCEPTED
-  REJECTED
-}
-
 enum EmailVerificationStatus {
   PENDING
   VERIFIED
@@ -874,7 +859,6 @@ type Prefecture {
 }
 
 type Applicant {
-  managementStatus: ManagementStatus!
   createdAt: DateTime!
 }
 
@@ -886,7 +870,7 @@ type Competition {
 type Recruitment {
   id: String!
   title: String!
-  content: String
+  detail: String
   type: Type!
   place: String
   startAt: DateTime
@@ -944,7 +928,7 @@ type Query {
   getTags: [Tag!]!
 
   # applicant
-  checkApplied(recruitmentId: String!): Boolean!
+  checkAppliedForRecruitment(recruitmentId: String!): Boolean!
   getAppliedCounts(recruitmentId: String!): Int!
 }
 
@@ -963,7 +947,7 @@ input recruitmentInput {
   title: String!
   competitionId: String!
   type: Type!
-  content: String
+  detail: String
   prefectureId: String
   place: String
   startAt: DateTime
@@ -985,8 +969,7 @@ input createTagInput {
 }
 
 input applicantInput {
-  managementStatus: ManagementStatus!
-  content: String!
+  message: String!
 }
 
 type Mutation {
@@ -1213,7 +1196,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_checkApplied_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_checkAppliedForRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1340,50 +1323,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _Applicant_managementStatus(ctx context.Context, field graphql.CollectedField, obj *model.Applicant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Applicant_managementStatus(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ManagementStatus, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ManagementStatus)
-	fc.Result = res
-	return ec.marshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Applicant_managementStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Applicant",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ManagementStatus does not have child fields")
-		},
-	}
-	return fc, nil
-}
 
 func (ec *executionContext) _Applicant_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Applicant) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Applicant_createdAt(ctx, field)
@@ -1714,8 +1653,8 @@ func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -1807,8 +1746,8 @@ func (ec *executionContext) fieldContext_Mutation_updateRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -1900,8 +1839,8 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2756,8 +2695,8 @@ func (ec *executionContext) fieldContext_Query_getCurrentUserRecruitments(ctx co
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2838,8 +2777,8 @@ func (ec *executionContext) fieldContext_Query_getRecruitment(ctx context.Contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -2931,8 +2870,8 @@ func (ec *executionContext) fieldContext_Query_getStockedRecruitments(ctx contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -3013,8 +2952,8 @@ func (ec *executionContext) fieldContext_Query_getAppliedRecruitments(ctx contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -3212,8 +3151,8 @@ func (ec *executionContext) fieldContext_Query_getTags(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_checkApplied(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_checkApplied(ctx, field)
+func (ec *executionContext) _Query_checkAppliedForRecruitment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_checkAppliedForRecruitment(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3226,7 +3165,7 @@ func (ec *executionContext) _Query_checkApplied(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CheckApplied(rctx, fc.Args["recruitmentId"].(string))
+		return ec.resolvers.Query().CheckAppliedForRecruitment(rctx, fc.Args["recruitmentId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3243,7 +3182,7 @@ func (ec *executionContext) _Query_checkApplied(ctx context.Context, field graph
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_checkApplied(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_checkAppliedForRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3260,7 +3199,7 @@ func (ec *executionContext) fieldContext_Query_checkApplied(ctx context.Context,
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_checkApplied_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_checkAppliedForRecruitment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -3539,8 +3478,8 @@ func (ec *executionContext) fieldContext_Recruitment_title(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Recruitment_content(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Recruitment_content(ctx, field)
+func (ec *executionContext) _Recruitment_detail(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Recruitment_detail(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3553,7 +3492,7 @@ func (ec *executionContext) _Recruitment_content(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Content, nil
+		return obj.Detail, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3567,7 +3506,7 @@ func (ec *executionContext) _Recruitment_content(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Recruitment_content(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Recruitment_detail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Recruitment",
 		Field:      field,
@@ -4242,8 +4181,6 @@ func (ec *executionContext) fieldContext_Recruitment_applicant(ctx context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "managementStatus":
-				return ec.fieldContext_Applicant_managementStatus(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Applicant_createdAt(ctx, field)
 			}
@@ -4444,8 +4381,8 @@ func (ec *executionContext) fieldContext_RecruitmentEdge_node(ctx context.Contex
 				return ec.fieldContext_Recruitment_id(ctx, field)
 			case "title":
 				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Recruitment_content(ctx, field)
+			case "detail":
+				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
 			case "place":
@@ -6658,19 +6595,11 @@ func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, ob
 
 	for k, v := range asMap {
 		switch k {
-		case "managementStatus":
+		case "message":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("managementStatus"))
-			it.ManagementStatus, err = ec.unmarshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "content":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			it.Message, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6861,11 +6790,11 @@ func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "content":
+		case "detail":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("detail"))
+			it.Detail, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7043,13 +6972,6 @@ func (ec *executionContext) _Applicant(ctx context.Context, sel ast.SelectionSet
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Applicant")
-		case "managementStatus":
-
-			out.Values[i] = ec._Applicant_managementStatus(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "createdAt":
 
 			out.Values[i] = ec._Applicant_createdAt(ctx, field, obj)
@@ -7585,7 +7507,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "checkApplied":
+		case "checkAppliedForRecruitment":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -7594,7 +7516,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_checkApplied(ctx, field)
+				res = ec._Query_checkAppliedForRecruitment(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -7678,9 +7600,9 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "content":
+		case "detail":
 
-			out.Values[i] = ec._Recruitment_content(ctx, field, obj)
+			out.Values[i] = ec._Recruitment_detail(ctx, field, obj)
 
 		case "type":
 
@@ -8368,16 +8290,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx context.Context, v interface{}) (model.ManagementStatus, error) {
-	var res model.ManagementStatus
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNManagementStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐManagementStatus(ctx context.Context, sel ast.SelectionSet, v model.ManagementStatus) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {

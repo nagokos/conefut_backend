@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS recruitment_tags;
+DROP TABLE IF EXISTS "recruitment_tags";
