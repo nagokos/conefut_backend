@@ -346,7 +346,7 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
-	  SELECT r.id, r.title, r.type, a.created_at AS app_created_at, a.management_status AS app_management_status, u.name AS usr_name, u.avatar AS usr_avatar
+	  SELECT r.id, r.title, r.type, a.created_at AS app_created_at,  u.name AS usr_name, u.avatar AS usr_avatar
 		FROM recruitments AS r
 		INNER JOIN applicants AS a 
 		  ON r.id = a.recruitment_id
@@ -369,14 +369,13 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 		var applicant model.Applicant
 		var user model.User
 		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &applicant.CreatedAt,
-			&applicant.ManagementStatus, &user.Name, &user.Avatar,
+			&user.Name, &user.Avatar,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
 		recruitment.Applicant = &applicant
 		recruitment.User = &user
-		recruitment.Applicant.ManagementStatus = model.ManagementStatus(strings.ToUpper(string(recruitment.Applicant.ManagementStatus)))
 		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 		recruitments = append(recruitments, &recruitment)
 	}
