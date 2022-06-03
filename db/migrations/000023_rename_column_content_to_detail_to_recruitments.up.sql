@@ -1,2 +1,2 @@
-ALTER TABLE recruitments
-  RENAME COLUMN detail TO detail;
+ALTER TABLE "recruitments"
+  RENAME COLUMN "content" TO "detail";
