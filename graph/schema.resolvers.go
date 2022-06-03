@@ -233,7 +233,7 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 		return false, errors.New("メールアドレスを認証してください")
 	}
 
-	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID, input.ManagementStatus)
+	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}
