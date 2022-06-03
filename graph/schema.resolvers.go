@@ -339,8 +339,8 @@ func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
 	return res, nil
 }
 
-func (r *queryResolver) CheckApplied(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := applicant.CheckApplied(ctx, r.dbPool, recruitmentID)
+func (r *queryResolver) CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (bool, error) {
+	res, err := applicant.CheckAppliedForRecruitment(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return res, err
 	}
