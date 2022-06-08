@@ -1,2 +1,2 @@
 ALTER TABLE "applicants" 
-  ADD COLUMN "management_status" varchar NOT NULL DEFAULT 'backlog';
+  ADD COLUMN "management_status" VARCHAR NOT NULL DEFAULT 'backlog';

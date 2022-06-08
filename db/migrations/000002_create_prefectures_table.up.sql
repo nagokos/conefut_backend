@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "prefectures"(
-  "id" varchar UNIQUE NOT NULL, 
-  "name" varchar NOT NULL, 
-  "created_at" timestamp with time zone NOT NULL, 
-  "updated_at" timestamp with time zone NOT NULL, 
+  "id" VARCHAR UNIQUE NOT NULL, 
+  "name" VARCHAR NOT NULL, 
+  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
+  "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   PRIMARY KEY("id")
 );

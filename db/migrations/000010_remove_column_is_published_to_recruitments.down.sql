@@ -1,2 +1,2 @@
 ALTER TABLE "recruitments" 
-  ADD COLUMN "is_published" boolean NOT NULL DEFAULT false;
+  ADD COLUMN "is_published" BOOLEAN NOT NULL DEFAULT false;
