@@ -13,5 +13,5 @@ CREATE TABLE IF NOT EXISTS "users"(
   "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   PRIMARY KEY("id")
 );
-CREATE INDEX IF NOT EXISTS "users_email_verification_token" ON "users"("email_verification_token");
+CREATE INDEX ON "users"("email_verification_token");
 

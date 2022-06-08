@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS "stocks"(
   PRIMARY KEY("id"),
   UNIQUE("user_id", "recruitment_id")
 );
-CREATE INDEX IF NOT EXISTS "stocks_user_id" ON "stocks"("user_id");
-CREATE INDEX IF NOT EXISTS "stocks_recruitment_id" ON "stocks"("recruitment_id");
+CREATE INDEX ON "stocks"("user_id");
+CREATE INDEX ON "stocks"("recruitment_id");
