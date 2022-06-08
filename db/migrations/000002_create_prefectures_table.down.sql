@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS prefectures;
+DROP TABLE IF EXISTS "prefectures";

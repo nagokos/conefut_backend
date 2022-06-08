@@ -1,2 +1,2 @@
 ALTER TABLE "recruitments" 
-  ADD COLUMN "level" varchar NOT NULL DEFAULT 'unnecessary';
+  ADD COLUMN "level" VARCHAR NOT NULL DEFAULT 'unnecessary';

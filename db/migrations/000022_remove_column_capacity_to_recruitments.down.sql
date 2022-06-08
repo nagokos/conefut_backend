@@ -1,2 +1,2 @@
 ALTER TABLE "recruitments"
-  ADD COLUMN "capacity" bigint NULL
+  ADD COLUMN "capacity" BIGINT NULL

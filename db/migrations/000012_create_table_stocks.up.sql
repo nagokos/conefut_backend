@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS "stocks"(
-  "id" varchar UNIQUE NOT NULL, 
-  "recruitment_id" varchar NULL, 
-  "user_id" varchar NULL, 
-  "created_at" timestamp with time zone NOT NULL, 
-  "updated_at" timestamp with time zone NOT NULL, 
+  "id" VARCHAR UNIQUE NOT NULL, 
+  "recruitment_id" VARCHAR NULL, 
+  "user_id" VARCHAR NULL, 
+  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
+  "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   PRIMARY KEY("id"),
   UNIQUE("user_id", "recruitment_id")
 );
-CREATE INDEX IF NOT EXISTS "stock_user_id" ON "stocks"("user_id");
-CREATE INDEX IF NOT EXISTS "stock_recruitment_id" ON "stocks"("recruitment_id");
+CREATE INDEX ON "stocks"("user_id");
+CREATE INDEX ON "stocks"("recruitment_id");
