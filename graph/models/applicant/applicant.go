@@ -59,14 +59,14 @@ func GetAppliedCounts(ctx context.Context, dbPool *pgxpool.Pool, recID string) (
 	return count, nil
 }
 
-func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recId string) (bool, error) {
+func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, message string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return false, errors.New("ログインしてください")
 	}
 
 	cmd := "SELECT r.user_id FROM recruitments AS r WHERE r.id = $1"
-	row := dbPool.QueryRow(ctx, cmd, recId)
+	row := dbPool.QueryRow(ctx, cmd, recruitmentID)
 
 	var userID string
 	err := row.Scan(&userID)
@@ -82,16 +82,16 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recId string) (b
 
 	cmd = `
 	  INSERT INTO applicants 
-		  (id, recruitment_id, user_id, created_at, updated_at)
+		  (id, recruitment_id, user_id, created_at, updated_at, message)
 		VALUES 
-		  ($1, $2, $3, $4, $5)
+		  ($1, $2, $3, $4, $5, $6)
 	`
 
 	timeNow := time.Now().Local()
 
 	_, err = dbPool.Exec(
 		ctx, cmd,
-		xid.New().String(), recId, currentUser.ID, timeNow, timeNow,
+		xid.New().String(), recruitmentID, currentUser.ID, timeNow, timeNow, message,
 	)
 
 	if err != nil {
