@@ -1,6 +1,5 @@
-CREATE TABLE IF NOT EXISTS "messages"(
+CREATE TABLE IF NOT EXISTS "entries"(
   "id" VARCHAR NOT NULL,
-  "content" VARCHAR(1000) NOT NULL,
   "room_id" VARCHAR NOT NULL,
   "user_id" VARCHAR NULL,
   PRIMARY KEY("id"),
@@ -9,7 +8,8 @@ CREATE TABLE IF NOT EXISTS "messages"(
     ON DELETE CASCADE,
   FOREIGN KEY("user_id")
     REFERENCES "users"("id")
-    ON DELETE SET NULL
+    ON DELETE SET NULL,
+  UNIQUE("room_id", "user_id")
 );
-CREATE INDEX ON "messages"("room_id");
-CREATE INDEX ON "messages"("user_id");
+CREATE INDEX ON "entries"("room_id");
+CREATE INDEX ON "entries"("user_id");
