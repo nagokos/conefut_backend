@@ -45,6 +45,9 @@ init_recruitments_data:
 install_migrate:
 	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+tbls_doc:
+	${DC_WEB} tbls doc
+
 # マイグレーションファイル作成
 # SEQ_NAMEはcreate_users_tableの部分
 init_migration: seq_name
