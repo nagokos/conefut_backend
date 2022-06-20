@@ -1,3 +1,10 @@
 dsn: postgres://root:password@db:5432/connefut_db?sslmode=disable
-
 docPath: doc/schema
+relations: 
+  -
+    table: recruitments
+    columns:
+      - user_id
+    parentTable: users 
+    parentColumns:
+      - id 
