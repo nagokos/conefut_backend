@@ -7,15 +7,17 @@
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | id | varchar |  | false |  |  |  |
-| content | varchar(1000) |  | false |  |  |  |
+| content | varchar(1000) |  | true |  |  |  |
 | room_id | varchar |  | false |  | [public.rooms](public.rooms.md) |  |
 | user_id | varchar |  | true |  | [public.users](public.users.md) |  |
+| applicant_id | varchar |  | false |  | [public.applicants](public.applicants.md) |  |
 
 ## Constraints
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | messages_user_id_fkey | FOREIGN KEY | FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL |
+| messages_applicant_id_fkey | FOREIGN KEY | FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE |
 | messages_room_id_fkey | FOREIGN KEY | FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE |
 | messages_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 

@@ -14,7 +14,7 @@
 | [public.tags](public.tags.md) | 4 |  | BASE TABLE |
 | [public.recruitment_tags](public.recruitment_tags.md) | 5 |  | BASE TABLE |
 | [public.rooms](public.rooms.md) | 3 |  | BASE TABLE |
-| [public.messages](public.messages.md) | 4 |  | BASE TABLE |
+| [public.messages](public.messages.md) | 5 |  | BASE TABLE |
 | [public.entries](public.entries.md) | 3 |  | BASE TABLE |
 | [public.room_read_managements](public.room_read_managements.md) | 4 |  | BASE TABLE |
 
