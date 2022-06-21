@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
+| id | varchar |  | false | [public.messages](public.messages.md) |  |  |
 | recruitment_id | varchar |  | false |  | [public.recruitments](public.recruitments.md) |  |
 | user_id | varchar |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
