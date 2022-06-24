@@ -206,6 +206,10 @@ input applicantInput {
   message: String!
 }
 
+input createMessageInput {
+  content: String!
+}
+
 type Mutation {
   # user
   createUser(input: createUserInput!): Boolean!
@@ -229,4 +233,7 @@ type Mutation {
 
   # applicant
   applyForRecruitment(recruitmentId: String!, input: applicantInput): Boolean!
+
+  # message
+  createMessage(roomId: String!, input: createMessageInput!): Message!
 }
