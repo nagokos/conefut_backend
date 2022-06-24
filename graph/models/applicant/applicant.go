@@ -5,8 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/models/room"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -80,22 +82,109 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 		return false, errors.New("自分が作成した募集には応募できません")
 	}
 
+	tx, err := dbPool.Begin(ctx)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
+	}
+
 	cmd = `
 	  INSERT INTO applicants 
 		  (id, recruitment_id, user_id, created_at, updated_at, message)
 		VALUES 
 		  ($1, $2, $3, $4, $5, $6)
+		RETURNING id
 	`
 
 	timeNow := time.Now().Local()
 
-	_, err = dbPool.Exec(
+	row = tx.QueryRow(
 		ctx, cmd,
 		xid.New().String(), recruitmentID, currentUser.ID, timeNow, timeNow, message,
 	)
 
+	var applicantID string
+	err = row.Scan(&applicantID)
+
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
+		tx.Rollback(ctx)
+		return false, err
+	}
+
+	cmd = `
+	  SELECT e_1.room_id
+		FROM entries AS e_1
+		WHERE e_1.user_id = $1
+		AND EXISTS(
+		  SELECT 1
+			FROM entries AS e_2
+			WHERE e_1.room_id = e_2.room_id
+			AND e_2.user_id = $2
+		)
+	`
+	row = tx.QueryRow(
+		ctx, cmd,
+		currentUser.ID, userID,
+	)
+
+	var roomID string
+	err = row.Scan(&roomID)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			roomID, err = room.CreateRoom(ctx, tx)
+			if err != nil {
+				tx.Rollback(ctx)
+				return false, err
+			}
+
+			entrieUsers := [2]string{currentUser.ID, userID}
+			cmd = `
+				INSERT INTO entries
+					(id, room_id, user_id, created_at, updated_at)
+				VALUES
+					($1, $2, $3, $4, $5)
+			`
+
+			for _, userID := range entrieUsers {
+				_, err = tx.Exec(
+					ctx, cmd,
+					xid.New().String(), roomID, userID, timeNow, timeNow,
+				)
+				if err != nil {
+					logger.NewLogger().Error(err.Error())
+					tx.Rollback(ctx)
+					return false, err
+				}
+			}
+		} else {
+			logger.NewLogger().Error(err.Error())
+			tx.Rollback(ctx)
+			return false, err
+		}
+	}
+
+	cmd = `
+	  INSERT INTO messages
+		  (id, room_id, user_id, applicant_id, created_at, updated_at)
+		VALUES
+		  ($1, $2, $3, $4, $5, $6)
+	`
+	_, err = tx.Exec(
+		ctx, cmd,
+		xid.New().String(), roomID, currentUser.ID, applicantID, timeNow, timeNow,
+	)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		tx.Rollback(ctx)
+		return false, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		tx.Rollback(ctx)
 		return false, err
 	}
 

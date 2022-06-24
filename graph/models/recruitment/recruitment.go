@@ -11,10 +11,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/models/competition"
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/search"
-	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -262,9 +260,9 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
 	cmd := `
 		SELECT r.id, r.title, r.type, r.status, r.detail, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
-		       c.id AS comp_id, c.name AS comp_name, 
-					 p.id AS pref_id, p.name AS pref_name, 
-					 u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
+		       c.id, c.name,
+					 p.id, p.name,
+					 u.id, u.name, u.avatar
 		FROM recruitments AS r
 		LEFT OUTER JOIN prefectures AS p 
 		ON r.prefecture_id = p.id
@@ -273,41 +271,32 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*m
 		INNER JOIN users AS u 
 			ON r.user_id = u.id
 		WHERE r.id = $1
-		ORDER BY id ASC
 	`
 
 	row := dbPool.QueryRow(ctx, cmd, recID)
 
 	var recruitment model.Recruitment
-	var comp competition.NullableCompetition
-	var pref prefecture.NullablePrefecture
-	var usr user.NullableUser
+	var competition model.Competition
+	var nullablePrefecture prefecture.NullablePrefecture
+	var user model.User
 	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
-		&comp.ID, &comp.Name, &pref.ID, &pref.Name, &usr.ID, &usr.Name, &usr.Avatar,
+		&competition.ID, &competition.Name, &nullablePrefecture.ID, &nullablePrefecture.Name, &user.ID, &user.Name, &user.Avatar,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	var initialComp competition.NullableCompetition
-	if comp != initialComp {
-		recruitment.Competition = &model.Competition{ID: *comp.ID, Name: *comp.Name}
-	}
-
-	var initialPref prefecture.NullablePrefecture
-	if pref != initialPref {
-		recruitment.Prefecture = &model.Prefecture{ID: *pref.ID, Name: *pref.Name}
-	}
-
-	var initialUsr user.NullableUser
-	if usr != initialUsr {
-		recruitment.User = &model.User{ID: *usr.ID, Name: *usr.Name, Avatar: *usr.Avatar}
-	}
-
+	recruitment.Competition = &model.Competition{ID: competition.ID, Name: competition.Name}
+	recruitment.User = &model.User{ID: user.ID, Name: user.Name, Avatar: user.Avatar}
 	recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
 	recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+
+	var defaultPrefecture prefecture.NullablePrefecture
+	if nullablePrefecture != defaultPrefecture {
+		recruitment.Prefecture = &model.Prefecture{ID: *nullablePrefecture.ID, Name: *nullablePrefecture.Name}
+	}
 
 	cmd = `
 		SELECT t.id, t.name

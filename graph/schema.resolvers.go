@@ -15,8 +15,11 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/applicant"
 	"github.com/nagokos/connefut_backend/graph/models/competition"
+	"github.com/nagokos/connefut_backend/graph/models/entrie"
+	"github.com/nagokos/connefut_backend/graph/models/message"
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
+	"github.com/nagokos/connefut_backend/graph/models/room"
 	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
 	"github.com/nagokos/connefut_backend/graph/models/tag"
@@ -230,6 +233,7 @@ func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, 
 func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (bool, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		logger.NewLogger().Error("not email verified")
 		return false, errors.New("メールアドレスを認証してください")
 	}
 
@@ -239,6 +243,31 @@ func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentI
 	}
 
 	return res, err
+}
+
+func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, input model.CreateMessageInput) (*model.Message, error) {
+	m := message.Message{
+		Content: input.Content,
+	}
+
+	err := m.MessageValidate()
+	if err != nil {
+		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
+		errs := err.(validation.Errors)
+
+		for k, errMessage := range errs {
+			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		}
+		return nil, err
+	}
+
+	res, err := m.CreateMessage(ctx, r.dbPool, roomID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
@@ -354,6 +383,34 @@ func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID stri
 	}
 
 	return res, nil
+}
+
+func (r *queryResolver) GetCurrentUserRooms(ctx context.Context) ([]*model.Room, error) {
+	res, err := room.GetCurrentUserRooms(ctx, r.dbPool)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+func (r *queryResolver) GetEntrieUser(ctx context.Context, roomID string) (*model.User, error) {
+	res, err := entrie.GetEntrieUser(ctx, r.dbPool, roomID)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+func (r *queryResolver) GetRoomMessages(ctx context.Context, roomID string) ([]*model.Message, error) {
+	res, err := message.GetRoomMessages(ctx, r.dbPool, roomID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return res, err
+	}
+
+	return res, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -10,12 +10,25 @@ import (
 )
 
 type Applicant struct {
-	CreatedAt time.Time `json:"createdAt"`
+	Message     string       `json:"message"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	Recruitment *Recruitment `json:"recruitment"`
 }
 
 type Competition struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type Entrie struct {
+	User *User `json:"user"`
+}
+
+type Message struct {
+	Content   *string    `json:"content"`
+	Applicant *Applicant `json:"applicant"`
+	User      *User      `json:"user"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 type PageInfo struct {
@@ -43,7 +56,7 @@ type Recruitment struct {
 	ClosingAt   *time.Time   `json:"closingAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
 	CreatedAt   time.Time    `json:"createdAt"`
-	PublishedAt *time.Time   `json:"published_at"`
+	PublishedAt *time.Time   `json:"publishedAt"`
 	Competition *Competition `json:"competition"`
 	Prefecture  *Prefecture  `json:"prefecture"`
 	User        *User        `json:"user"`
@@ -59,6 +72,11 @@ type RecruitmentConnection struct {
 type RecruitmentEdge struct {
 	Cursor string       `json:"cursor"`
 	Node   *Recruitment `json:"node"`
+}
+
+type Room struct {
+	ID     string  `json:"id"`
+	Entrie *Entrie `json:"entrie"`
 }
 
 type Tag struct {
@@ -78,6 +96,10 @@ type User struct {
 
 type ApplicantInput struct {
 	Message string `json:"message"`
+}
+
+type CreateMessageInput struct {
+	Content string `json:"content"`
 }
 
 type CreateTagInput struct {
