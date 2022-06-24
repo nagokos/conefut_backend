@@ -155,6 +155,15 @@ type Query {
   # applicant
   checkAppliedForRecruitment(recruitmentId: String!): Boolean!
   getAppliedCounts(recruitmentId: String!): Int!
+
+  # room
+  getCurrentUserRooms: [Room!]!
+
+  # entrie
+  getEntrieUser(roomId: String!): User!
+
+  # message
+  getRoomMessages(roomId: String!): [Message!]!
 }
 
 input createUserInput {
