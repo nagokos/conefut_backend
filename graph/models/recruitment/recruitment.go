@@ -11,10 +11,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/models/competition"
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/search"
-	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -262,9 +260,9 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
 	cmd := `
 		SELECT r.id, r.title, r.type, r.status, r.detail, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
-		       c.id AS comp_id, c.name AS comp_name, 
-					 p.id AS pref_id, p.name AS pref_name, 
-					 u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
+		       c.id, c.name,
+					 p.id, p.name,
+					 u.id, u.name, u.avatar
 		FROM recruitments AS r
 		LEFT OUTER JOIN prefectures AS p 
 		ON r.prefecture_id = p.id
