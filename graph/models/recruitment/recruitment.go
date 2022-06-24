@@ -271,41 +271,32 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*m
 		INNER JOIN users AS u 
 			ON r.user_id = u.id
 		WHERE r.id = $1
-		ORDER BY id ASC
 	`
 
 	row := dbPool.QueryRow(ctx, cmd, recID)
 
 	var recruitment model.Recruitment
-	var comp competition.NullableCompetition
-	var pref prefecture.NullablePrefecture
-	var usr user.NullableUser
+	var competition model.Competition
+	var nullablePrefecture prefecture.NullablePrefecture
+	var user model.User
 	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
-		&comp.ID, &comp.Name, &pref.ID, &pref.Name, &usr.ID, &usr.Name, &usr.Avatar,
+		&competition.ID, &competition.Name, &nullablePrefecture.ID, &nullablePrefecture.Name, &user.ID, &user.Name, &user.Avatar,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	var initialComp competition.NullableCompetition
-	if comp != initialComp {
-		recruitment.Competition = &model.Competition{ID: *comp.ID, Name: *comp.Name}
-	}
-
-	var initialPref prefecture.NullablePrefecture
-	if pref != initialPref {
-		recruitment.Prefecture = &model.Prefecture{ID: *pref.ID, Name: *pref.Name}
-	}
-
-	var initialUsr user.NullableUser
-	if usr != initialUsr {
-		recruitment.User = &model.User{ID: *usr.ID, Name: *usr.Name, Avatar: *usr.Avatar}
-	}
-
+	recruitment.Competition = &model.Competition{ID: competition.ID, Name: competition.Name}
+	recruitment.User = &model.User{ID: user.ID, Name: user.Name, Avatar: user.Avatar}
 	recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
 	recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+
+	var defaultPrefecture prefecture.NullablePrefecture
+	if nullablePrefecture != defaultPrefecture {
+		recruitment.Prefecture = &model.Prefecture{ID: *nullablePrefecture.ID, Name: *nullablePrefecture.Name}
+	}
 
 	cmd = `
 		SELECT t.id, t.name
