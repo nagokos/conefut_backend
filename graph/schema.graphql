@@ -112,6 +112,22 @@ type Tag {
   name: String!
 }
 
+type Room {
+  id: String!
+  entrie: Entrie!
+}
+
+type Entrie {
+  user: User!
+}
+
+type Message {
+  content: String
+  applicant: Applicant
+  user: User!
+  createdAt: DateTime!
+}
+
 type Query {
   # prefecture
   getPrefectures: [Prefecture!]!
