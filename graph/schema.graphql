@@ -66,7 +66,9 @@ type Prefecture {
 }
 
 type Applicant {
+  message: String!
   createdAt: DateTime!
+  recruitment: Recruitment!
 }
 
 type Competition {
@@ -87,7 +89,7 @@ type Recruitment {
   closingAt: DateTime
   updatedAt: DateTime!
   createdAt: DateTime!
-  published_at: DateTime
+  publishedAt: DateTime
   competition: Competition
   prefecture: Prefecture
   user: User!
