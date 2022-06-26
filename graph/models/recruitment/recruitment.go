@@ -388,9 +388,9 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 
 	cmd := fmt.Sprintf(`
 		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at,
-					 u.name AS usr_name, u.avatar AS usr_avatar, 
-					 p.name AS pref_name,
-					 c.name AS comp_name
+					 u.name, u.avatar,
+					 p.name,
+					 c.name
 		FROM 
 			(
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
