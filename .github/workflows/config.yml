@@ -50,7 +50,7 @@ jobs:
         version: "2022.1"
 
   slack_notification:
-    if: always()
+    if: success()
     runs-on: ubuntu-latest
     needs: [setup, build, lint]
     steps:
@@ -62,7 +62,7 @@ jobs:
       env:
         SLACK_COLOR: good
         SLACK_MESSAGE: Success!!
-        SLACK_TITLE: Post Title
+        SLACK_TITLE: Message
     - name: failure
       if: failure()
       uses: rtCamp/action-slack-notify@v2
