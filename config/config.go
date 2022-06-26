@@ -9,7 +9,7 @@ import (
 )
 
 type ConfigList struct {
-	DbName       string `yaml:"name"`
+	DBName       string `yaml:"name"`
 	Driver       string `yaml:"driver"`
 	Port         int    `yaml:"port"`
 	LogFile      string `yaml:"log"`
@@ -29,7 +29,7 @@ func init() {
 	yaml.Unmarshal(b, &c)
 
 	Config = ConfigList{
-		DbName:       c["db"].DbName,
+		DBName:       c["db"].DBName,
 		Driver:       c["db"].Driver,
 		Port:         c["web"].Port,
 		LogFile:      c["web"].LogFile,

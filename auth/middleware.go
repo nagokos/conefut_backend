@@ -30,14 +30,14 @@ func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 				return
 			}
 
-			userId, err := validateAndGetUserID(c)
+			userID, err := validateAndGetUserID(c)
 			if err != nil {
 				http.Error(w, "Invalid cookie", http.StatusForbidden)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			user, err := getUserByID(dbPool, userId)
+			user, err := getUserByID(dbPool, userID)
 			if err != nil {
 				http.Error(w, "user not found", http.StatusForbidden)
 				next.ServeHTTP(w, r)
