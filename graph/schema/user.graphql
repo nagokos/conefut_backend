@@ -14,6 +14,7 @@ enum EmailVerificationStatus {
 
 type User implements Node {
   id: ID!
+  databaseId: Int
   name: String!
   email: String!
   role: Role!
@@ -22,19 +23,19 @@ type User implements Node {
   emailVerificationStatus: EmailVerificationStatus!
 }
 
-input createUserInput {
+extend type Mutation {
+  createUser(input: CreateUserInput!): User!
+  loginUser(input: LoginUserInput!): User!
+  logoutUser: Boolean!
+}
+
+input CreateUserInput {
   name: String!
   email: String!
   password: String!
 }
 
-input loginUserInput {
+input LoginUserInput {
   email: String!
   password: String!
-}
-
-extend type Mutation {
-  createUser(input: createUserInput!): Boolean!
-  loginUser(input: loginUserInput!): Boolean!
-  logoutUser: Boolean!
 }
