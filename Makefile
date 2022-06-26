@@ -60,8 +60,11 @@ migrate_up: version
 migrate_down: version
 	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down
 
-migrate_force: force_version
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} force ${FORCE_VERSION}
+migrate_reset:
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down && ${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up
+
+migrate_force: version
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} force ${VERSION}
 
 create_initial_data:
 	${DC_WEB} go run db/initial_data/data.go
