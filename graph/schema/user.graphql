@@ -1,0 +1,40 @@
+extend type Query {
+  getCurrentUser: User
+}
+
+enum Role {
+  ADMIN
+  GENERAL
+}
+
+enum EmailVerificationStatus {
+  PENDING
+  VERIFIED
+}
+
+type User implements Node {
+  id: ID!
+  name: String!
+  email: String!
+  role: Role!
+  avatar: String!
+  introduction: String
+  emailVerificationStatus: EmailVerificationStatus!
+}
+
+input createUserInput {
+  name: String!
+  email: String!
+  password: String!
+}
+
+input loginUserInput {
+  email: String!
+  password: String!
+}
+
+extend type Mutation {
+  createUser(input: createUserInput!): Boolean!
+  loginUser(input: loginUserInput!): Boolean!
+  logoutUser: Boolean!
+}

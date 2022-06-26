@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 )
 
 func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
@@ -70,12 +69,11 @@ func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
 	}
 	defer tx.Rollback(ctx)
 
-	cmd := "INSERT INTO prefectures (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	cmd := "INSERT INTO prefectures (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
 	for _, prefecture := range prefectures {
-		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, ID, prefecture.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, prefecture.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
@@ -102,15 +100,14 @@ func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
 	}
 	defer tx.Rollback(ctx)
 
-	cmd := "INSERT INTO competitions (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	cmd := "INSERT INTO competitions (name, created_at, updated_at) VALUES ($1, $2, $3)"
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
 
 	for _, competition := range competitions {
-		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, ID, competition.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, competition.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
@@ -144,12 +141,11 @@ func InsertTags(ctx context.Context, dbPool *pgxpool.Pool) {
 	}
 	defer tx.Rollback(ctx)
 
-	cmd := "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	cmd := "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
 	for _, tag := range tags {
-		ID := xid.New().String()
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, ID, tag.name, timeNow, timeNow); err != nil {
+		if _, err := tx.Exec(ctx, cmd, tag.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}

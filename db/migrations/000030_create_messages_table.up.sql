@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS "messages"(
-  "id" VARCHAR NOT NULL,
+  "id" BIGSERIAL UNIQUE,
   "content" VARCHAR(1000) NOT NULL,
-  "room_id" VARCHAR NOT NULL,
-  "user_id" VARCHAR NULL,
+  "room_id" BIGINT NOT NULL,
+  "user_id" BIGINT NULL,
   PRIMARY KEY("id"),
   FOREIGN KEY("room_id") 
     REFERENCES "rooms"("id")

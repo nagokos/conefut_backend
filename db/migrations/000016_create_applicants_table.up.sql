@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS "applicants"(
-  "id" VARCHAR UNIQUE NOT NULL, 
+  "id" BIGSERIAL UNIQUE, 
   "management_status" VARCHAR NOT NULL DEFAULT 'backlog', 
-  "recruitment_id" VARCHAR NULL, 
-  "user_id" VARCHAR NULL, 
+  "recruitment_id" BIGINT NULL, 
+  "user_id" BIGINT NULL, 
   "created_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL,
   PRIMARY KEY("id"),

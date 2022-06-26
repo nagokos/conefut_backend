@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "stocks"(
-  "id" VARCHAR UNIQUE NOT NULL, 
-  "recruitment_id" VARCHAR NULL, 
-  "user_id" VARCHAR NULL, 
+  "id" BIGSERIAL UNIQUE, 
+  "recruitment_id" BIGINT NULL, 
+  "user_id" BIGINT NULL, 
   "created_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL, 
   PRIMARY KEY("id"),

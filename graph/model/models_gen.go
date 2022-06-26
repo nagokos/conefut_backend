@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type Node interface {
+	IsNode()
+}
+
 type Applicant struct {
 	Message     string       `json:"message"`
 	CreatedAt   time.Time    `json:"createdAt"`
@@ -93,6 +97,8 @@ type User struct {
 	Introduction            *string                 `json:"introduction"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
+
+func (User) IsNode() {}
 
 type ApplicantInput struct {
 	Message string `json:"message"`

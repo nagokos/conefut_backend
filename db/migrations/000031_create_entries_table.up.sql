@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "entries"(
-  "id" VARCHAR NOT NULL,
-  "room_id" VARCHAR NOT NULL,
-  "user_id" VARCHAR NULL,
+  "id" BIGSERIAL UNIQUE,
+  "room_id" BIGINT NOT NULL,
+  "user_id" BIGINT NULL,
   PRIMARY KEY("id"),
   FOREIGN KEY("room_id") 
     REFERENCES "rooms"("id")

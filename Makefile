@@ -15,8 +15,8 @@ schema_name:
 seq_name:
 	@$(eval SEQ_NAME := $(shell read -p "seq name: " NAME; echo $$NAME))
 
-force_version:
-	@$(eval FORCE_VERSION := $(shell read -p "force version: " NAME; echo $$NAME))
+version:
+	@$(eval VERSION := $(shell read -p "version: " NAME; echo $$NAME))
 
 # ** Go Command **
 go_run: package_name
@@ -54,14 +54,17 @@ init_migration: seq_name
 	${DC_WEB} migrate create -ext sql -dir db/migrations -seq ${SEQ_NAME}
 
 # データベースに反映
-migrate_up:
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up 1
+migrate_up: version
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up
 
-migrate_down:
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down 1
+migrate_down: version
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down
 
-migrate_force: force_version
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} force ${FORCE_VERSION}
+migrate_reset:
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down && ${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up
+
+migrate_force: version
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} force ${VERSION}
 
 create_initial_data:
 	${DC_WEB} go run db/initial_data/data.go

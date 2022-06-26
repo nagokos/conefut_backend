@@ -23,77 +23,9 @@ import (
 	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
 	"github.com/nagokos/connefut_backend/graph/models/tag"
-	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
-
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (bool, error) {
-	u := user.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Password: input.Password,
-	}
-
-	err := u.CreateUserValidate()
-
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		errs := err.(validation.Errors)
-
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
-		}
-
-		return false, errors.New("フォームに不備があります")
-	}
-
-	userID, err := u.Insert(ctx, r.dbPool)
-	if err != nil {
-		return false, err
-	}
-
-	token, _ := user.CreateToken(userID)
-
-	auth.SetAuthCookie(ctx, token)
-
-	return true, nil
-}
-
-func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (bool, error) {
-	u := user.User{
-		Email:    input.Email,
-		Password: input.Password,
-	}
-
-	err := u.AuthenticateUserValidate()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		errs := err.(validation.Errors)
-
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
-		}
-
-		return false, errors.New("フォームに不備があります")
-	}
-
-	userID, err := u.Authenticate(ctx, r.dbPool)
-	if err != nil {
-		return false, err
-	}
-
-	token, _ := user.CreateToken(userID)
-
-	auth.SetAuthCookie(ctx, token)
-
-	return true, nil
-}
-
-func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
-	auth.RemoveAuthCookie(ctx)
-	return true, nil
-}
 
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
@@ -270,6 +202,10 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, inp
 	return res, nil
 }
 
+func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(ctx, r.dbPool)
 	if err != nil {
@@ -277,14 +213,6 @@ func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture
 	}
 
 	return res, nil
-}
-
-func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error) {
-	user := auth.ForContext(ctx)
-	if user == nil {
-		return nil, nil
-	}
-	return user, nil
 }
 
 func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
