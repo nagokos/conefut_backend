@@ -21,7 +21,6 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -29,7 +28,6 @@ import (
 
 var (
 	host      = "mailhog:1025"
-	resUser   model.User
 	SecretKey = []byte("secretKey")
 )
 
