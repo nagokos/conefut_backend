@@ -2,6 +2,11 @@ name: Go
 
 on: [push]
 
+env:
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_CHANNEL: actions_backend
+  SLACK_ICON: https://example.com/image/icon_bot.png
+
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -44,15 +49,25 @@ jobs:
       with:
         version: "2022.1"
 
-  slack-notification:
+  slack_notification:
     if: always()
     runs-on: ubuntu-latest
     needs: [setup, build, lint]
     steps:
-    - name: slack - GitHub Actions Slack integration
-      uses: act10ns/slack@v1.5.0
-      with:
-        status: ${{ job.status }}
-        steps: ${{ toJson(steps) }}
+    - name: check out
+      uses: actions/checkout@v2
+    - name: success
+      if: success()
+      uses: rtCamp/action-slack-notify@v2
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_COLOR: good
+        SLACK_MESSAGE: Success!!
+        SLACK_TITLE: Post Title
+    - name: failure
+      if: failure()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_COLOR: danger
+        SLACK_MESSAGE: Failure!!
+        SLACK_TITLE: Message
+   
