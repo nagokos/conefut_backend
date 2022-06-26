@@ -3,20 +3,49 @@ name: Go
 on: [push]
 
 jobs:
-
-  build:
+  setup:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.17
+        go-version: 1.18
 
-    - name: Build
+    - name: check out
+      uses: actions/checkout@v2
+    
+    - name: Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+  build:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: build
+      uses: actions/checkout@v2
       run: go build -v ./...
 
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: lint
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+      uses: dominikh/staticcheck-action@v1.2.0
+      with:
+        version: "2022.1"
+
+  slack-notification:
+    runs-on: ubuntu-latest
+    needs: [setup, build, lint]
+    steps:
     - name: slack - GitHub Actions Slack integration
       uses: act10ns/slack@v1.5.0
       with:
