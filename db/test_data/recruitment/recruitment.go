@@ -10,20 +10,19 @@ import (
 
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 )
 
 type recruitment struct {
-	id            string
+	id            int
 	recType       string
 	title         string
 	detail        string
 	place         string
 	startAt       time.Time
 	closingAt     time.Time
-	competitionID string
-	prefectureID  string
-	userID        string
+	competitionID int
+	prefectureID  int
+	userID        int
 	status        string
 	published_at  time.Time
 	createdAt     time.Time
@@ -39,7 +38,7 @@ func main() {
 	cmd := "SELECT id FROM competitions LIMIT 1"
 	row := dbPool.QueryRow(ctx, cmd)
 
-	var competitionID string
+	var competitionID int
 	err := row.Scan(&competitionID)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
@@ -48,7 +47,7 @@ func main() {
 	cmd = "SELECT id FROM prefectures LIMIT 1"
 	row = dbPool.QueryRow(ctx, cmd)
 
-	var prefectureID string
+	var prefectureID int
 	err = row.Scan(&prefectureID)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
@@ -57,7 +56,7 @@ func main() {
 	cmd = "SELECT id FROM users LIMIT 1"
 	row = dbPool.QueryRow(ctx, cmd)
 
-	var userID string
+	var userID int
 	err = row.Scan(&userID)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
@@ -101,7 +100,6 @@ func main() {
 以上、よろしくお願いいたします。`
 
 		recruitment := &recruitment{
-			id:            xid.New().String(),
 			recType:       "opponent",
 			title:         fmt.Sprintf("対戦相手募集 朝霞中央公園陸上競技場(人工芝) %v", i+1),
 			place:         "朝霞中央公園陸上競技場",
@@ -127,15 +125,15 @@ func main() {
 
 	cmd = `
 	  INSERT INTO recruitments 
-		  (id, title, type, place, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
+		  (title, type, place, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
 		VALUES 
-		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		`
 
 	for _, recruitment := range recruitments {
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.id, recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.detail,
+			recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.detail,
 			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
 		); err != nil {
 			logger.NewLogger().Fatal(err.Error())
