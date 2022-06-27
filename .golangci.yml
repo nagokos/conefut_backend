@@ -1,0 +1,16 @@
+run:
+  go: "1.18"
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - govet
+    - unused
+    - gosimple
+    - varcheck
+    - ineffassign
+    - deadcode
+    - goconst
+    - typecheck
+    - ifshort
+  disable-all: true
