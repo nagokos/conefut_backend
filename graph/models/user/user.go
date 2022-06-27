@@ -21,7 +21,6 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -29,7 +28,6 @@ import (
 
 var (
 	host      = "mailhog:1025"
-	resUser   model.User
 	SecretKey = []byte("secretKey")
 )
 
@@ -141,7 +139,7 @@ func (u *User) GenerateEmailVerificationToken() string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func CreateToken(userID string) (string, error) {
+func CreateToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
@@ -167,68 +165,71 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) Insert(ctx context.Context, dbPool *pgxpool.Pool) (string, error) {
-	var ID string
-
+func (u *User) CreateUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.User, error) {
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
 
 	cmd := `
 		INSERT INTO users
-			( id, name, email, password_digest, email_verification_token, 
+			(name, email, password_digest, email_verification_token, 
 				email_verification_token_expires_at, last_sign_in_at, created_at, updated_at
 			) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-		RETURNING id
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+		RETURNING id, name, email, avatar, email_verification_status
 		`
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		xid.New().String(), u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
+		u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
-	err := row.Scan(&ID)
+	var user model.User
+
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
 
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return ID, err
+		return nil, err
 	}
+
+	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 
 	// 本番環境と開発環境では違う
 	err = SendVerifyEmail(emailToken)
 
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("fail send email: %s", err)
-		return ID, err
+		return nil, err
 	}
 
-	return ID, nil
+	return &user, nil
 }
 
-func (u *User) Authenticate(ctx context.Context, dbPool *pgxpool.Pool) (string, error) {
-	var ID string
+func (u *User) Authenticate(ctx context.Context, dbPool *pgxpool.Pool) (*model.User, error) {
+	var user model.User
 	var passwordDigest string
 
-	cmd := "SELECT id, password_digest FROM users WHERE email = $1"
+	cmd := "SELECT id, name, email, avatar, email_verification_status, password_digest FROM users WHERE email = $1"
 	row := dbPool.QueryRow(ctx, cmd, u.Email)
 
-	err := row.Scan(&ID, &passwordDigest)
-
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
 		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
-		return ID, errors.New("フォームに不備があります")
+		return nil, errors.New("フォームに不備があります")
 	}
 
 	err = CheckPasswordHash(passwordDigest, u.Password)
 	if err != nil {
 		logger.NewLogger().Sugar().Errorf("password is incorrect: %s", err)
 		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
-		return ID, errors.New("フォームに不備があります")
+		return nil, errors.New("フォームに不備があります")
 	}
 
-	return ID, nil
+	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
+
+	return &user, nil
 }
 
 // ** メール認証 **
@@ -248,7 +249,7 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	cmd := "SELECT id, email_verification_token_expires_at FROM users WHERE email_verification_token = $1"
 	row := dbPool.QueryRow(ctx, cmd, token)
 
-	var ID string
+	var ID int
 	var tokenExpiresAt time.Time
 	err := row.Scan(&ID, &tokenExpiresAt)
 

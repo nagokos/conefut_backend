@@ -24,8 +24,19 @@ type Competition struct {
 	Name string `json:"name"`
 }
 
+type CreateUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Entrie struct {
 	User *User `json:"user"`
+}
+
+type LoginUserInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type Message struct {
@@ -90,6 +101,7 @@ type Tag struct {
 
 type User struct {
 	ID                      string                  `json:"id"`
+	DatabaseID              *int                    `json:"databaseId"`
 	Name                    string                  `json:"name"`
 	Email                   string                  `json:"email"`
 	Role                    Role                    `json:"role"`
@@ -110,17 +122,6 @@ type CreateMessageInput struct {
 
 type CreateTagInput struct {
 	Name string `json:"name"`
-}
-
-type CreateUserInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginUserInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type PaginationInput struct {

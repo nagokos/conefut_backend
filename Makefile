@@ -28,6 +28,9 @@ go_get: package_add
 go_install: package_add
 	${DC_WEB} go install ${PACKAGE_NAME}
 
+lint:
+	${DC_WEB} staticcheck -f stylish ./...
+
 # GraphQL Server Start
 start_server:
 	${DC_WEB} go run graph/server/server.go

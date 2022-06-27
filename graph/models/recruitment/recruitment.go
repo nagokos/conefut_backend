@@ -148,11 +148,11 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	timeNow := time.Now().Local()
 
-	var published_at *time.Time
+	var publishedAt *time.Time
 	if r.Status == model.StatusPublished {
-		published_at = &timeNow
+		publishedAt = &timeNow
 	} else {
-		published_at = nil
+		publishedAt = nil
 	}
 
 	cmd := `
@@ -166,7 +166,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place, r.StartAt,
-		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.ID, timeNow, timeNow, published_at,
+		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.ID, timeNow, timeNow, publishedAt,
 	)
 
 	var recruitment model.Recruitment
@@ -388,9 +388,9 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 
 	cmd := fmt.Sprintf(`
 		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at,
-					 u.name AS usr_name, u.avatar AS usr_avatar, 
-					 p.name AS pref_name,
-					 c.name AS comp_name
+					 u.name, u.avatar,
+					 p.name,
+					 c.name
 		FROM 
 			(
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
@@ -533,12 +533,12 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	timeNow := time.Now().Local()
 
-	var published_at *time.Time
+	var publishedAt *time.Time
 
 	if r.Status == model.StatusPublished {
-		published_at = &timeNow
+		publishedAt = &timeNow
 	} else {
-		published_at = nil
+		publishedAt = nil
 	}
 
 	cmd := `
@@ -558,7 +558,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place,
-		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), published_at, recID, currentUser.ID,
+		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), publishedAt, recID, currentUser.ID,
 	)
 
 	var ID string

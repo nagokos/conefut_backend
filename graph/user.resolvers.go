@@ -16,7 +16,7 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (bool, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
@@ -33,22 +33,22 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return false, errors.New("フォームに不備があります")
+		return nil, errors.New("フォームに不備があります")
 	}
 
-	userID, err := u.Insert(ctx, r.dbPool)
+	resUser, err := u.CreateUser(ctx, r.dbPool)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	token, _ := user.CreateToken(userID)
+	token, _ := user.CreateToken(*resUser.DatabaseID)
 
 	auth.SetAuthCookie(ctx, token)
 
-	return true, nil
+	return resUser, nil
 }
 
-func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (bool, error) {
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error) {
 	u := user.User{
 		Email:    input.Email,
 		Password: input.Password,
@@ -63,19 +63,19 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
 
-		return false, errors.New("フォームに不備があります")
+		return nil, errors.New("フォームに不備があります")
 	}
 
-	userID, err := u.Authenticate(ctx, r.dbPool)
+	resUser, err := u.Authenticate(ctx, r.dbPool)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	token, _ := user.CreateToken(userID)
+	token, _ := user.CreateToken(*resUser.DatabaseID)
 
 	auth.SetAuthCookie(ctx, token)
 
-	return true, nil
+	return nil, nil
 }
 
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
