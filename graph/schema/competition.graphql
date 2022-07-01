@@ -1,0 +1,8 @@
+extend type Query {
+  getCompetitions: [Competition!]!
+}
+
+type Competition implements Node {
+  id: ID!
+  name: String!
+}

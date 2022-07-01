@@ -165,7 +165,7 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) CreateUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.User, error) {
+func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserRegisterPayload, error) {
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
@@ -184,12 +184,11 @@ func (u *User) CreateUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Use
 		u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
+	var payload model.UserRegisterPayload
 	var user model.User
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
-
 	if err != nil {
-		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
@@ -197,16 +196,16 @@ func (u *User) CreateUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Use
 
 	// 本番環境と開発環境では違う
 	err = SendVerifyEmail(emailToken)
-
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("fail send email: %s", err)
 		return nil, err
 	}
 
-	return &user, nil
+	payload.User = &user
+	return &payload, nil
 }
 
-func (u *User) Authenticate(ctx context.Context, dbPool *pgxpool.Pool) (*model.User, error) {
+func (u *User) UserLogin(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserLoginPayload, error) {
+	var payload model.UserLoginPayload
 	var user model.User
 	var passwordDigest string
 
@@ -215,21 +214,24 @@ func (u *User) Authenticate(ctx context.Context, dbPool *pgxpool.Pool) (*model.U
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
-		utils.NewAuthenticationErorr("メールアドレスが正しくありません", utils.WithField("email")).AddGraphQLError(ctx)
-		return nil, errors.New("フォームに不備があります")
+		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+			Message: "メールアドレス、またはパスワードが正しくありません",
+		})
+		return &payload, err
 	}
 
 	err = CheckPasswordHash(passwordDigest, u.Password)
 	if err != nil {
-		logger.NewLogger().Sugar().Errorf("password is incorrect: %s", err)
-		utils.NewAuthenticationErorr("パスワードが正しくありません", utils.WithField("password")).AddGraphQLError(ctx)
-		return nil, errors.New("フォームに不備があります")
+		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+			Message: "メールアドレス、またはパスワードが正しくありません",
+		})
+		return &payload, err
 	}
 
 	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 
-	return &user, nil
+	payload.User = &user
+	return &payload, nil
 }
 
 // ** メール認証 **

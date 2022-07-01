@@ -1,26 +1,22 @@
 scalar DateTime
 
+interface Connection {
+  pageInfo: PageInfo!
+  edges: [Edge!]!
+}
+
+interface Edge {
+  cursor: String!
+  node: Node!
+}
+
 interface Node {
   id: ID!
 }
 
-enum Type {
-  OPPONENT
-  INDIVIDUAL
-  MEMBER
-  JOINING
-  OTHERS
-}
-
-enum Status {
-  DRAFT
-  PUBLISHED
-  CLOSED
-}
-
 type PageInfo {
-  startCursor: String!
-  endCursor: String!
+  startCursor: String
+  endCursor: String
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
 }
@@ -30,61 +26,16 @@ input paginationInput {
   after: String
   last: Int
   before: String
-  options: searchRecruitmentInput
 }
 
-input searchRecruitmentInput {
-  competitionId: String
-  prefectureId: String
-  type: String
-  startAt: DateTime
-}
-
-type Prefecture {
-  id: String!
-  name: String!
+interface Error {
+  message: String!
 }
 
 type Applicant {
   message: String!
   createdAt: DateTime!
   recruitment: Recruitment!
-}
-
-type Competition {
-  id: String!
-  name: String!
-}
-
-type Recruitment {
-  id: String!
-  title: String!
-  detail: String
-  type: Type!
-  place: String
-  startAt: DateTime
-  locationLat: Float
-  locationLng: Float
-  status: Status!
-  closingAt: DateTime
-  updatedAt: DateTime!
-  createdAt: DateTime!
-  publishedAt: DateTime
-  competition: Competition
-  prefecture: Prefecture
-  user: User!
-  tags: [Tag]!
-  applicant: Applicant
-}
-
-type RecruitmentConnection {
-  pageInfo: PageInfo!
-  edges: [RecruitmentEdge!]!
-}
-
-type RecruitmentEdge {
-  cursor: String!
-  node: Recruitment!
 }
 
 type Tag {
@@ -111,20 +62,6 @@ type Message {
 type Query {
   # node
   node(id: ID!): Node
-  # prefecture
-  getPrefectures: [Prefecture!]!
-
-  # user
-
-  # competition
-  getCompetitions: [Competition!]!
-
-  # recruitment
-  getRecruitments(input: paginationInput!): RecruitmentConnection!
-  getCurrentUserRecruitments: [Recruitment!]!
-  getRecruitment(id: String!): Recruitment!
-  getStockedRecruitments: [Recruitment!]!
-  getAppliedRecruitments: [Recruitment!]!
 
   # stock
   checkStocked(recruitmentId: String!): Boolean!
@@ -147,21 +84,6 @@ type Query {
   getRoomMessages(roomId: String!): [Message!]!
 }
 
-input recruitmentInput {
-  title: String!
-  competitionId: String!
-  type: Type!
-  detail: String
-  prefectureId: String
-  place: String
-  startAt: DateTime
-  closingAt: DateTime
-  locationLat: Float
-  locationLng: Float
-  status: Status!
-  tags: [recruitmentTagInput]!
-}
-
 input recruitmentTagInput {
   id: String!
   name: String!
@@ -181,13 +103,6 @@ input createMessageInput {
 }
 
 type Mutation {
-  # user
-
-  # recruitment
-  createRecruitment(input: recruitmentInput!): Recruitment!
-  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): Recruitment!
-
   # stock
   createStock(recruitmentId: String!): Boolean!
   deleteStock(recruitmentId: String!): Boolean!

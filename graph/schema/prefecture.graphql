@@ -1,0 +1,8 @@
+extend type Query {
+  getPrefectures: [Prefecture!]!
+}
+
+type Prefecture implements Node {
+  id: ID!
+  name: String!
+}

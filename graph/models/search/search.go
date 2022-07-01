@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -18,21 +15,9 @@ type SearchParams struct {
 	UseBefore bool
 	Before    string
 	NumRows   int
-	Options   SearchRecruitmentParams
 }
 
-type SearchRecruitmentParams struct {
-	UseCompetition bool
-	CompetitionID  string
-	UsePrefecture  bool
-	PrefectureID   string
-	UseType        bool
-	Type           model.Type
-	UseStartAt     bool
-	StartAt        time.Time
-}
-
-func NewSearchParams(after *string, before *string, first *int, last *int, options *model.SearchRecruitmentInput) (SearchParams, error) {
+func NewSearchParams(after *string, before *string, first *int, last *int) (SearchParams, error) {
 	var sp = SearchParams{}
 
 	sp.UseAfter = (after != nil)
@@ -53,31 +38,6 @@ func NewSearchParams(after *string, before *string, first *int, last *int, optio
 		return SearchParams{}, errors.New("{first}, {after, first}, {before, last}のいずれかの組み合わせで指定してください")
 	}
 
-	var srp = SearchRecruitmentParams{}
-
-	srp.UseCompetition = (options.CompetitionID != nil)
-	srp.UsePrefecture = (options.PrefectureID != nil)
-	srp.UseStartAt = (options.StartAt != nil)
-	srp.UseType = (options.Type != nil)
-
-	if srp.UseCompetition {
-		srp.CompetitionID = *options.CompetitionID
-	}
-
-	if srp.UsePrefecture {
-		srp.PrefectureID = *options.PrefectureID
-	}
-
-	if srp.UseStartAt {
-		srp.StartAt = *options.StartAt
-	}
-
-	if srp.UseType {
-		srp.Type = model.Type(strings.ToLower(string(*options.Type)))
-	}
-
-	sp.Options = srp
-
 	return sp, nil
 }
 
@@ -88,8 +48,7 @@ func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID string, pa
 			(
 				SELECT id FROM recruitments
 				WHERE status = $1
-				AND ($2 OR competition_id = $3) 
-				AND id < $4
+				AND id < $2
 				ORDER BY id %s
 			) AS r
 		LIMIT 1
@@ -97,7 +56,7 @@ func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID string, pa
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		"published", !params.Options.UseCompetition, params.Options.CompetitionID, nextID,
+		"published", nextID,
 	)
 
 	var count int
@@ -122,8 +81,7 @@ func PreviousPageExists(ctx context.Context, dbPool *pgxpool.Pool, previousID st
 			(
 				SELECT id FROM recruitments
 				WHERE status = $1
-				AND ($2 OR competition_id = $3) 
-				AND id > $4
+				AND id > $2
 				ORDER BY id %s
 			) AS r
 		LIMIT 1
@@ -131,7 +89,7 @@ func PreviousPageExists(ctx context.Context, dbPool *pgxpool.Pool, previousID st
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		"published", !params.Options.UseCompetition, params.Options.CompetitionID, previousID,
+		"published", previousID,
 	)
 
 	var count int

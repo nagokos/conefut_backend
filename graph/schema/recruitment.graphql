@@ -1,0 +1,80 @@
+extend type Query {
+  getRecruitments(input: paginationInput!): RecruitmentConnection!
+  getCurrentUserRecruitments: [Recruitment!]!
+  getRecruitment(id: String!): Recruitment!
+  getStockedRecruitments: [Recruitment!]!
+  getAppliedRecruitments: [Recruitment!]!
+}
+
+type RecruitmentConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [RecruitmentEdge!]!
+}
+
+type RecruitmentEdge implements Edge {
+  cursor: String!
+  node: Recruitment!
+}
+
+input searchRecruitmentInput {
+  competitionId: String
+  prefectureId: String
+  type: String
+  startAt: DateTime
+}
+
+type Recruitment implements Node {
+  id: ID!
+  title: String!
+  detail: String
+  type: Type!
+  place: String
+  startAt: DateTime
+  locationLat: Float
+  locationLng: Float
+  status: Status!
+  closingAt: DateTime
+  updatedAt: DateTime!
+  createdAt: DateTime!
+  publishedAt: DateTime
+  competition: Competition
+  prefecture: Prefecture
+  user: User!
+  tags: [Tag]!
+  applicant: Applicant
+}
+
+enum Type {
+  OPPONENT
+  INDIVIDUAL
+  MEMBER
+  JOINING
+  OTHERS
+}
+
+enum Status {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+extend type Mutation {
+  createRecruitment(input: recruitmentInput!): Recruitment!
+  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
+  deleteRecruitment(id: String!): Recruitment!
+}
+
+input recruitmentInput {
+  title: String!
+  competitionId: String!
+  type: Type!
+  detail: String
+  prefectureId: String
+  place: String
+  startAt: DateTime
+  closingAt: DateTime
+  locationLat: Float
+  locationLng: Float
+  status: Status!
+  tags: [recruitmentTagInput]!
+}

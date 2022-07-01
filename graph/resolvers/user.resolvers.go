@@ -1,22 +1,20 @@
-package graph
+package resolvers
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
-	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
+func (r *mutationResolver) UserRegister(ctx context.Context, input model.UserRegisterInput) (*model.UserRegisterPayload, error) {
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
@@ -29,26 +27,31 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
+		var payload model.UserRegisterPayload
+
 		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+			payload.UserErrors = append(payload.UserErrors, &model.UserRegisterInvalidInputError{
+				Message: errMessage.Error(),
+				Field:   model.UserRegisterInvalidInputField(strings.ToLower(k)),
+			})
 		}
 
-		return nil, errors.New("フォームに不備があります")
+		return &payload, nil
 	}
 
-	resUser, err := u.CreateUser(ctx, r.dbPool)
+	payload, err := u.UserRegister(ctx, r.dbPool)
 	if err != nil {
-		return nil, err
+		logger.NewLogger().Error(err.Error())
+		return payload, nil
 	}
 
-	token, _ := user.CreateToken(*resUser.DatabaseID)
-
+	token, _ := user.CreateToken(*payload.User.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
-	return resUser, nil
+	return payload, nil
 }
 
-func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.User, error) {
+func (r *mutationResolver) UserLogin(ctx context.Context, input model.UserLoginInput) (*model.UserLoginPayload, error) {
 	u := user.User{
 		Email:    input.Email,
 		Password: input.Password,
@@ -59,34 +62,35 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
+		var payload model.UserLoginPayload
+
 		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+			payload.UserErrors = append(payload.UserErrors, model.UserLoginInvalidInputError{
+				Message: errMessage.Error(),
+				Field:   model.UserLoginInvalidInputField(strings.ToLower(k)),
+			})
 		}
 
-		return nil, errors.New("フォームに不備があります")
+		return &payload, nil
 	}
 
-	resUser, err := u.Authenticate(ctx, r.dbPool)
+	payload, err := u.UserLogin(ctx, r.dbPool)
 	if err != nil {
-		return nil, err
+		return payload, nil
 	}
 
-	token, _ := user.CreateToken(*resUser.DatabaseID)
-
+	token, _ := user.CreateToken(*payload.User.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
-	return nil, nil
+	return payload, nil
 }
 
-func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
+func (r *mutationResolver) UserLogout(ctx context.Context) (bool, error) {
 	auth.RemoveAuthCookie(ctx)
 	return true, nil
 }
 
 func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
-	if user == nil {
-		return nil, nil
-	}
 	return user, nil
 }

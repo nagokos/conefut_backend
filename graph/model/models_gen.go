@@ -9,8 +9,24 @@ import (
 	"time"
 )
 
+type Connection interface {
+	IsConnection()
+}
+
+type Edge interface {
+	IsEdge()
+}
+
+type Error interface {
+	IsError()
+}
+
 type Node interface {
 	IsNode()
+}
+
+type UserLoginError interface {
+	IsUserLoginError()
 }
 
 type Applicant struct {
@@ -24,19 +40,10 @@ type Competition struct {
 	Name string `json:"name"`
 }
 
-type CreateUserInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
+func (Competition) IsNode() {}
 
 type Entrie struct {
 	User *User `json:"user"`
-}
-
-type LoginUserInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type Message struct {
@@ -47,16 +54,18 @@ type Message struct {
 }
 
 type PageInfo struct {
-	StartCursor     string `json:"startCursor"`
-	EndCursor       string `json:"endCursor"`
-	HasNextPage     bool   `json:"hasNextPage"`
-	HasPreviousPage bool   `json:"hasPreviousPage"`
+	StartCursor     *string `json:"startCursor"`
+	EndCursor       *string `json:"endCursor"`
+	HasNextPage     bool    `json:"hasNextPage"`
+	HasPreviousPage bool    `json:"hasPreviousPage"`
 }
 
 type Prefecture struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+func (Prefecture) IsNode() {}
 
 type Recruitment struct {
 	ID          string       `json:"id"`
@@ -79,15 +88,21 @@ type Recruitment struct {
 	Applicant   *Applicant   `json:"applicant"`
 }
 
+func (Recruitment) IsNode() {}
+
 type RecruitmentConnection struct {
 	PageInfo *PageInfo          `json:"pageInfo"`
 	Edges    []*RecruitmentEdge `json:"edges"`
 }
 
+func (RecruitmentConnection) IsConnection() {}
+
 type RecruitmentEdge struct {
 	Cursor string       `json:"cursor"`
 	Node   *Recruitment `json:"node"`
 }
+
+func (RecruitmentEdge) IsEdge() {}
 
 type Room struct {
 	ID     string  `json:"id"`
@@ -112,6 +127,49 @@ type User struct {
 
 func (User) IsNode() {}
 
+type UserLoginAuthenticationError struct {
+	Message string `json:"message"`
+}
+
+func (UserLoginAuthenticationError) IsUserLoginError() {}
+func (UserLoginAuthenticationError) IsError()          {}
+
+type UserLoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserLoginInvalidInputError struct {
+	Message string                     `json:"message"`
+	Field   UserLoginInvalidInputField `json:"field"`
+}
+
+func (UserLoginInvalidInputError) IsUserLoginError() {}
+func (UserLoginInvalidInputError) IsError()          {}
+
+type UserLoginPayload struct {
+	User       *User            `json:"user"`
+	UserErrors []UserLoginError `json:"userErrors"`
+}
+
+type UserRegisterInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserRegisterInvalidInputError struct {
+	Message string                        `json:"message"`
+	Field   UserRegisterInvalidInputField `json:"field"`
+}
+
+func (UserRegisterInvalidInputError) IsError() {}
+
+type UserRegisterPayload struct {
+	User       *User                            `json:"user"`
+	UserErrors []*UserRegisterInvalidInputError `json:"userErrors"`
+}
+
 type ApplicantInput struct {
 	Message string `json:"message"`
 }
@@ -125,11 +183,10 @@ type CreateTagInput struct {
 }
 
 type PaginationInput struct {
-	First   *int                    `json:"first"`
-	After   *string                 `json:"after"`
-	Last    *int                    `json:"last"`
-	Before  *string                 `json:"before"`
-	Options *SearchRecruitmentInput `json:"options"`
+	First  *int    `json:"first"`
+	After  *string `json:"after"`
+	Last   *int    `json:"last"`
+	Before *string `json:"before"`
 }
 
 type RecruitmentInput struct {
@@ -329,5 +386,89 @@ func (e *Type) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Type) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type UserLoginInvalidInputField string
+
+const (
+	UserLoginInvalidInputFieldEmail    UserLoginInvalidInputField = "EMAIL"
+	UserLoginInvalidInputFieldPassword UserLoginInvalidInputField = "PASSWORD"
+)
+
+var AllUserLoginInvalidInputField = []UserLoginInvalidInputField{
+	UserLoginInvalidInputFieldEmail,
+	UserLoginInvalidInputFieldPassword,
+}
+
+func (e UserLoginInvalidInputField) IsValid() bool {
+	switch e {
+	case UserLoginInvalidInputFieldEmail, UserLoginInvalidInputFieldPassword:
+		return true
+	}
+	return false
+}
+
+func (e UserLoginInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *UserLoginInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UserLoginInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UserLoginInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e UserLoginInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type UserRegisterInvalidInputField string
+
+const (
+	UserRegisterInvalidInputFieldName     UserRegisterInvalidInputField = "NAME"
+	UserRegisterInvalidInputFieldEmail    UserRegisterInvalidInputField = "EMAIL"
+	UserRegisterInvalidInputFieldPassword UserRegisterInvalidInputField = "PASSWORD"
+)
+
+var AllUserRegisterInvalidInputField = []UserRegisterInvalidInputField{
+	UserRegisterInvalidInputFieldName,
+	UserRegisterInvalidInputFieldEmail,
+	UserRegisterInvalidInputFieldPassword,
+}
+
+func (e UserRegisterInvalidInputField) IsValid() bool {
+	switch e {
+	case UserRegisterInvalidInputFieldName, UserRegisterInvalidInputFieldEmail, UserRegisterInvalidInputFieldPassword:
+		return true
+	}
+	return false
+}
+
+func (e UserRegisterInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *UserRegisterInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UserRegisterInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UserRegisterInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e UserRegisterInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

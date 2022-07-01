@@ -1,3 +1,4 @@
+# *** Query ***
 extend type Query {
   getCurrentUser: User
 }
@@ -23,19 +24,59 @@ type User implements Node {
   emailVerificationStatus: EmailVerificationStatus!
 }
 
+# *** Mutation ***
 extend type Mutation {
-  createUser(input: CreateUserInput!): User!
-  loginUser(input: LoginUserInput!): User!
-  logoutUser: Boolean!
+  userRegister(input: UserRegisterInput!): UserRegisterPayload!
+  userLogin(input: UserLoginInput!): UserLoginPayload!
+  userLogout: Boolean!
 }
 
-input CreateUserInput {
+# Register
+type UserRegisterPayload {
+  user: User
+  userErrors: [UserRegisterInvalidInputError!]!
+}
+
+type UserRegisterInvalidInputError implements Error {
+  message: String!
+  field: UserRegisterInvalidInputField!
+}
+
+enum UserRegisterInvalidInputField {
+  NAME
+  EMAIL
+  PASSWORD
+}
+
+input UserRegisterInput {
   name: String!
   email: String!
   password: String!
 }
 
-input LoginUserInput {
+# Login
+type UserLoginPayload {
+  user: User
+  userErrors: [UserLoginError!]!
+}
+
+union UserLoginError = UserLoginAuthenticationError | UserLoginInvalidInputError
+
+type UserLoginAuthenticationError implements Error {
+  message: String!
+}
+
+type UserLoginInvalidInputError implements Error {
+  message: String!
+  field: UserLoginInvalidInputField!
+}
+
+enum UserLoginInvalidInputField {
+  EMAIL
+  PASSWORD
+}
+
+input UserLoginInput {
   email: String!
   password: String!
 }

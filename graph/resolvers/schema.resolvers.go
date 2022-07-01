@@ -1,4 +1,4 @@
-package graph
+package resolvers
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
@@ -14,109 +14,14 @@ import (
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/applicant"
-	"github.com/nagokos/connefut_backend/graph/models/competition"
 	"github.com/nagokos/connefut_backend/graph/models/entrie"
 	"github.com/nagokos/connefut_backend/graph/models/message"
-	"github.com/nagokos/connefut_backend/graph/models/prefecture"
-	"github.com/nagokos/connefut_backend/graph/models/recruitment"
 	"github.com/nagokos/connefut_backend/graph/models/room"
-	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
 	"github.com/nagokos/connefut_backend/graph/models/tag"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
-
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
-	if model.Status(input.Status) == model.StatusPublished &&
-		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
-		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
-	}
-
-	rm := recruitment.Recruitment{
-		Title:         input.Title,
-		Type:          input.Type,
-		Detail:        input.Detail,
-		StartAt:       input.StartAt,
-		Place:         input.Place,
-		LocationLat:   input.LocationLat,
-		LocationLng:   input.LocationLng,
-		Status:        input.Status,
-		ClosingAt:     input.ClosingAt,
-		CompetitionID: input.CompetitionID,
-		PrefectureID:  input.PrefectureID,
-		Tags:          input.Tags,
-	}
-
-	err := rm.RecruitmentValidate()
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment validation errors:", err.Error())
-		errs := err.(validation.Errors)
-
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
-		}
-		return &model.Recruitment{}, err
-	}
-
-	resRecruitment, err := rm.CreateRecruitment(ctx, r.dbPool)
-	if err != nil {
-		return &model.Recruitment{}, err
-	}
-
-	return resRecruitment, nil
-}
-
-func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
-	if model.Status(input.Status) == model.StatusPublished &&
-		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
-		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
-	}
-
-	rm := recruitment.Recruitment{
-		Title:         input.Title,
-		Type:          input.Type,
-		Detail:        input.Detail,
-		StartAt:       input.StartAt,
-		Place:         input.Place,
-		LocationLat:   input.LocationLat,
-		LocationLng:   input.LocationLng,
-		Status:        input.Status,
-		ClosingAt:     input.ClosingAt,
-		CompetitionID: input.CompetitionID,
-		PrefectureID:  input.PrefectureID,
-		Tags:          input.Tags,
-	}
-
-	err := rm.RecruitmentValidate()
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
-		errs := err.(validation.Errors)
-
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
-		}
-		return &model.Recruitment{}, err
-	}
-
-	res, err := rm.UpdateRecruitment(ctx, r.dbPool, id)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return res, err
-	}
-
-	return res, nil
-}
-
-func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
 
 func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
 	_, err := stock.CreateStock(ctx, r.dbPool, recruitmentID)
@@ -204,72 +109,6 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, inp
 
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
 	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
-	res, err := prefecture.GetPrefectures(ctx, r.dbPool)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}
-
-func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
-	res, err := competition.GetCompetitions(ctx, r.dbPool)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}
-
-func (r *queryResolver) GetRecruitments(ctx context.Context, input model.PaginationInput) (*model.RecruitmentConnection, error) {
-	sp, err := search.NewSearchParams(input.After, input.Before, input.First, input.Last, input.Options)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := recruitment.GetRecruitments(ctx, r.dbPool, sp)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
-func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitment(ctx, r.dbPool, id)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
-
-func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, err
-}
-
-func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbPool)
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
 }
 
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
