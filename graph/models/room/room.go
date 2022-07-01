@@ -72,7 +72,8 @@ func GetCurrentUserRooms(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Ro
 		var room model.Room
 		var entrie model.Entrie
 		var user model.User
-		rows.Scan(&room.ID, &user.Name, &user.Avatar)
+		err = rows.Scan(&room.ID, &user.Name, &user.Avatar)
+		logger.NewLogger().Error(err.Error())
 		entrie.User = &user
 		room.Entrie = &entrie
 		rooms = append(rooms, &room)
