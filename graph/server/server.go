@@ -12,8 +12,8 @@ import (
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
-	"github.com/nagokos/connefut_backend/graph"
 	"github.com/nagokos/connefut_backend/graph/models/user"
+	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -37,7 +37,7 @@ func main() {
 		auth.CookieMiddleWare(),
 	)
 
-	srv := handler.NewDefaultServer(graph.NewSchema(dbPool))
+	srv := handler.NewDefaultServer(resolvers.NewSchema(dbPool))
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", srv)
