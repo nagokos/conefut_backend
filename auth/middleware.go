@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -57,15 +58,15 @@ func ForContext(ctx context.Context) *model.User {
 	return raw
 }
 
-func validateAndGetUserID(c *http.Cookie) (string, error) {
+func validateAndGetUserID(c *http.Cookie) (float64, error) {
 	if time.Now().Before(c.Expires) {
 		logger.NewLogger().Error("expired...")
-		return "", nil
+		return 0, errors.New("expired")
 	}
 
 	if c.Value == "" {
 		logger.NewLogger().Error("jwt empty!")
-		return "", nil
+		return 0, errors.New("jwt empty")
 	}
 
 	token, err := jwt.Parse(c.Value, func(t *jwt.Token) (interface{}, error) {
@@ -74,32 +75,30 @@ func validateAndGetUserID(c *http.Cookie) (string, error) {
 
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return "", err
+		return 0, err
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 
-	userID := claims["user_id"].(string)
-	if userID == "" {
-		logger.NewLogger().Error("user_id not found")
-		return "", errors.New("user_id not found")
-	}
+	userID := claims["user_id"].(float64)
 
 	return userID, nil
 }
 
-func getUserByID(dbPool *pgxpool.Pool, ID string) (*model.User, error) {
-	var u model.User
+func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.User, error) {
+	var user model.User
 
 	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 	row := dbPool.QueryRow(context.Background(), cmd, ID)
-	err := row.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Avatar, &u.Introduction, &u.EmailVerificationStatus)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Role, &user.Avatar, &user.Introduction, &user.EmailVerificationStatus)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	u.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(u.EmailVerificationStatus)))
-	return &u, nil
+
+	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
+	user.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(user.EmailVerificationStatus)))
+	return &user, nil
 }
 
 func CookieMiddleWare() func(http.Handler) http.Handler {
