@@ -396,11 +396,10 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
 				FROM recruitments 
 				WHERE status = $1
-				AND ($2 OR competition_id = $3)
-				AND ($4 OR id < $5)
-				AND ($6 OR id > $7)
+				AND ($2 OR id < $3)
+				AND ($4 OR id > $5)
 				ORDER BY id %s
-				LIMIT $8
+				LIMIT $6
 			) AS r
 		INNER JOIN prefectures AS p 
 			ON r.prefecture_id = p.id
@@ -413,7 +412,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 
 	rows, err := dbPool.Query(
 		ctx, cmd,
-		"published", !params.Options.UseCompetition, params.Options.CompetitionID, !params.UseAfter, params.After, !params.UseBefore, params.Before, params.NumRows,
+		"published", !params.UseAfter, params.After, !params.UseBefore, params.Before, params.NumRows,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -471,8 +470,8 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 
 		pageInfo.HasNextPage = isNext
 		pageInfo.HasPreviousPage = isPrevious
-		pageInfo.StartCursor = startCursor
-		pageInfo.EndCursor = endCursor
+		pageInfo.StartCursor = &startCursor
+		pageInfo.EndCursor = &endCursor
 
 		recConnection.PageInfo = &pageInfo
 	} else {
