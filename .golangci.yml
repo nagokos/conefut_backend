@@ -12,5 +12,4 @@ linters:
     - deadcode
     - goconst
     - typecheck
-    - ifshort
   disable-all: true
