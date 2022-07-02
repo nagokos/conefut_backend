@@ -106,8 +106,8 @@ type ComplexityRoot struct {
 		GetEntrieUser              func(childComplexity int, roomID string) int
 		GetPrefectures             func(childComplexity int) int
 		GetRecruitment             func(childComplexity int, id string) int
-		GetRecruitments            func(childComplexity int, input model.PaginationInput) int
 		GetRoomMessages            func(childComplexity int, roomID string) int
+		GetSearchRecruitments      func(childComplexity int, first *int, after *string, last *int, before *string) int
 		GetStockedCount            func(childComplexity int, recruitmentID string) int
 		GetStockedRecruitments     func(childComplexity int) int
 		GetTags                    func(childComplexity int) int
@@ -217,7 +217,7 @@ type QueryResolver interface {
 	GetRoomMessages(ctx context.Context, roomID string) ([]*model.Message, error)
 	GetCompetitions(ctx context.Context) ([]*model.Competition, error)
 	GetPrefectures(ctx context.Context) ([]*model.Prefecture, error)
-	GetRecruitments(ctx context.Context, input model.PaginationInput) (*model.RecruitmentConnection, error)
+	GetSearchRecruitments(ctx context.Context, first *int, after *string, last *int, before *string) (*model.RecruitmentConnection, error)
 	GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
@@ -593,18 +593,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetRecruitment(childComplexity, args["id"].(string)), true
 
-	case "Query.getRecruitments":
-		if e.complexity.Query.GetRecruitments == nil {
-			break
-		}
-
-		args, err := ec.field_Query_getRecruitments_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.GetRecruitments(childComplexity, args["input"].(model.PaginationInput)), true
-
 	case "Query.getRoomMessages":
 		if e.complexity.Query.GetRoomMessages == nil {
 			break
@@ -616,6 +604,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetRoomMessages(childComplexity, args["roomId"].(string)), true
+
+	case "Query.getSearchRecruitments":
+		if e.complexity.Query.GetSearchRecruitments == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getSearchRecruitments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetSearchRecruitments(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
 
 	case "Query.getStockedCount":
 		if e.complexity.Query.GetStockedCount == nil {
@@ -969,7 +969,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputapplicantInput,
 		ec.unmarshalInputcreateMessageInput,
 		ec.unmarshalInputcreateTagInput,
-		ec.unmarshalInputpaginationInput,
 		ec.unmarshalInputrecruitmentInput,
 		ec.unmarshalInputrecruitmentTagInput,
 		ec.unmarshalInputsearchRecruitmentInput,
@@ -1052,7 +1051,12 @@ type Prefecture implements Node {
 }
 `, BuiltIn: false},
 	{Name: "../schema/recruitment.graphql", Input: `extend type Query {
-  getRecruitments(input: paginationInput!): RecruitmentConnection!
+  getSearchRecruitments(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): RecruitmentConnection!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
@@ -1153,13 +1157,6 @@ type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
-}
-
-input paginationInput {
-  first: Int
-  after: String
-  last: Int
-  before: String
 }
 
 interface Error {
@@ -1635,21 +1632,6 @@ func (ec *executionContext) field_Query_getRecruitment_args(ctx context.Context,
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_getRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.PaginationInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNpaginationInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPaginationInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_getRoomMessages_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1662,6 +1644,48 @@ func (ec *executionContext) field_Query_getRoomMessages_args(ctx context.Context
 		}
 	}
 	args["roomId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getSearchRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg3
 	return args, nil
 }
 
@@ -3908,8 +3932,8 @@ func (ec *executionContext) fieldContext_Query_getPrefectures(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_getRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_getRecruitments(ctx, field)
+func (ec *executionContext) _Query_getSearchRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getSearchRecruitments(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3922,7 +3946,7 @@ func (ec *executionContext) _Query_getRecruitments(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetRecruitments(rctx, fc.Args["input"].(model.PaginationInput))
+		return ec.resolvers.Query().GetSearchRecruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["last"].(*int), fc.Args["before"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3939,7 +3963,7 @@ func (ec *executionContext) _Query_getRecruitments(ctx context.Context, field gr
 	return ec.marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getSearchRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3962,7 +3986,7 @@ func (ec *executionContext) fieldContext_Query_getRecruitments(ctx context.Conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_getRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_getSearchRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -8402,53 +8426,6 @@ func (ec *executionContext) unmarshalInputcreateTagInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputpaginationInput(ctx context.Context, obj interface{}) (model.PaginationInput, error) {
-	var it model.PaginationInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "first":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-			it.First, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "after":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-			it.After, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "last":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-			it.Last, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "before":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-			it.Before, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, obj interface{}) (model.RecruitmentInput, error) {
 	var it model.RecruitmentInput
 	asMap := map[string]interface{}{}
@@ -9409,7 +9386,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "getRecruitments":
+		case "getSearchRecruitments":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -9418,7 +9395,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getRecruitments(ctx, field)
+				res = ec._Query_getSearchRecruitments(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -11392,11 +11369,6 @@ func (ec *executionContext) unmarshalNcreateMessageInput2githubᚗcomᚋnagokos�
 
 func (ec *executionContext) unmarshalNcreateTagInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateTagInput(ctx context.Context, v interface{}) (model.CreateTagInput, error) {
 	res, err := ec.unmarshalInputcreateTagInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNpaginationInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v interface{}) (model.PaginationInput, error) {
-	res, err := ec.unmarshalInputpaginationInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
