@@ -1,5 +1,10 @@
 extend type Query {
-  getRecruitments(input: paginationInput!): RecruitmentConnection!
+  getSearchRecruitments(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): RecruitmentConnection!
   getCurrentUserRecruitments: [Recruitment!]!
   getRecruitment(id: String!): Recruitment!
   getStockedRecruitments: [Recruitment!]!
