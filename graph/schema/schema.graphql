@@ -21,13 +21,6 @@ type PageInfo {
   hasPreviousPage: Boolean!
 }
 
-input paginationInput {
-  first: Int
-  after: String
-  last: Int
-  before: String
-}
-
 interface Error {
   message: String!
 }
