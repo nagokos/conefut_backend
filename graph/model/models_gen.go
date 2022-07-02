@@ -182,13 +182,6 @@ type CreateTagInput struct {
 	Name string `json:"name"`
 }
 
-type PaginationInput struct {
-	First  *int    `json:"first"`
-	After  *string `json:"after"`
-	Last   *int    `json:"last"`
-	Before *string `json:"before"`
-}
-
 type RecruitmentInput struct {
 	Title         string                 `json:"title"`
 	CompetitionID string                 `json:"competitionId"`
