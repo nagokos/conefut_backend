@@ -184,7 +184,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 		u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
-	var payload model.UserRegisterPayload
+	var payload model.RegisterUserPayload
 	var user model.User
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
@@ -214,7 +214,7 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
 		})
 		return &payload, err
@@ -222,7 +222,7 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 
 	err = CheckPasswordHash(passwordDigest, u.Password)
 	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
 		})
 		return &payload, err
