@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -68,10 +69,11 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 
 	for rows.Next() {
 		var tag model.Tag
-		err := rows.Scan(&tag.ID, &tag.Name)
+		err := rows.Scan(&tag.DatabaseID, &tag.Name)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
+		tag.ID = utils.GenerateAndSetUniqueID("Tag", *tag.DatabaseID)
 		tags = append(tags, &tag)
 	}
 
