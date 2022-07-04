@@ -1,6 +1,6 @@
 # *** Query ***
 extend type Query {
-  getCurrentUser: User
+  currentUser: User
 }
 
 enum Role {
@@ -26,57 +26,57 @@ type User implements Node {
 
 # *** Mutation ***
 extend type Mutation {
-  userRegister(input: UserRegisterInput!): UserRegisterPayload!
-  userLogin(input: UserLoginInput!): UserLoginPayload!
-  userLogout: Boolean!
+  registerUser(input: RegisterUserInput!): RegisterUserPayload!
+  loginUser(input: LoginUserInput!): LoginUserPayload!
+  logoutUser: Boolean!
 }
 
 # Register
-type UserRegisterPayload {
+type RegisterUserPayload {
   user: User
-  userErrors: [UserRegisterInvalidInputError!]!
+  userErrors: [RegisterUserInvalidInputError!]!
 }
 
-type UserRegisterInvalidInputError implements Error {
+type RegisterUserInvalidInputError implements Error {
   message: String!
-  field: UserRegisterInvalidInputField!
+  field: RegisterUserInvalidInputField!
 }
 
-enum UserRegisterInvalidInputField {
+enum RegisterUserInvalidInputField {
   NAME
   EMAIL
   PASSWORD
 }
 
-input UserRegisterInput {
+input RegisterUserInput {
   name: String!
   email: String!
   password: String!
 }
 
 # Login
-type UserLoginPayload {
+type LoginUserPayload {
   user: User
-  userErrors: [UserLoginError!]!
+  userErrors: [LoginUserError!]!
 }
 
-union UserLoginError = UserLoginAuthenticationError | UserLoginInvalidInputError
+union LoginUserError = LoginUserAuthenticationError | LoginUserInvalidInputError
 
-type UserLoginAuthenticationError implements Error {
+type LoginUserAuthenticationError implements Error {
   message: String!
 }
 
-type UserLoginInvalidInputError implements Error {
+type LoginUserInvalidInputError implements Error {
   message: String!
-  field: UserLoginInvalidInputField!
+  field: LoginUserInvalidInputField!
 }
 
-enum UserLoginInvalidInputField {
+enum LoginUserInvalidInputField {
   EMAIL
   PASSWORD
 }
 
-input UserLoginInput {
+input LoginUserInput {
   email: String!
   password: String!
 }
