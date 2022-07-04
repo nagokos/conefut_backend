@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -26,10 +27,11 @@ func GetPrefectures(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Prefect
 
 	for rows.Next() {
 		var prefecture model.Prefecture
-		err := rows.Scan(&prefecture.ID, &prefecture.Name)
+		err := rows.Scan(&prefecture.DatabaseID, &prefecture.Name)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
+		prefecture.ID = utils.GenerateAndSetUniqueID("Prefecture", *prefecture.DatabaseID)
 		prefectures = append(prefectures, &prefecture)
 	}
 
