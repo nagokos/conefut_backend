@@ -4,5 +4,6 @@ extend type Query {
 
 type Competition implements Node {
   id: ID!
+  databaseId: Int
   name: String!
 }
