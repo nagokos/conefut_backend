@@ -1,0 +1,17 @@
+extend type Query {
+  tags: [Tag!]!
+}
+
+type Tag implements Node {
+  id: ID!
+  databaseId: Int
+  name: String!
+}
+
+extend type Mutation {
+  createTag(input: CreateTagInput!): Tag!
+}
+
+input CreateTagInput {
+  name: String!
+}
