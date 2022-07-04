@@ -39,7 +39,7 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 		return &payload, nil
 	}
 
-	payload, err := u.UserRegister(ctx, r.dbPool)
+	payload, err := u.RegisterUser(ctx, r.dbPool)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return payload, nil
@@ -74,7 +74,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		return &payload, nil
 	}
 
-	payload, err := u.UserLogin(ctx, r.dbPool)
+	payload, err := u.LoginUser(ctx, r.dbPool)
 	if err != nil {
 		return payload, nil
 	}
