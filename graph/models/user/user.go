@@ -165,7 +165,7 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserRegisterPayload, error) {
+func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
@@ -204,8 +204,8 @@ func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.U
 	return &payload, nil
 }
 
-func (u *User) UserLogin(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserLoginPayload, error) {
-	var payload model.UserLoginPayload
+func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
+	var payload model.LoginUserPayload
 	var user model.User
 	var passwordDigest string
 
