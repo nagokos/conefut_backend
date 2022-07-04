@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -25,10 +26,11 @@ func GetCompetitions(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Compet
 	var competitions []*model.Competition
 	for rows.Next() {
 		var competition model.Competition
-		err := rows.Scan(&competition.ID, &competition.Name)
+		err := rows.Scan(&competition.DatabaseID, &competition.Name)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
+		competition.ID = utils.GenerateAndSetUniqueID("Competition", *competition.DatabaseID)
 		competitions = append(competitions, &competition)
 	}
 

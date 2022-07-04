@@ -18,7 +18,6 @@ import (
 	"github.com/nagokos/connefut_backend/graph/models/message"
 	"github.com/nagokos/connefut_backend/graph/models/room"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
-	"github.com/nagokos/connefut_backend/graph/models/tag"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -37,30 +36,6 @@ func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string
 		return false, err
 	}
 	return true, nil
-}
-
-func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
-	tag := tag.Tag{
-		Name: input.Name,
-	}
-
-	err := tag.CreateTagValidate()
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
-		errs := err.(validation.Errors)
-
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
-		}
-		return nil, errors.New("タグの作成に失敗しました")
-	}
-
-	res, err := tag.CreateTag(ctx, r.dbPool)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
 }
 
 func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
@@ -123,14 +98,6 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 	res, err := stock.GetStockedCount(ctx, r.dbPool, recruitmentID)
 	if err != nil {
 		return 0, err
-	}
-	return res, nil
-}
-
-func (r *queryResolver) GetTags(ctx context.Context) ([]*model.Tag, error) {
-	res, err := tag.GetTags(ctx, r.dbPool)
-	if err != nil {
-		return nil, err
 	}
 	return res, nil
 }

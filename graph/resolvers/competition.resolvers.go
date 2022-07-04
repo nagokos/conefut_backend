@@ -10,7 +10,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/models/competition"
 )
 
-func (r *queryResolver) GetCompetitions(ctx context.Context) ([]*model.Competition, error) {
+func (r *queryResolver) Competitions(ctx context.Context) ([]*model.Competition, error) {
 	res, err := competition.GetCompetitions(ctx, r.dbPool)
 	if err != nil {
 		return res, err

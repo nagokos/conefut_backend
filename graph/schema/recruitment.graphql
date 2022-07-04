@@ -1,14 +1,14 @@
 extend type Query {
-  getSearchRecruitments(
+  recruitments(
     first: Int
     after: String
     last: Int
     before: String
   ): RecruitmentConnection!
-  getCurrentUserRecruitments: [Recruitment!]!
-  getRecruitment(id: String!): Recruitment!
-  getStockedRecruitments: [Recruitment!]!
-  getAppliedRecruitments: [Recruitment!]!
+  currentUserRecruitments: [Recruitment!]!
+  recruitment(id: String!): Recruitment!
+  stockedRecruitments: [Recruitment!]!
+  appliedRecruitments: [Recruitment!]!
 }
 
 type RecruitmentConnection implements Connection {
@@ -21,15 +21,9 @@ type RecruitmentEdge implements Edge {
   node: Recruitment!
 }
 
-input searchRecruitmentInput {
-  competitionId: String
-  prefectureId: String
-  type: String
-  startAt: DateTime
-}
-
 type Recruitment implements Node {
   id: ID!
+  databaseId: Int
   title: String!
   detail: String
   type: Type!

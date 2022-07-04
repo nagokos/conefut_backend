@@ -165,7 +165,7 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 // ** データベース伴う処理 **
-func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserRegisterPayload, error) {
+func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
 	pwdHash := HashGenerate(u.Password)
 	emailToken := u.GenerateEmailVerificationToken()
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
@@ -184,7 +184,7 @@ func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.U
 		u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
-	var payload model.UserRegisterPayload
+	var payload model.RegisterUserPayload
 	var user model.User
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
@@ -204,8 +204,8 @@ func (u *User) UserRegister(ctx context.Context, dbPool *pgxpool.Pool) (*model.U
 	return &payload, nil
 }
 
-func (u *User) UserLogin(ctx context.Context, dbPool *pgxpool.Pool) (*model.UserLoginPayload, error) {
-	var payload model.UserLoginPayload
+func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
+	var payload model.LoginUserPayload
 	var user model.User
 	var passwordDigest string
 
@@ -214,7 +214,7 @@ func (u *User) UserLogin(ctx context.Context, dbPool *pgxpool.Pool) (*model.User
 
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
 		})
 		return &payload, err
@@ -222,7 +222,7 @@ func (u *User) UserLogin(ctx context.Context, dbPool *pgxpool.Pool) (*model.User
 
 	err = CheckPasswordHash(passwordDigest, u.Password)
 	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.UserLoginAuthenticationError{
+		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
 		})
 		return &payload, err

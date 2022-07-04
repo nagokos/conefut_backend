@@ -6,18 +6,19 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 type SearchParams struct {
 	UseAfter  bool
-	After     string
+	After     int
 	UseBefore bool
-	Before    string
+	Before    int
 	NumRows   int
 }
 
-func NewSearchParams(after *string, before *string, first *int, last *int) (SearchParams, error) {
+func NewSearchParams(first *int, after *string, last *int, before *string) (SearchParams, error) {
 	var sp = SearchParams{}
 
 	sp.UseAfter = (after != nil)
@@ -27,12 +28,13 @@ func NewSearchParams(after *string, before *string, first *int, last *int) (Sear
 
 	if useFirst && !sp.UseAfter && !useLast && !sp.UseBefore {
 		sp.NumRows = *first
+		sp.After = 0
 	} else if useFirst && sp.UseAfter && !useLast && !sp.UseBefore {
 		sp.NumRows = *first
-		sp.After = *after
+		sp.After = utils.DecodeUniqueID(*after)
 	} else if useLast && sp.UseBefore && !useFirst && !sp.UseAfter {
 		sp.NumRows = *last
-		sp.Before = *before
+		sp.Before = utils.DecodeUniqueID(*before)
 	} else {
 		logger.NewLogger().Error("search params validation error")
 		return SearchParams{}, errors.New("{first}, {after, first}, {before, last}のいずれかの組み合わせで指定してください")
@@ -56,7 +58,7 @@ func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID string, pa
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		"published", nextID,
+		"published", utils.DecodeUniqueID(nextID),
 	)
 
 	var count int
@@ -89,7 +91,7 @@ func PreviousPageExists(ctx context.Context, dbPool *pgxpool.Pool, previousID st
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		"published", previousID,
+		"published", utils.DecodeUniqueID(previousID),
 	)
 
 	var count int

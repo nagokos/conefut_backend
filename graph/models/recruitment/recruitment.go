@@ -13,6 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -388,9 +389,9 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 
 	cmd := fmt.Sprintf(`
 		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at,
-					 u.name, u.avatar,
-					 p.name,
-					 c.name
+					 u.id, u.name, u.avatar,
+					 p.id, p.name,
+					 c.id, c.name
 		FROM 
 			(
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
@@ -420,6 +421,8 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 	defer rows.Close()
 
+	logger.NewLogger().Info("hello2")
+
 	var recConnection model.RecruitmentConnection
 
 	for rows.Next() {
@@ -428,18 +431,25 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 		var prefecture model.Prefecture
 		var competition model.Competition
 
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.PublishedAt,
-			&user.Name, &user.Avatar, &prefecture.Name, &competition.Name,
+		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.PublishedAt,
+			&user.DatabaseID, &user.Name, &user.Avatar, &prefecture.DatabaseID, &prefecture.Name, &competition.DatabaseID, &competition.Name,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
 
+		user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 		recruitment.User = &user
+
+		prefecture.ID = utils.GenerateAndSetUniqueID("Prefecture", *prefecture.DatabaseID)
 		recruitment.Prefecture = &prefecture
+
+		competition.ID = utils.GenerateAndSetUniqueID("Competition", *competition.DatabaseID)
 		recruitment.Competition = &competition
+
 		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
+		recruitment.ID = utils.GenerateAndSetUniqueID("Recruitment", *recruitment.DatabaseID)
 		recConnection.Edges = append(recConnection.Edges, &model.RecruitmentEdge{
 			Cursor: recruitment.ID,
 			Node:   &recruitment,
