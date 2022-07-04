@@ -21,12 +21,12 @@ type Error interface {
 	IsError()
 }
 
-type Node interface {
-	IsNode()
+type LoginUserError interface {
+	IsLoginUserError()
 }
 
-type UserLoginError interface {
-	IsUserLoginError()
+type Node interface {
+	IsNode()
 }
 
 type Applicant struct {
@@ -36,14 +36,44 @@ type Applicant struct {
 }
 
 type Competition struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string `json:"id"`
+	DatabaseID *int   `json:"databaseId"`
+	Name       string `json:"name"`
 }
 
 func (Competition) IsNode() {}
 
+type CreateTagInput struct {
+	Name string `json:"name"`
+}
+
 type Entrie struct {
 	User *User `json:"user"`
+}
+
+type LoginUserAuthenticationError struct {
+	Message string `json:"message"`
+}
+
+func (LoginUserAuthenticationError) IsLoginUserError() {}
+func (LoginUserAuthenticationError) IsError()          {}
+
+type LoginUserInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginUserInvalidInputError struct {
+	Message string                     `json:"message"`
+	Field   LoginUserInvalidInputField `json:"field"`
+}
+
+func (LoginUserInvalidInputError) IsLoginUserError() {}
+func (LoginUserInvalidInputError) IsError()          {}
+
+type LoginUserPayload struct {
+	User       *User            `json:"user"`
+	UserErrors []LoginUserError `json:"userErrors"`
 }
 
 type Message struct {
@@ -61,14 +91,16 @@ type PageInfo struct {
 }
 
 type Prefecture struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string `json:"id"`
+	DatabaseID *int   `json:"databaseId"`
+	Name       string `json:"name"`
 }
 
 func (Prefecture) IsNode() {}
 
 type Recruitment struct {
 	ID          string       `json:"id"`
+	DatabaseID  *int         `json:"databaseId"`
 	Title       string       `json:"title"`
 	Detail      *string      `json:"detail"`
 	Type        Type         `json:"type"`
@@ -104,15 +136,36 @@ type RecruitmentEdge struct {
 
 func (RecruitmentEdge) IsEdge() {}
 
+type RegisterUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterUserInvalidInputError struct {
+	Message string                        `json:"message"`
+	Field   RegisterUserInvalidInputField `json:"field"`
+}
+
+func (RegisterUserInvalidInputError) IsError() {}
+
+type RegisterUserPayload struct {
+	User       *User                            `json:"user"`
+	UserErrors []*RegisterUserInvalidInputError `json:"userErrors"`
+}
+
 type Room struct {
 	ID     string  `json:"id"`
 	Entrie *Entrie `json:"entrie"`
 }
 
 type Tag struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string `json:"id"`
+	DatabaseID *int   `json:"databaseId"`
+	Name       string `json:"name"`
 }
+
+func (Tag) IsNode() {}
 
 type User struct {
 	ID                      string                  `json:"id"`
@@ -127,59 +180,12 @@ type User struct {
 
 func (User) IsNode() {}
 
-type UserLoginAuthenticationError struct {
-	Message string `json:"message"`
-}
-
-func (UserLoginAuthenticationError) IsUserLoginError() {}
-func (UserLoginAuthenticationError) IsError()          {}
-
-type UserLoginInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type UserLoginInvalidInputError struct {
-	Message string                     `json:"message"`
-	Field   UserLoginInvalidInputField `json:"field"`
-}
-
-func (UserLoginInvalidInputError) IsUserLoginError() {}
-func (UserLoginInvalidInputError) IsError()          {}
-
-type UserLoginPayload struct {
-	User       *User            `json:"user"`
-	UserErrors []UserLoginError `json:"userErrors"`
-}
-
-type UserRegisterInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type UserRegisterInvalidInputError struct {
-	Message string                        `json:"message"`
-	Field   UserRegisterInvalidInputField `json:"field"`
-}
-
-func (UserRegisterInvalidInputError) IsError() {}
-
-type UserRegisterPayload struct {
-	User       *User                            `json:"user"`
-	UserErrors []*UserRegisterInvalidInputError `json:"userErrors"`
-}
-
 type ApplicantInput struct {
 	Message string `json:"message"`
 }
 
 type CreateMessageInput struct {
 	Content string `json:"content"`
-}
-
-type CreateTagInput struct {
-	Name string `json:"name"`
 }
 
 type RecruitmentInput struct {
@@ -201,13 +207,6 @@ type RecruitmentTagInput struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	IsNew bool   `json:"isNew"`
-}
-
-type SearchRecruitmentInput struct {
-	CompetitionID *string    `json:"competitionId"`
-	PrefectureID  *string    `json:"prefectureId"`
-	Type          *string    `json:"type"`
-	StartAt       *time.Time `json:"startAt"`
 }
 
 type EmailVerificationStatus string
@@ -248,6 +247,90 @@ func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type LoginUserInvalidInputField string
+
+const (
+	LoginUserInvalidInputFieldEmail    LoginUserInvalidInputField = "EMAIL"
+	LoginUserInvalidInputFieldPassword LoginUserInvalidInputField = "PASSWORD"
+)
+
+var AllLoginUserInvalidInputField = []LoginUserInvalidInputField{
+	LoginUserInvalidInputFieldEmail,
+	LoginUserInvalidInputFieldPassword,
+}
+
+func (e LoginUserInvalidInputField) IsValid() bool {
+	switch e {
+	case LoginUserInvalidInputFieldEmail, LoginUserInvalidInputFieldPassword:
+		return true
+	}
+	return false
+}
+
+func (e LoginUserInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *LoginUserInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = LoginUserInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid LoginUserInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e LoginUserInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type RegisterUserInvalidInputField string
+
+const (
+	RegisterUserInvalidInputFieldName     RegisterUserInvalidInputField = "NAME"
+	RegisterUserInvalidInputFieldEmail    RegisterUserInvalidInputField = "EMAIL"
+	RegisterUserInvalidInputFieldPassword RegisterUserInvalidInputField = "PASSWORD"
+)
+
+var AllRegisterUserInvalidInputField = []RegisterUserInvalidInputField{
+	RegisterUserInvalidInputFieldName,
+	RegisterUserInvalidInputFieldEmail,
+	RegisterUserInvalidInputFieldPassword,
+}
+
+func (e RegisterUserInvalidInputField) IsValid() bool {
+	switch e {
+	case RegisterUserInvalidInputFieldName, RegisterUserInvalidInputFieldEmail, RegisterUserInvalidInputFieldPassword:
+		return true
+	}
+	return false
+}
+
+func (e RegisterUserInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *RegisterUserInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RegisterUserInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RegisterUserInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e RegisterUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -379,89 +462,5 @@ func (e *Type) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Type) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type UserLoginInvalidInputField string
-
-const (
-	UserLoginInvalidInputFieldEmail    UserLoginInvalidInputField = "EMAIL"
-	UserLoginInvalidInputFieldPassword UserLoginInvalidInputField = "PASSWORD"
-)
-
-var AllUserLoginInvalidInputField = []UserLoginInvalidInputField{
-	UserLoginInvalidInputFieldEmail,
-	UserLoginInvalidInputFieldPassword,
-}
-
-func (e UserLoginInvalidInputField) IsValid() bool {
-	switch e {
-	case UserLoginInvalidInputFieldEmail, UserLoginInvalidInputFieldPassword:
-		return true
-	}
-	return false
-}
-
-func (e UserLoginInvalidInputField) String() string {
-	return string(e)
-}
-
-func (e *UserLoginInvalidInputField) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = UserLoginInvalidInputField(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid UserLoginInvalidInputField", str)
-	}
-	return nil
-}
-
-func (e UserLoginInvalidInputField) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type UserRegisterInvalidInputField string
-
-const (
-	UserRegisterInvalidInputFieldName     UserRegisterInvalidInputField = "NAME"
-	UserRegisterInvalidInputFieldEmail    UserRegisterInvalidInputField = "EMAIL"
-	UserRegisterInvalidInputFieldPassword UserRegisterInvalidInputField = "PASSWORD"
-)
-
-var AllUserRegisterInvalidInputField = []UserRegisterInvalidInputField{
-	UserRegisterInvalidInputFieldName,
-	UserRegisterInvalidInputFieldEmail,
-	UserRegisterInvalidInputFieldPassword,
-}
-
-func (e UserRegisterInvalidInputField) IsValid() bool {
-	switch e {
-	case UserRegisterInvalidInputFieldName, UserRegisterInvalidInputFieldEmail, UserRegisterInvalidInputFieldPassword:
-		return true
-	}
-	return false
-}
-
-func (e UserRegisterInvalidInputField) String() string {
-	return string(e)
-}
-
-func (e *UserRegisterInvalidInputField) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = UserRegisterInvalidInputField(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid UserRegisterInvalidInputField", str)
-	}
-	return nil
-}
-
-func (e UserRegisterInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
