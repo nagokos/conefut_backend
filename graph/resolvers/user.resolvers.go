@@ -14,7 +14,7 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func (r *mutationResolver) UserRegister(ctx context.Context, input model.UserRegisterInput) (*model.UserRegisterPayload, error) {
+func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error) {
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
@@ -27,12 +27,12 @@ func (r *mutationResolver) UserRegister(ctx context.Context, input model.UserReg
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var payload model.UserRegisterPayload
+		var payload model.RegisterUserPayload
 
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, &model.UserRegisterInvalidInputError{
+			payload.UserErrors = append(payload.UserErrors, &model.RegisterUserInvalidInputError{
 				Message: errMessage.Error(),
-				Field:   model.UserRegisterInvalidInputField(strings.ToLower(k)),
+				Field:   model.RegisterUserInvalidInputField(strings.ToLower(k)),
 			})
 		}
 
@@ -51,7 +51,7 @@ func (r *mutationResolver) UserRegister(ctx context.Context, input model.UserReg
 	return payload, nil
 }
 
-func (r *mutationResolver) UserLogin(ctx context.Context, input model.UserLoginInput) (*model.UserLoginPayload, error) {
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error) {
 	u := user.User{
 		Email:    input.Email,
 		Password: input.Password,
@@ -62,12 +62,12 @@ func (r *mutationResolver) UserLogin(ctx context.Context, input model.UserLoginI
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var payload model.UserLoginPayload
+		var payload model.LoginUserPayload
 
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, model.UserLoginInvalidInputError{
+			payload.UserErrors = append(payload.UserErrors, model.LoginUserInvalidInputError{
 				Message: errMessage.Error(),
-				Field:   model.UserLoginInvalidInputField(strings.ToLower(k)),
+				Field:   model.LoginUserInvalidInputField(strings.ToLower(k)),
 			})
 		}
 
@@ -85,12 +85,12 @@ func (r *mutationResolver) UserLogin(ctx context.Context, input model.UserLoginI
 	return payload, nil
 }
 
-func (r *mutationResolver) UserLogout(ctx context.Context) (bool, error) {
+func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	auth.RemoveAuthCookie(ctx)
 	return true, nil
 }
 
-func (r *queryResolver) GetCurrentUser(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return user, nil
 }

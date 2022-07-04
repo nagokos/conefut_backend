@@ -108,8 +108,8 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*m
 	return res, nil
 }
 
-func (r *queryResolver) GetRecruitments(ctx context.Context, input model.PaginationInput) (*model.RecruitmentConnection, error) {
-	sp, err := search.NewSearchParams(input.After, input.Before, input.First, input.Last)
+func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *string, last *int, before *string) (*model.RecruitmentConnection, error) {
+	sp, err := search.NewSearchParams(first, after, last, before)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (r *queryResolver) GetRecruitments(ctx context.Context, input model.Paginat
 	return res, nil
 }
 
-func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+func (r *queryResolver) CurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (r *queryResolver) GetCurrentUserRecruitments(ctx context.Context) ([]*mode
 	return res, nil
 }
 
-func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
+func (r *queryResolver) Recruitment(ctx context.Context, id string) (*model.Recruitment, error) {
 	res, err := recruitment.GetRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		return res, err
@@ -138,7 +138,7 @@ func (r *queryResolver) GetRecruitment(ctx context.Context, id string) (*model.R
 	return res, nil
 }
 
-func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+func (r *queryResolver) StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (r *queryResolver) GetStockedRecruitments(ctx context.Context) ([]*model.Re
 	return res, err
 }
 
-func (r *queryResolver) GetAppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
+func (r *queryResolver) AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbPool)
 	if err != nil {
 		return res, err

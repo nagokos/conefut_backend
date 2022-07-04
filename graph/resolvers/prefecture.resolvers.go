@@ -10,7 +10,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 )
 
-func (r *queryResolver) GetPrefectures(ctx context.Context) ([]*model.Prefecture, error) {
+func (r *queryResolver) Prefectures(ctx context.Context) ([]*model.Prefecture, error) {
 	res, err := prefecture.GetPrefectures(ctx, r.dbPool)
 	if err != nil {
 		return res, err
