@@ -21,15 +21,9 @@ type RecruitmentEdge implements Edge {
   node: Recruitment!
 }
 
-input searchRecruitmentInput {
-  competitionId: String
-  prefectureId: String
-  type: String
-  startAt: DateTime
-}
-
 type Recruitment implements Node {
   id: ID!
+  databaseId: Int
   title: String!
   detail: String
   type: Type!
