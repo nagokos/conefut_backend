@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
-	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -96,7 +95,6 @@ func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.User, error) {
 		return nil, err
 	}
 
-	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 	user.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(user.EmailVerificationStatus)))
 	return &user, nil
 }
