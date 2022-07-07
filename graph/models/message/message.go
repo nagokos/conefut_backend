@@ -111,8 +111,7 @@ func GetRoomMessages(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (
 		}
 
 		message.User = &user
-		recruitment.Prefecture = &prefecture
-		recruitment.Competition = &competition
+
 		applicant.Recruitment = &recruitment
 		message.Applicant = &applicant
 

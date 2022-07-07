@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
@@ -244,8 +243,7 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
-		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
+
 		recruitments = append(recruitments, &recruitment)
 	}
 
@@ -258,76 +256,28 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 	return recruitments, nil
 }
 
-func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
+func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
 	cmd := `
-		SELECT r.id, r.title, r.type, r.status, r.detail, r.start_at, r.closing_at, r.place, r.location_lat, r.location_lng,
-		       c.id, c.name,
-					 p.id, p.name,
-					 u.id, u.name, u.avatar
-		FROM recruitments AS r
-		LEFT OUTER JOIN prefectures AS p 
-		ON r.prefecture_id = p.id
-		INNER JOIN competitions AS c
-			ON r.competition_id = c.id
-		INNER JOIN users AS u 
-			ON r.user_id = u.id
-		WHERE r.id = $1
+	  SELECT id, title, type, status, detail, start_at, closing_at, place, location_lat, 
+		       location_lng, user_id, prefecture_id, competition_id 
+		FROM recruitments
+		WHERE id = $1
 	`
 
-	row := dbPool.QueryRow(ctx, cmd, recID)
+	row := dbPool.QueryRow(ctx, cmd, id)
 
 	var recruitment model.Recruitment
-	var competition model.Competition
-	var nullablePrefecture prefecture.NullablePrefecture
-	var user model.User
-	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
+	err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Place, &recruitment.LocationLat, &recruitment.LocationLng,
-		&competition.ID, &competition.Name, &nullablePrefecture.ID, &nullablePrefecture.Name, &user.ID, &user.Name, &user.Avatar,
+		&recruitment.UserID, &recruitment.PrefectureID, &recruitment.CompetitionID,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	recruitment.Competition = &model.Competition{ID: competition.ID, Name: competition.Name}
-	recruitment.User = &model.User{ID: user.ID, Name: user.Name, Avatar: user.Avatar}
 	recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
 	recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
-
-	var defaultPrefecture prefecture.NullablePrefecture
-	if nullablePrefecture != defaultPrefecture {
-		recruitment.Prefecture = &model.Prefecture{ID: *nullablePrefecture.ID, Name: *nullablePrefecture.Name}
-	}
-
-	cmd = `
-		SELECT t.id, t.name
-		FROM tags AS t
-		INNER JOIN recruitment_tags AS r_t
-			ON r_t.tag_id = t.id
-		WHERE r_t.recruitment_id = $1
-	`
-
-	rows, err := dbPool.Query(ctx, cmd, recruitment.ID)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var tag model.Tag
-		err := rows.Scan(&tag.ID, &tag.Name)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		recruitment.Tags = append(recruitment.Tags, &tag)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
 
 	return &recruitment, nil
 }
@@ -336,13 +286,10 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
-	  SELECT r.id, r.title, r.type, a.created_at AS app_created_at,  u.name AS usr_name, u.avatar AS usr_avatar
+	  SELECT r.id, r.title, r.type
 		FROM recruitments AS r
-		INNER JOIN applicants AS a 
-		  ON r.id = a.recruitment_id
-		INNER JOIN users AS u 
-		  ON u.id = r.user_id
-		WHERE a.user_id = $1
+		INNER JOIN applicants AS a
+		ON r.id = a.recruitment_id
 		ORDER BY a.created_at DESC
 	`
 
@@ -356,16 +303,11 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	var recruitments []*model.Recruitment
 	for rows.Next() {
 		var recruitment model.Recruitment
-		var applicant model.Applicant
-		var user model.User
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &applicant.CreatedAt,
-			&user.Name, &user.Avatar,
-		)
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		recruitment.Applicant = &applicant
-		recruitment.User = &user
+
 		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 		recruitments = append(recruitments, &recruitment)
 	}
@@ -388,10 +330,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 
 	cmd := fmt.Sprintf(`
-		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at,
-					 u.id, u.name, u.avatar,
-					 p.id, p.name,
-					 c.id, c.name
+		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at, r.prefecture_id, r.user_id, r.competition_id
 		FROM 
 			(
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
@@ -402,12 +341,6 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 				ORDER BY id %s
 				LIMIT $6
 			) AS r
-		INNER JOIN prefectures AS p 
-			ON r.prefecture_id = p.id
-		INNER JOIN users AS u 
-			ON r.user_id = u.id
-		INNER JOIN competitions AS c 
-			ON r.competition_id = c.id
 		ORDER BY r.id DESC
 	`, sort)
 
@@ -421,37 +354,21 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 	defer rows.Close()
 
-	logger.NewLogger().Info("hello2")
-
 	var recConnection model.RecruitmentConnection
 
 	for rows.Next() {
 		var recruitment model.Recruitment
-		var user model.User
-		var prefecture model.Prefecture
-		var competition model.Competition
 
-		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.PublishedAt,
-			&user.DatabaseID, &user.Name, &user.Avatar, &prefecture.DatabaseID, &prefecture.Name, &competition.DatabaseID, &competition.Name,
-		)
+		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
+			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
 
-		user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
-		recruitment.User = &user
-
-		prefecture.ID = utils.GenerateAndSetUniqueID("Prefecture", *prefecture.DatabaseID)
-		recruitment.Prefecture = &prefecture
-
-		competition.ID = utils.GenerateAndSetUniqueID("Competition", *competition.DatabaseID)
-		recruitment.Competition = &competition
-
 		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
 		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
-		recruitment.ID = utils.GenerateAndSetUniqueID("Recruitment", *recruitment.DatabaseID)
 		recConnection.Edges = append(recConnection.Edges, &model.RecruitmentEdge{
-			Cursor: recruitment.ID,
+			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
 			Node:   &recruitment,
 		})
 	}
@@ -463,8 +380,8 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 
 	if len(recConnection.Edges) > 0 {
-		startCursor := recConnection.Edges[0].Node.ID
-		endCursor := recConnection.Edges[len(recConnection.Edges)-1].Node.ID
+		startCursor := recConnection.Edges[0].Cursor
+		endCursor := recConnection.Edges[len(recConnection.Edges)-1].Cursor
 
 		isNext, err := search.NextPageExists(ctx, dbPool, endCursor, params, sort)
 		if err != nil {
@@ -495,13 +412,12 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
-		SELECT DISTINCT r.id, r.title, r.closing_at, u.id AS usr_id, u.name AS usr_name, u.avatar AS usr_avatar
-		FROM recruitments AS r 
-		INNER JOIN stocks AS s 
-			ON r.id = s.recruitment_id
-		INNER JOIN users AS u 
-			ON r.user_id = u.id
+		SELECT r.id, r.title, r.closing_at, r.user_id
+		FROM recruitments AS r
+		INNER JOIN stocks AS s
+		ON s.recruitment_id = r.id
 		WHERE s.user_id = $1
+		ORDER BY s.created_at DESC
 	`
 
 	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
@@ -514,14 +430,10 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	var recruitments []*model.Recruitment
 	for rows.Next() {
 		var recruitment model.Recruitment
-		var user model.User
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.ClosingAt,
-			&user.ID, &user.Name, &user.Avatar,
-		)
+		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.ClosingAt)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		recruitment.User = &user
 		recruitments = append(recruitments, &recruitment)
 	}
 
