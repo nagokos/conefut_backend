@@ -6,9 +6,9 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
-| room_id | varchar |  | false |  | [public.rooms](public.rooms.md) |  |
-| user_id | varchar |  | true |  | [public.users](public.users.md) |  |
+| id | bigint | nextval('entries_id_seq'::regclass) | false |  |  |  |
+| room_id | bigint |  | false |  | [public.rooms](public.rooms.md) |  |
+| user_id | bigint |  | true |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 

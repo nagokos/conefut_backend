@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false | [public.recruitments](public.recruitments.md) |  |  |
+| id | bigint | nextval('prefectures_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) |  |  |
 | name | varchar |  | false |  |  |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |

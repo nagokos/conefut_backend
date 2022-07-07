@@ -6,9 +6,9 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false | [public.messages](public.messages.md) |  |  |
-| recruitment_id | varchar |  | false |  | [public.recruitments](public.recruitments.md) |  |
-| user_id | varchar |  | false |  | [public.users](public.users.md) |  |
+| id | bigint | nextval('applicants_id_seq'::regclass) | false | [public.messages](public.messages.md) |  |  |
+| recruitment_id | bigint |  | false |  | [public.recruitments](public.recruitments.md) |  |
+| user_id | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 | message | varchar(1000) |  | false |  |  |  |

@@ -6,16 +6,16 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false | [public.stocks](public.stocks.md) [public.applicants](public.applicants.md) [public.recruitment_tags](public.recruitment_tags.md) |  |  |
+| id | bigint | nextval('recruitments_id_seq'::regclass) | false | [public.stocks](public.stocks.md) [public.applicants](public.applicants.md) [public.recruitment_tags](public.recruitment_tags.md) |  |  |
 | title | varchar(60) |  | false |  |  |  |
-| type | varchar | 'unnecessary'::character varying | false |  |  |  |
+| type | varchar |  | false |  |  |  |
 | place | varchar |  | true |  |  |  |
 | start_at | timestamp with time zone |  | true |  |  |  |
 | detail | varchar(10000) |  | true |  |  |  |
 | closing_at | timestamp with time zone |  | true |  |  |  |
-| competition_id | varchar |  | true |  | [public.competitions](public.competitions.md) |  |
-| prefecture_id | varchar |  | true |  | [public.prefectures](public.prefectures.md) |  |
-| user_id | varchar |  | false |  | [public.users](public.users.md) |  |
+| competition_id | bigint |  | false |  | [public.competitions](public.competitions.md) |  |
+| prefecture_id | bigint |  | true |  | [public.prefectures](public.prefectures.md) |  |
+| user_id | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 | location_lat | double precision |  | true |  |  |  |
@@ -40,9 +40,6 @@
 | recruitments_user_id_idx | CREATE INDEX recruitments_user_id_idx ON public.recruitments USING btree (user_id) |
 | recruitments_prefecture_id_idx | CREATE INDEX recruitments_prefecture_id_idx ON public.recruitments USING btree (prefecture_id) |
 | recruitments_competition_id_idx | CREATE INDEX recruitments_competition_id_idx ON public.recruitments USING btree (competition_id) |
-| recruitments_user_id_idx1 | CREATE INDEX recruitments_user_id_idx1 ON public.recruitments USING btree (user_id) |
-| recruitments_prefecture_id_idx1 | CREATE INDEX recruitments_prefecture_id_idx1 ON public.recruitments USING btree (prefecture_id) |
-| recruitments_competition_id_idx1 | CREATE INDEX recruitments_competition_id_idx1 ON public.recruitments USING btree (competition_id) |
 
 ## Relations
 

@@ -6,10 +6,10 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
+| id | bigint | nextval('room_read_managements_id_seq'::regclass) | false |  |  |  |
 | last_read_at | timestamp with time zone |  | true |  |  |  |
-| room_id | varchar |  | false |  | [public.rooms](public.rooms.md) |  |
-| user_id | varchar |  | true |  | [public.users](public.users.md) |  |
+| room_id | bigint |  | false |  | [public.rooms](public.rooms.md) |  |
+| user_id | bigint |  | true |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 
