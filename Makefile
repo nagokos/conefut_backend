@@ -48,6 +48,9 @@ init_recruitments_data:
 install_migrate:
 	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+install_tbls:
+	${DC_WEB} go install github.com/k1LoW/tbls@main
+
 tbls_doc:
 	${DC_WEB} tbls doc -f
 
