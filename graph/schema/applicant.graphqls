@@ -1,0 +1,53 @@
+extend type Query {
+  checkAppliedForRecruitment(recruitmentId: String!): FeedbackApplicant!
+}
+
+type Applicant implements Node {
+  id: ID!
+  message: String!
+  createdAt: DateTime!
+  recruitment: Recruitment!
+}
+
+type FeedbackApplicant implements Node {
+  id: ID!
+  isAppliedFor: Boolean!
+}
+
+extend type Mutation {
+  applyForRecruitment(
+    recruitmentId: String!
+    input: applicantInput
+  ): ApplyForRecruitmentPayload! @hasEmailVerificationStatus(status: VERIFIED)
+}
+
+type ApplyForRecruitmentPayload {
+  feedback: FeedbackApplicant
+  errors: [ApplyForRecruitmentError!]!
+}
+
+union ApplyForRecruitmentError =
+    ApplyForRecruitmentAuthorizationError
+  | ApplyForRecruitmentSelfGeneratedError
+  | ApplyForRecruitmentInvalidInputError
+
+type ApplyForRecruitmentAuthorizationError implements Error {
+  message: String!
+}
+
+type ApplyForRecruitmentSelfGeneratedError implements Error {
+  message: String!
+}
+
+type ApplyForRecruitmentInvalidInputError implements Error {
+  message: String!
+  field: ApplyForRecruitmentInvalidInputField!
+}
+
+enum ApplyForRecruitmentInvalidInputField {
+  MESSAGE
+}
+
+input ApplyForRecruitmentInput {
+  message: String!
+}

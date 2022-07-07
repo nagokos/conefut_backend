@@ -1,5 +1,10 @@
 scalar DateTime
 
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
 interface Connection {
   pageInfo: PageInfo!
   edges: [Edge!]!
@@ -23,17 +28,6 @@ type PageInfo {
 
 interface Error {
   message: String!
-}
-
-type Applicant {
-  message: String!
-  createdAt: DateTime!
-  recruitment: Recruitment!
-}
-
-type Tag {
-  id: String!
-  name: String!
 }
 
 type Room {
@@ -60,13 +54,6 @@ type Query {
   checkStocked(recruitmentId: String!): Boolean!
   getStockedCount(recruitmentId: String!): Int!
 
-  # tag
-  getTags: [Tag!]!
-
-  # applicant
-  checkAppliedForRecruitment(recruitmentId: String!): Boolean!
-  getAppliedCounts(recruitmentId: String!): Int!
-
   # room
   getCurrentUserRooms: [Room!]!
 
@@ -83,10 +70,6 @@ input recruitmentTagInput {
   isNew: Boolean!
 }
 
-input createTagInput {
-  name: String!
-}
-
 input applicantInput {
   message: String!
 }
@@ -101,13 +84,11 @@ type Mutation {
   deleteStock(recruitmentId: String!): Boolean!
 
   # tag
-  createTag(input: createTagInput!): Tag!
 
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
 
   # applicant
-  applyForRecruitment(recruitmentId: String!, input: applicantInput): Boolean!
 
   # message
   createMessage(roomId: String!, input: createMessageInput!): Message!
