@@ -19,8 +19,8 @@ enum EmailVerificationStatus {
 }
 
 type User implements Node {
-  id: ID!
-  databaseId: Int
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
   name: String!
   email: String!
   role: Role!

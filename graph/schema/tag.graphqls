@@ -3,8 +3,8 @@ extend type Query {
 }
 
 type Tag implements Node {
-  id: ID!
-  databaseId: Int
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
   name: String!
 }
 

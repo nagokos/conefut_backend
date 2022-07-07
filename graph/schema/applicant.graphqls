@@ -3,7 +3,8 @@ extend type Query {
 }
 
 type Applicant implements Node {
-  id: ID!
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
   message: String!
   createdAt: DateTime!
   recruitment: Recruitment!
