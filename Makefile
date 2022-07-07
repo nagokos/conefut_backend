@@ -51,7 +51,7 @@ install_migrate:
 install_tbls:
 	${DC_WEB} go install github.com/k1LoW/tbls@main
 
-tbls_doc:
+tbls:
 	${DC_WEB} tbls doc -f
 
 # マイグレーションファイル作成
