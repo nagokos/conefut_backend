@@ -6,17 +6,24 @@ package resolvers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/generated"
+	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/competition"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/tag"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
+// CreateRecruitment is the resolver for the createRecruitment field.
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if model.Status(input.Status) == model.StatusPublished &&
@@ -58,6 +65,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 	return resRecruitment, nil
 }
 
+// UpdateRecruitment is the resolver for the updateRecruitment field.
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if model.Status(input.Status) == model.StatusPublished &&
@@ -100,6 +108,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 	return res, nil
 }
 
+// DeleteRecruitment is the resolver for the deleteRecruitment field.
 func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
 	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
 	if err != nil {
@@ -108,6 +117,7 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*m
 	return res, nil
 }
 
+// Recruitments is the resolver for the recruitments field.
 func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *string, last *int, before *string) (*model.RecruitmentConnection, error) {
 	sp, err := search.NewSearchParams(first, after, last, before)
 	if err != nil {
@@ -122,6 +132,7 @@ func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *str
 	return res, nil
 }
 
+// CurrentUserRecruitments is the resolver for the currentUserRecruitments field.
 func (r *queryResolver) CurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool)
 	if err != nil {
@@ -130,14 +141,16 @@ func (r *queryResolver) CurrentUserRecruitments(ctx context.Context) ([]*model.R
 	return res, nil
 }
 
+// Recruitment is the resolver for the recruitment field.
 func (r *queryResolver) Recruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitment(ctx, r.dbPool, id)
+	res, err := recruitment.GetRecruitment(ctx, r.dbPool, utils.DecodeUniqueID(id))
 	if err != nil {
 		return res, err
 	}
 	return res, nil
 }
 
+// StockedRecruitments is the resolver for the stockedRecruitments field.
 func (r *queryResolver) StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool)
 	if err != nil {
@@ -147,6 +160,7 @@ func (r *queryResolver) StockedRecruitments(ctx context.Context) ([]*model.Recru
 	return res, err
 }
 
+// AppliedRecruitments is the resolver for the appliedRecruitments field.
 func (r *queryResolver) AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
 	res, err := recruitment.GetAppliedRecruitments(ctx, r.dbPool)
 	if err != nil {
@@ -155,3 +169,58 @@ func (r *queryResolver) AppliedRecruitments(ctx context.Context) ([]*model.Recru
 
 	return res, err
 }
+
+// ID is the resolver for the id field.
+func (r *recruitmentResolver) ID(ctx context.Context, obj *model.Recruitment) (string, error) {
+	return utils.GenerateUniqueID("Recruitment", obj.DatabaseID), nil
+}
+
+// Competition is the resolver for the competition field.
+func (r *recruitmentResolver) Competition(ctx context.Context, obj *model.Recruitment) (*model.Competition, error) {
+	competition, err := competition.GetCompetition(ctx, r.dbPool, obj.CompetitionID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return competition, nil
+}
+
+// Prefecture is the resolver for the prefecture field.
+func (r *recruitmentResolver) Prefecture(ctx context.Context, obj *model.Recruitment) (*model.Prefecture, error) {
+	prefecture, err := prefecture.GetPrefecture(ctx, r.dbPool, obj.PrefectureID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return prefecture, nil
+}
+
+// User is the resolver for the user field.
+func (r *recruitmentResolver) User(ctx context.Context, obj *model.Recruitment) (*model.User, error) {
+	user, err := loader.GetUser(ctx, obj.UserID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return user, nil
+}
+
+// Tags is the resolver for the tags field.
+func (r *recruitmentResolver) Tags(ctx context.Context, obj *model.Recruitment) ([]*model.Tag, error) {
+	tags, err := tag.GetTagsByRecruitmentID(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return tags, nil
+}
+
+// Applicant is the resolver for the applicant field.
+func (r *recruitmentResolver) Applicant(ctx context.Context, obj *model.Recruitment) (*model.Applicant, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// Recruitment returns generated.RecruitmentResolver implementation.
+func (r *Resolver) Recruitment() generated.RecruitmentResolver { return &recruitmentResolver{r} }
+
+type recruitmentResolver struct{ *Resolver }
