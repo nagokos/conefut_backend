@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type ApplyForRecruitmentError interface {
+	IsApplyForRecruitmentError()
+}
+
 type Connection interface {
 	IsConnection()
 }
@@ -30,14 +34,49 @@ type Node interface {
 }
 
 type Applicant struct {
+	ID          string       `json:"id"`
+	DatabaseID  int          `json:"databaseId"`
 	Message     string       `json:"message"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	Recruitment *Recruitment `json:"recruitment"`
 }
 
+func (Applicant) IsNode() {}
+
+type ApplyForRecruitmentAuthorizationError struct {
+	Message string `json:"message"`
+}
+
+func (ApplyForRecruitmentAuthorizationError) IsApplyForRecruitmentError() {}
+func (ApplyForRecruitmentAuthorizationError) IsError()                    {}
+
+type ApplyForRecruitmentInput struct {
+	Message string `json:"message"`
+}
+
+type ApplyForRecruitmentInvalidInputError struct {
+	Message string                               `json:"message"`
+	Field   ApplyForRecruitmentInvalidInputField `json:"field"`
+}
+
+func (ApplyForRecruitmentInvalidInputError) IsApplyForRecruitmentError() {}
+func (ApplyForRecruitmentInvalidInputError) IsError()                    {}
+
+type ApplyForRecruitmentPayload struct {
+	Feedback *FeedbackApplicant         `json:"feedback"`
+	Errors   []ApplyForRecruitmentError `json:"errors"`
+}
+
+type ApplyForRecruitmentSelfGeneratedError struct {
+	Message string `json:"message"`
+}
+
+func (ApplyForRecruitmentSelfGeneratedError) IsApplyForRecruitmentError() {}
+func (ApplyForRecruitmentSelfGeneratedError) IsError()                    {}
+
 type Competition struct {
 	ID         string `json:"id"`
-	DatabaseID *int   `json:"databaseId"`
+	DatabaseID int    `json:"databaseId"`
 	Name       string `json:"name"`
 }
 
@@ -50,6 +89,13 @@ type CreateTagInput struct {
 type Entrie struct {
 	User *User `json:"user"`
 }
+
+type FeedbackApplicant struct {
+	ID           string `json:"id"`
+	IsAppliedFor bool   `json:"isAppliedFor"`
+}
+
+func (FeedbackApplicant) IsNode() {}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -92,35 +138,11 @@ type PageInfo struct {
 
 type Prefecture struct {
 	ID         string `json:"id"`
-	DatabaseID *int   `json:"databaseId"`
+	DatabaseID int    `json:"databaseId"`
 	Name       string `json:"name"`
 }
 
 func (Prefecture) IsNode() {}
-
-type Recruitment struct {
-	ID          string       `json:"id"`
-	DatabaseID  *int         `json:"databaseId"`
-	Title       string       `json:"title"`
-	Detail      *string      `json:"detail"`
-	Type        Type         `json:"type"`
-	Place       *string      `json:"place"`
-	StartAt     *time.Time   `json:"startAt"`
-	LocationLat *float64     `json:"locationLat"`
-	LocationLng *float64     `json:"locationLng"`
-	Status      Status       `json:"status"`
-	ClosingAt   *time.Time   `json:"closingAt"`
-	UpdatedAt   time.Time    `json:"updatedAt"`
-	CreatedAt   time.Time    `json:"createdAt"`
-	PublishedAt *time.Time   `json:"publishedAt"`
-	Competition *Competition `json:"competition"`
-	Prefecture  *Prefecture  `json:"prefecture"`
-	User        *User        `json:"user"`
-	Tags        []*Tag       `json:"tags"`
-	Applicant   *Applicant   `json:"applicant"`
-}
-
-func (Recruitment) IsNode() {}
 
 type RecruitmentConnection struct {
 	PageInfo *PageInfo          `json:"pageInfo"`
@@ -161,7 +183,7 @@ type Room struct {
 
 type Tag struct {
 	ID         string `json:"id"`
-	DatabaseID *int   `json:"databaseId"`
+	DatabaseID int    `json:"databaseId"`
 	Name       string `json:"name"`
 }
 
@@ -169,7 +191,7 @@ func (Tag) IsNode() {}
 
 type User struct {
 	ID                      string                  `json:"id"`
-	DatabaseID              *int                    `json:"databaseId"`
+	DatabaseID              int                     `json:"databaseId"`
 	Name                    string                  `json:"name"`
 	Email                   string                  `json:"email"`
 	Role                    Role                    `json:"role"`
@@ -207,6 +229,45 @@ type RecruitmentTagInput struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	IsNew bool   `json:"isNew"`
+}
+
+type ApplyForRecruitmentInvalidInputField string
+
+const (
+	ApplyForRecruitmentInvalidInputFieldMessage ApplyForRecruitmentInvalidInputField = "MESSAGE"
+)
+
+var AllApplyForRecruitmentInvalidInputField = []ApplyForRecruitmentInvalidInputField{
+	ApplyForRecruitmentInvalidInputFieldMessage,
+}
+
+func (e ApplyForRecruitmentInvalidInputField) IsValid() bool {
+	switch e {
+	case ApplyForRecruitmentInvalidInputFieldMessage:
+		return true
+	}
+	return false
+}
+
+func (e ApplyForRecruitmentInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *ApplyForRecruitmentInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ApplyForRecruitmentInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ApplyForRecruitmentInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e ApplyForRecruitmentInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type EmailVerificationStatus string

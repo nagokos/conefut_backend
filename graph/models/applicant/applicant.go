@@ -8,10 +8,25 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/room"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
+
+func GetApplicant(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Applicant, error) {
+	cmd := "SELECT id, message FROM applicants WHERE id = $1"
+
+	var applicant model.Applicant
+	row := dbPool.QueryRow(ctx, cmd, id)
+	err := row.Scan(&applicant.DatabaseID, &applicant.Message)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return &applicant, nil
+}
 
 func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
 	currentUser := auth.ForContext(ctx)
@@ -41,24 +56,6 @@ func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID
 	}
 
 	return isApplied, nil
-}
-
-func GetAppliedCounts(ctx context.Context, dbPool *pgxpool.Pool, recID string) (int, error) {
-	cmd := `
-	  SELECT COUNT(DISTINCT a.id)
-		FROM applicants AS a
-		WHERE a.recruitment_id = $1
-	`
-	row := dbPool.QueryRow(ctx, cmd, recID)
-
-	var count int
-	err := row.Scan(&count)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return count, err
-	}
-
-	return count, nil
 }
 
 func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, message string) (bool, error) {

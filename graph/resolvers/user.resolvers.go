@@ -9,11 +9,14 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
+// RegisterUser is the resolver for the registerUser field.
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error) {
 	u := user.User{
 		Name:     input.Name,
@@ -45,12 +48,13 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 		return payload, nil
 	}
 
-	token, _ := user.CreateToken(*payload.User.DatabaseID)
+	token, _ := user.CreateToken(payload.User.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
 	return payload, nil
 }
 
+// LoginUser is the resolver for the loginUser field.
 func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error) {
 	u := user.User{
 		Email:    input.Email,
@@ -79,18 +83,30 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		return payload, nil
 	}
 
-	token, _ := user.CreateToken(*payload.User.DatabaseID)
+	token, _ := user.CreateToken(payload.User.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
 	return payload, nil
 }
 
+// LogoutUser is the resolver for the logoutUser field.
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	auth.RemoveAuthCookie(ctx)
 	return true, nil
 }
 
+// CurrentUser is the resolver for the currentUser field.
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return user, nil
 }
+
+// ID is the resolver for the id field.
+func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) {
+	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
+}
+
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
+type userResolver struct{ *Resolver }

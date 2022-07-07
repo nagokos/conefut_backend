@@ -8,10 +8,12 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
+	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
@@ -28,19 +30,22 @@ func main() {
 	defer dbPool.Close()
 
 	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 	r.Use(
 		cors.Handler(cors.Options{
 			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
 			AllowCredentials: true,
 		}),
-		auth.Middleware(dbPool),
-		auth.CookieMiddleWare(),
 	)
+	r.Use(auth.Middleware(dbPool))
+	r.Use(auth.CookieMiddleWare())
 
+	loaders := loader.NewLoaders(dbPool)
 	srv := handler.NewDefaultServer(resolvers.NewSchema(dbPool))
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	r.Handle("/query", srv)
+	r.Handle("/query", loader.Middleware(loaders, srv))
 	r.Route("/accounts", func(r chi.Router) {
 		r.Route("/email_verification", func(r chi.Router) {
 			r.Route("/{token}", func(r chi.Router) {

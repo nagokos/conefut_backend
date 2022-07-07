@@ -19,7 +19,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
@@ -164,6 +163,20 @@ func SendVerifyEmail(emailToken string) error {
 	return err
 }
 
+func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, error) {
+	cmd := "SELECT id, name, avatar FROM users WHERE id = $1"
+
+	var user model.User
+	row := dbPool.QueryRow(ctx, cmd, id)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Avatar)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // ** データベース伴う処理 **
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
 	pwdHash := HashGenerate(u.Password)
@@ -191,8 +204,6 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 	if err != nil {
 		return nil, err
 	}
-
-	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 
 	// 本番環境と開発環境では違う
 	err = SendVerifyEmail(emailToken)
@@ -227,8 +238,6 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 		})
 		return &payload, err
 	}
-
-	user.ID = utils.GenerateAndSetUniqueID("User", *user.DatabaseID)
 
 	payload.User = &user
 	return &payload, nil

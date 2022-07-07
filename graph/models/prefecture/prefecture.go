@@ -5,13 +5,13 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 type NullablePrefecture struct {
-	ID   *string
-	Name *string
+	ID         *string
+	DatabaseID *int
+	Name       *string
 }
 
 func GetPrefectures(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Prefecture, error) {
@@ -31,7 +31,6 @@ func GetPrefectures(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Prefect
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		prefecture.ID = utils.GenerateAndSetUniqueID("Prefecture", *prefecture.DatabaseID)
 		prefectures = append(prefectures, &prefecture)
 	}
 
@@ -42,4 +41,18 @@ func GetPrefectures(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Prefect
 	}
 
 	return prefectures, nil
+}
+
+func GetPrefecture(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Prefecture, error) {
+	cmd := "SELECT id, name FROM prefectures WHERE id = $1"
+
+	var prefecture model.Prefecture
+	row := dbPool.QueryRow(ctx, cmd, id)
+	err := row.Scan(&prefecture.DatabaseID, &prefecture.Name)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return &prefecture, nil
 }

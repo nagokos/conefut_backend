@@ -5,15 +5,12 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/models/applicant"
 	"github.com/nagokos/connefut_backend/graph/models/entrie"
 	"github.com/nagokos/connefut_backend/graph/models/message"
 	"github.com/nagokos/connefut_backend/graph/models/room"
@@ -22,6 +19,7 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
+// CreateStock is the resolver for the createStock field.
 func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
 	_, err := stock.CreateStock(ctx, r.dbPool, recruitmentID)
 	if err != nil {
@@ -30,6 +28,7 @@ func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string
 	return true, nil
 }
 
+// DeleteStock is the resolver for the deleteStock field.
 func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string) (bool, error) {
 	_, err := stock.DeleteStock(ctx, r.dbPool, recruitmentID)
 	if err != nil {
@@ -38,25 +37,12 @@ func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string
 	return true, nil
 }
 
+// AddRecruitmentTag is the resolver for the addRecruitmentTag field.
 func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (bool, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
-		logger.NewLogger().Error("not email verified")
-		return false, errors.New("メールアドレスを認証してください")
-	}
-
-	res, err := applicant.CreateApplicant(ctx, r.dbPool, recruitmentID, input.Message)
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
-}
-
+// CreateMessage is the resolver for the createMessage field.
 func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, input model.CreateMessageInput) (*model.Message, error) {
 	m := message.Message{
 		Content: input.Content,
@@ -82,10 +68,12 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, inp
 	return res, nil
 }
 
+// Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+// CheckStocked is the resolver for the checkStocked field.
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
 	res, err := stock.CheckStocked(ctx, r.dbPool, recruitmentID)
 	if err != nil {
@@ -94,6 +82,7 @@ func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) 
 	return res, nil
 }
 
+// GetStockedCount is the resolver for the getStockedCount field.
 func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID string) (int, error) {
 	res, err := stock.GetStockedCount(ctx, r.dbPool, recruitmentID)
 	if err != nil {
@@ -102,23 +91,7 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 	return res, nil
 }
 
-func (r *queryResolver) CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := applicant.CheckAppliedForRecruitment(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return res, err
-	}
-	return res, err
-}
-
-func (r *queryResolver) GetAppliedCounts(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := applicant.GetAppliedCounts(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}
-
+// GetCurrentUserRooms is the resolver for the getCurrentUserRooms field.
 func (r *queryResolver) GetCurrentUserRooms(ctx context.Context) ([]*model.Room, error) {
 	res, err := room.GetCurrentUserRooms(ctx, r.dbPool)
 	if err != nil {
@@ -128,6 +101,7 @@ func (r *queryResolver) GetCurrentUserRooms(ctx context.Context) ([]*model.Room,
 	return res, nil
 }
 
+// GetEntrieUser is the resolver for the getEntrieUser field.
 func (r *queryResolver) GetEntrieUser(ctx context.Context, roomID string) (*model.User, error) {
 	res, err := entrie.GetEntrieUser(ctx, r.dbPool, roomID)
 	if err != nil {
@@ -137,6 +111,7 @@ func (r *queryResolver) GetEntrieUser(ctx context.Context, roomID string) (*mode
 	return res, nil
 }
 
+// GetRoomMessages is the resolver for the getRoomMessages field.
 func (r *queryResolver) GetRoomMessages(ctx context.Context, roomID string) ([]*model.Message, error) {
 	res, err := message.GetRoomMessages(ctx, r.dbPool, roomID)
 	if err != nil {

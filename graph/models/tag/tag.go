@@ -73,7 +73,7 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		tag.ID = utils.GenerateAndSetUniqueID("Tag", *tag.DatabaseID)
+		tag.ID = utils.GenerateUniqueID("Tag", tag.DatabaseID)
 		tags = append(tags, &tag)
 	}
 
@@ -84,6 +84,41 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 	}
 
 	return tags, nil
+}
+
+func GetTagsByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) ([]*model.Tag, error) {
+	cmd := `
+	  SELECT t.id, t.name 
+	  FROM tags AS t
+		INNER JOIN recruitment_tags AS r_t
+		ON t.id = r_t.tag_id
+		WHERE r_t.recruitment_id = $1
+	`
+
+	rows, err := dbPool.Query(ctx, cmd, recruitmentID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []*model.Tag
+	for rows.Next() {
+		var tag model.Tag
+		err = rows.Scan(&tag.ID, &tag.Name)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		tags = append(tags, &tag)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return tags, err
 }
 
 func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Tag, error) {

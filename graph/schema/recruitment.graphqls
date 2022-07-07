@@ -22,8 +22,8 @@ type RecruitmentEdge implements Edge {
 }
 
 type Recruitment implements Node {
-  id: ID!
-  databaseId: Int
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
   title: String!
   detail: String
   type: Type!

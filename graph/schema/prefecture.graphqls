@@ -3,7 +3,7 @@ extend type Query {
 }
 
 type Prefecture implements Node {
-  id: ID!
-  databaseId: Int
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
   name: String!
 }
