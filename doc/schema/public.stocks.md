@@ -6,9 +6,9 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
-| recruitment_id | varchar |  | false |  | [public.recruitments](public.recruitments.md) |  |
-| user_id | varchar |  | false |  | [public.users](public.users.md) |  |
+| id | bigint | nextval('stocks_id_seq'::regclass) | false |  |  |  |
+| recruitment_id | bigint |  | false |  | [public.recruitments](public.recruitments.md) |  |
+| user_id | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 

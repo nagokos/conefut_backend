@@ -19,13 +19,13 @@
 <text text-anchor="start" x="488.7719" y="-755.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="354,-712.5 354,-742.5 607,-742.5 607,-712.5 354,-712.5"/>
 <text text-anchor="start" x="361" y="-723.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="375.7798" y="-723.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="375.7798" y="-723.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-682.5 354,-712.5 607,-712.5 607,-682.5 354,-682.5"/>
 <text text-anchor="start" x="361" y="-693.9" font-family="Arial" font-size="14.00" fill="#000000">room_id </text>
-<text text-anchor="start" x="415.4488" y="-693.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="415.4488" y="-693.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-652.5 354,-682.5 607,-682.5 607,-652.5 354,-652.5"/>
 <text text-anchor="start" x="361" y="-663.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
-<text text-anchor="start" x="410.7882" y="-663.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="410.7882" y="-663.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-622.5 354,-652.5 607,-652.5 607,-622.5 354,-622.5"/>
 <text text-anchor="start" x="361" y="-633.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
 <text text-anchor="start" x="431.028" y="-633.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
@@ -44,7 +44,7 @@
 <text text-anchor="start" x="270.7667" y="-295.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="138,-252.5 138,-282.5 391,-282.5 391,-252.5 138,-252.5"/>
 <text text-anchor="start" x="145" y="-263.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="159.7798" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="159.7798" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="138,-222.5 138,-252.5 391,-252.5 391,-222.5 138,-222.5"/>
 <text text-anchor="start" x="145" y="-233.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
 <text text-anchor="start" x="215.028" y="-233.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
@@ -69,7 +69,7 @@
 <text text-anchor="start" x="701.2706" y="-445.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="495,-402.5 495,-432.5 901,-432.5 901,-402.5 495,-402.5"/>
 <text text-anchor="start" x="502" y="-413.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="516.7798" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="516.7798" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="495,-372.5 495,-402.5 901,-402.5 901,-372.5 495,-372.5"/>
 <text text-anchor="start" x="502" y="-383.9" font-family="Arial" font-size="14.00" fill="#000000">name </text>
 <text text-anchor="start" x="540.899" y="-383.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar(50)]</text>

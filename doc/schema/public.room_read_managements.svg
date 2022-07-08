@@ -19,16 +19,16 @@
 <text text-anchor="start" x="627.7933" y="-785.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="354,-742.5 354,-772.5 728,-772.5 728,-742.5 354,-742.5"/>
 <text text-anchor="start" x="361" y="-753.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="375.7798" y="-753.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="375.7798" y="-753.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-712.5 354,-742.5 728,-742.5 728,-712.5 354,-712.5"/>
 <text text-anchor="start" x="361" y="-723.9" font-family="Arial" font-size="14.00" fill="#000000">last_read_at </text>
 <text text-anchor="start" x="441.9172" y="-723.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="354,-682.5 354,-712.5 728,-712.5 728,-682.5 354,-682.5"/>
 <text text-anchor="start" x="361" y="-693.9" font-family="Arial" font-size="14.00" fill="#000000">room_id </text>
-<text text-anchor="start" x="415.4488" y="-693.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="415.4488" y="-693.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-652.5 354,-682.5 728,-682.5 728,-652.5 354,-652.5"/>
 <text text-anchor="start" x="361" y="-663.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
-<text text-anchor="start" x="410.7882" y="-663.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="410.7882" y="-663.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="354,-622.5 354,-652.5 728,-652.5 728,-622.5 354,-622.5"/>
 <text text-anchor="start" x="361" y="-633.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
 <text text-anchor="start" x="431.028" y="-633.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
@@ -47,7 +47,7 @@
 <text text-anchor="start" x="330.7667" y="-295.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="198,-252.5 198,-282.5 451,-282.5 451,-252.5 198,-252.5"/>
 <text text-anchor="start" x="205" y="-263.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="219.7798" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="219.7798" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="198,-222.5 198,-252.5 451,-252.5 451,-222.5 198,-222.5"/>
 <text text-anchor="start" x="205" y="-233.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
 <text text-anchor="start" x="275.028" y="-233.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
@@ -72,7 +72,7 @@
 <text text-anchor="start" x="761.2706" y="-445.3" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <polygon fill="none" stroke="#000000" points="555,-402.5 555,-432.5 961,-432.5 961,-402.5 555,-402.5"/>
 <text text-anchor="start" x="562" y="-413.9" font-family="Arial" font-size="14.00" fill="#000000">id </text>
-<text text-anchor="start" x="576.7798" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="576.7798" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="555,-372.5 555,-402.5 961,-402.5 961,-372.5 555,-372.5"/>
 <text text-anchor="start" x="562" y="-383.9" font-family="Arial" font-size="14.00" fill="#000000">name </text>
 <text text-anchor="start" x="600.899" y="-383.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar(50)]</text>

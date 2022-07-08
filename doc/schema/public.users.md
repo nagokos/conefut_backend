@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false | [public.recruitments](public.recruitments.md) [public.stocks](public.stocks.md) [public.applicants](public.applicants.md) [public.messages](public.messages.md) [public.entries](public.entries.md) [public.room_read_managements](public.room_read_managements.md) |  |  |
+| id | bigint | nextval('users_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) [public.stocks](public.stocks.md) [public.applicants](public.applicants.md) [public.messages](public.messages.md) [public.entries](public.entries.md) [public.room_read_managements](public.room_read_managements.md) |  |  |
 | name | varchar(50) |  | false |  |  |  |
 | email | varchar(100) |  | false |  |  |  |
 | role | varchar | 'general'::character varying | false |  |  |  |

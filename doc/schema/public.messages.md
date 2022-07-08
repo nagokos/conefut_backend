@@ -6,11 +6,11 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
+| id | bigint | nextval('messages_id_seq'::regclass) | false |  |  |  |
 | content | varchar(1000) |  | true |  |  |  |
-| room_id | varchar |  | false |  | [public.rooms](public.rooms.md) |  |
-| user_id | varchar |  | true |  | [public.users](public.users.md) |  |
-| applicant_id | varchar |  | false |  | [public.applicants](public.applicants.md) |  |
+| room_id | bigint |  | false |  | [public.rooms](public.rooms.md) |  |
+| user_id | bigint |  | true |  | [public.users](public.users.md) |  |
+| applicant_id | bigint |  | false |  | [public.applicants](public.applicants.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 

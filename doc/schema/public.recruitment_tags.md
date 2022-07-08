@@ -6,9 +6,9 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | varchar |  | false |  |  |  |
-| recruitment_id | varchar |  | false |  | [public.recruitments](public.recruitments.md) |  |
-| tag_id | varchar |  | false |  | [public.tags](public.tags.md) |  |
+| id | bigint | nextval('recruitment_tags_id_seq'::regclass) | false |  |  |  |
+| recruitment_id | bigint |  | false |  | [public.recruitments](public.recruitments.md) |  |
+| tag_id | bigint |  | false |  | [public.tags](public.tags.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 
