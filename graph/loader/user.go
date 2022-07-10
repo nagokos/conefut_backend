@@ -23,7 +23,7 @@ func (u *UserReader) GetUsers(ctx context.Context, keys dataloader.Keys) []*data
 		userIDs[ix] = key.String()
 		cmdArray = append(cmdArray, fmt.Sprintf("$%d", ix+1))
 	}
-	cmd := fmt.Sprintf("SELECT id, name FROM users WHERE id IN (%s)", strings.Join(cmdArray, ","))
+	cmd := fmt.Sprintf("SELECT id, name, avatar FROM users WHERE id IN (%s)", strings.Join(cmdArray, ","))
 
 	rows, err := u.dbPool.Query(
 		ctx,
@@ -39,7 +39,7 @@ func (u *UserReader) GetUsers(ctx context.Context, keys dataloader.Keys) []*data
 	userByID := map[string]*model.User{}
 	for rows.Next() {
 		var user model.User
-		err := rows.Scan(&user.DatabaseID, &user.Name)
+		err := rows.Scan(&user.DatabaseID, &user.Name, &user.Avatar)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
