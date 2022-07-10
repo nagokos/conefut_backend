@@ -91,10 +91,10 @@ func (r Recruitment) RecruitmentValidate() error {
 			&r.Type,
 			validation.In(
 				model.TypeOpponent,
-				model.TypeIndividual,
+				model.TypePersonal,
 				model.TypeMember,
-				model.TypeJoining,
-				model.TypeOthers,
+				model.TypeJoin,
+				model.TypeOther,
 			),
 		),
 		validation.Field(
@@ -113,7 +113,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		validation.Field(
 			&r.Place,
 			validation.When(r.Status == model.StatusPublished,
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
 					validation.Required.Error("会場名を入力してください"),
 				),
 			),
@@ -121,7 +121,7 @@ func (r Recruitment) RecruitmentValidate() error {
 		validation.Field(
 			&r.StartAt,
 			validation.When(r.Status == model.StatusPublished,
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
 					validation.By(beforeNowStart),
 					validation.Required.Error("開催日時を設定してください"),
 				),
@@ -131,7 +131,7 @@ func (r Recruitment) RecruitmentValidate() error {
 			&r.ClosingAt,
 			validation.When(r.Status == model.StatusPublished,
 				validation.Required.Error("募集期限を設定してください"),
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypeIndividual,
+				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
 					validation.By(beforeNowClosing),
 					validation.By(checkWithinTheDeadline(*r.StartAt)),
 				),
@@ -140,12 +140,7 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
-		return &model.Recruitment{}, errors.New("ログインしてください")
-	}
-
+func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.RecruitmentEdge, error) {
 	timeNow := time.Now().Local()
 
 	var publishedAt *time.Time
@@ -157,29 +152,40 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	cmd := `
 	  INSERT INTO recruitments 
-		  (id, title, competition_id, type, detail, prefecture_id, place, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
+		  (title, competition_id, type, detail, prefecture_id, place, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
 		VALUES
-		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-		RETURNING id, title, status 
+		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		RETURNING id, status
 		`
 
+	currentUser := auth.ForContext(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		xid.New().String(), r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place, r.StartAt,
-		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.ID, timeNow, timeNow, publishedAt,
+		r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Place, r.StartAt,
+		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
 	var recruitment model.Recruitment
-	err := row.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Status)
+	err := row.Scan(&recruitment.DatabaseID, &recruitment.Status)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
+	var recruitmentEdge model.RecruitmentEdge
+	if recruitment.Status == model.StatusPublished {
+		recruitment, err := GetRecruitment(ctx, dbPool, recruitment.DatabaseID)
+		if err != nil {
+			return nil, err
+		}
+		recruitmentEdge.Node = recruitment
+		recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
+	}
+
 	cmd = "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
+	tx, err := dbPool.Begin(ctx)
 
 	if len(r.Tags) != 0 {
-		tx, err := dbPool.Begin(ctx)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
@@ -211,10 +217,11 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 		if err := tx.Commit(ctx); err != nil {
 			logger.NewLogger().Error(err.Error())
+			return nil, err
 		}
 	}
 
-	return &recruitment, nil
+	return &recruitmentEdge, nil
 }
 
 func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
