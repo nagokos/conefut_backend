@@ -61,10 +61,10 @@ init_migration: seq_name
 
 # データベースに反映
 migrate_up: version
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up ${VERSION}
 
 migrate_down: version
-	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down
+	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down ${VERSION}
 
 migrate_reset:
 	${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} down && ${DC_WEB} migrate -path db/migrations -database ${POSTGRESQL_URL} up

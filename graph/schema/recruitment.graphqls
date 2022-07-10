@@ -44,10 +44,10 @@ type Recruitment implements Node {
 
 enum Type {
   OPPONENT
-  INDIVIDUAL
+  PERSONAL
   MEMBER
-  JOINING
-  OTHERS
+  JOIN
+  OTHER
 }
 
 enum Status {
@@ -57,12 +57,14 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: recruitmentInput!): Recruitment!
-  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
+  createRecruitment(input: RecruitmentInput!): RecruitmentEdge!
+    @emailVerified(status: VERIFIED)
+    @hasLoggedIn
+  updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Recruitment!
 }
 
-input recruitmentInput {
+input RecruitmentInput {
   title: String!
   competitionId: String!
   type: Type!

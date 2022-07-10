@@ -158,6 +158,21 @@ type RecruitmentEdge struct {
 
 func (RecruitmentEdge) IsEdge() {}
 
+type RecruitmentInput struct {
+	Title         string                 `json:"title"`
+	CompetitionID string                 `json:"competitionId"`
+	Type          Type                   `json:"type"`
+	Detail        *string                `json:"detail"`
+	PrefectureID  *string                `json:"prefectureId"`
+	Place         *string                `json:"place"`
+	StartAt       *time.Time             `json:"startAt"`
+	ClosingAt     *time.Time             `json:"closingAt"`
+	LocationLat   *float64               `json:"locationLat"`
+	LocationLng   *float64               `json:"locationLng"`
+	Status        Status                 `json:"status"`
+	Tags          []*RecruitmentTagInput `json:"tags"`
+}
+
 type RegisterUserInput struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -208,21 +223,6 @@ type ApplicantInput struct {
 
 type CreateMessageInput struct {
 	Content string `json:"content"`
-}
-
-type RecruitmentInput struct {
-	Title         string                 `json:"title"`
-	CompetitionID string                 `json:"competitionId"`
-	Type          Type                   `json:"type"`
-	Detail        *string                `json:"detail"`
-	PrefectureID  *string                `json:"prefectureId"`
-	Place         *string                `json:"place"`
-	StartAt       *time.Time             `json:"startAt"`
-	ClosingAt     *time.Time             `json:"closingAt"`
-	LocationLat   *float64               `json:"locationLat"`
-	LocationLng   *float64               `json:"locationLng"`
-	Status        Status                 `json:"status"`
-	Tags          []*RecruitmentTagInput `json:"tags"`
 }
 
 type RecruitmentTagInput struct {
@@ -482,24 +482,24 @@ func (e Status) MarshalGQL(w io.Writer) {
 type Type string
 
 const (
-	TypeOpponent   Type = "OPPONENT"
-	TypeIndividual Type = "INDIVIDUAL"
-	TypeMember     Type = "MEMBER"
-	TypeJoining    Type = "JOINING"
-	TypeOthers     Type = "OTHERS"
+	TypeOpponent Type = "OPPONENT"
+	TypePersonal Type = "PERSONAL"
+	TypeMember   Type = "MEMBER"
+	TypeJoin     Type = "JOIN"
+	TypeOther    Type = "OTHER"
 )
 
 var AllType = []Type{
 	TypeOpponent,
-	TypeIndividual,
+	TypePersonal,
 	TypeMember,
-	TypeJoining,
-	TypeOthers,
+	TypeJoin,
+	TypeOther,
 }
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeOpponent, TypeIndividual, TypeMember, TypeJoining, TypeOthers:
+	case TypeOpponent, TypePersonal, TypeMember, TypeJoin, TypeOther:
 		return true
 	}
 	return false

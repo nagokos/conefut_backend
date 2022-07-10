@@ -1,0 +1,1 @@
+CREATE TYPE email_verification_status AS ENUM ('pending', 'verified')

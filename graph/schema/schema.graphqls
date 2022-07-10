@@ -5,6 +5,9 @@ directive @goField(
   name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
+directive @emailVerified(status: EmailVerificationStatus!) on FIELD_DEFINITION
+directive @hasLoggedIn on FIELD_DEFINITION | OBJECT
+
 interface Connection {
   pageInfo: PageInfo!
   edges: [Edge!]!
