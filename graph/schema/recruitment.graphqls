@@ -27,7 +27,7 @@ type Recruitment implements Node {
   title: String!
   detail: String
   type: Type!
-  place: String
+  venue: String
   startAt: DateTime
   locationLat: Float
   locationLng: Float
@@ -70,7 +70,7 @@ input RecruitmentInput {
   type: Type!
   detail: String
   prefectureId: String
-  place: String
+  venue: String
   startAt: DateTime
   closingAt: DateTime
   locationLat: Float

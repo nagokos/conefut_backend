@@ -172,7 +172,6 @@ type ComplexityRoot struct {
 		ID          func(childComplexity int) int
 		LocationLat func(childComplexity int) int
 		LocationLng func(childComplexity int) int
-		Place       func(childComplexity int) int
 		Prefecture  func(childComplexity int) int
 		PublishedAt func(childComplexity int) int
 		StartAt     func(childComplexity int) int
@@ -181,6 +180,7 @@ type ComplexityRoot struct {
 		Title       func(childComplexity int) int
 		Type        func(childComplexity int) int
 		User        func(childComplexity int) int
+		Venue       func(childComplexity int) int
 	}
 
 	RecruitmentConnection struct {
@@ -883,13 +883,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Recruitment.LocationLng(childComplexity), true
 
-	case "Recruitment.place":
-		if e.complexity.Recruitment.Place == nil {
-			break
-		}
-
-		return e.complexity.Recruitment.Place(childComplexity), true
-
 	case "Recruitment.prefecture":
 		if e.complexity.Recruitment.Prefecture == nil {
 			break
@@ -945,6 +938,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Recruitment.User(childComplexity), true
+
+	case "Recruitment.venue":
+		if e.complexity.Recruitment.Venue == nil {
+			break
+		}
+
+		return e.complexity.Recruitment.Venue(childComplexity), true
 
 	case "RecruitmentConnection.edges":
 		if e.complexity.RecruitmentConnection.Edges == nil {
@@ -1273,7 +1273,7 @@ type Recruitment implements Node {
   title: String!
   detail: String
   type: Type!
-  place: String
+  venue: String
   startAt: DateTime
   locationLat: Float
   locationLng: Float
@@ -1316,7 +1316,7 @@ input RecruitmentInput {
   type: Type!
   detail: String
   prefectureId: String
-  place: String
+  venue: String
   startAt: DateTime
   closingAt: DateTime
   locationLat: Float
@@ -2172,8 +2172,8 @@ func (ec *executionContext) fieldContext_Applicant_recruitment(ctx context.Conte
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -3620,8 +3620,8 @@ func (ec *executionContext) fieldContext_Mutation_updateRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -3713,8 +3713,8 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -4913,8 +4913,8 @@ func (ec *executionContext) fieldContext_Query_currentUserRecruitments(ctx conte
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -4995,8 +4995,8 @@ func (ec *executionContext) fieldContext_Query_recruitment(ctx context.Context, 
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -5088,8 +5088,8 @@ func (ec *executionContext) fieldContext_Query_stockedRecruitments(ctx context.C
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -5170,8 +5170,8 @@ func (ec *executionContext) fieldContext_Query_appliedRecruitments(ctx context.C
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -5660,8 +5660,8 @@ func (ec *executionContext) fieldContext_Recruitment_type(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Recruitment_place(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Recruitment_place(ctx, field)
+func (ec *executionContext) _Recruitment_venue(ctx context.Context, field graphql.CollectedField, obj *model.Recruitment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Recruitment_venue(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -5674,7 +5674,7 @@ func (ec *executionContext) _Recruitment_place(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Place, nil
+		return obj.Venue, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5688,7 +5688,7 @@ func (ec *executionContext) _Recruitment_place(ctx context.Context, field graphq
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Recruitment_place(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Recruitment_venue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Recruitment",
 		Field:      field,
@@ -6459,8 +6459,8 @@ func (ec *executionContext) fieldContext_RecruitmentEdge_node(ctx context.Contex
 				return ec.fieldContext_Recruitment_detail(ctx, field)
 			case "type":
 				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
+			case "venue":
+				return ec.fieldContext_Recruitment_venue(ctx, field)
 			case "startAt":
 				return ec.fieldContext_Recruitment_startAt(ctx, field)
 			case "locationLat":
@@ -9134,7 +9134,7 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "competitionId", "type", "detail", "prefectureId", "place", "startAt", "closingAt", "locationLat", "locationLng", "status", "tags"}
+	fieldsInOrder := [...]string{"title", "competitionId", "type", "detail", "prefectureId", "venue", "startAt", "closingAt", "locationLat", "locationLng", "status", "tags"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -9181,11 +9181,11 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "place":
+		case "venue":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("place"))
-			it.Place, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("venue"))
+			it.Venue, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10732,9 +10732,9 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "place":
+		case "venue":
 
-			out.Values[i] = ec._Recruitment_place(ctx, field, obj)
+			out.Values[i] = ec._Recruitment_venue(ctx, field, obj)
 
 		case "startAt":
 

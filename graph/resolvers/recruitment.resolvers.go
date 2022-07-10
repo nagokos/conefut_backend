@@ -27,7 +27,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		Type:          input.Type,
 		Detail:        input.Detail,
 		StartAt:       input.StartAt,
-		Place:         input.Place,
+		Venue:         input.Venue,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
 		Status:        input.Status,
@@ -69,7 +69,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		Type:          input.Type,
 		Detail:        input.Detail,
 		StartAt:       input.StartAt,
-		Place:         input.Place,
+		Venue:         input.Venue,
 		LocationLat:   input.LocationLat,
 		LocationLng:   input.LocationLng,
 		Status:        input.Status,
@@ -215,3 +215,13 @@ func (r *recruitmentResolver) Applicant(ctx context.Context, obj *model.Recruitm
 func (r *Resolver) Recruitment() generated.RecruitmentResolver { return &recruitmentResolver{r} }
 
 type recruitmentResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *recruitmentResolver) Venue(ctx context.Context, obj *model.Recruitment) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
+}

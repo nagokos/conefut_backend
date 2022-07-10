@@ -10,7 +10,7 @@ type Recruitment struct {
 	Title         string     `json:"title"`
 	Detail        *string    `json:"detail"`
 	Type          Type       `json:"type"`
-	Place         *string    `json:"place"`
+	Venue         *string    `json:"place"`
 	StartAt       *time.Time `json:"startAt"`
 	LocationLat   *float64   `json:"locationLat"`
 	LocationLng   *float64   `json:"locationLng"`
