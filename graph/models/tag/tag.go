@@ -3,6 +3,8 @@ package tag
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,39 +88,51 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 	return tags, nil
 }
 
-func GetTagsByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) ([]*model.Tag, error) {
-	cmd := `
-	  SELECT t.id, t.name 
-	  FROM tags AS t
-		INNER JOIN recruitment_tags AS r_t
-		ON t.id = r_t.tag_id
-		WHERE r_t.recruitment_id = $1
-	`
+func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []interface{}, cmdArray []string) (map[string][]*model.Tag, error) {
+	if len(IDs) == 0 {
+		return nil, nil
+	}
 
-	rows, err := dbPool.Query(ctx, cmd, recruitmentID)
+	cmd := fmt.Sprintf(
+		`
+	  SELECT t.id, t.name, r_t.recruitment_id
+		FROM tags AS t
+		INNER JOIN recruitment_tags AS r_t
+		ON r_t.tag_id = t.id
+		WHERE r_t.recruitment_id IN (%s)
+		`,
+		strings.Join(cmdArray, ","),
+	)
+
+	rows, err := dbPool.Query(
+		ctx,
+		cmd,
+		IDs...,
+	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return nil, err
+		return nil, nil
 	}
 	defer rows.Close()
 
-	var tags []*model.Tag
+	tagByRecruitmentID := map[string][]*model.Tag{}
 	for rows.Next() {
 		var tag model.Tag
-		err = rows.Scan(&tag.ID, &tag.Name)
+		var recruitmentID int
+		err := rows.Scan(&tag.DatabaseID, &tag.Name, &recruitmentID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		tags = append(tags, &tag)
+		tagByRecruitmentID[strconv.Itoa(recruitmentID)] = append(tagByRecruitmentID[strconv.Itoa(recruitmentID)], &tag)
 	}
 
 	err = rows.Err()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return nil, err
+		return nil, nil
 	}
 
-	return tags, err
+	return tagByRecruitmentID, nil
 }
 
 func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Tag, error) {
