@@ -19,7 +19,7 @@ extend type Mutation {
   applyForRecruitment(
     recruitmentId: String!
     input: applicantInput
-  ): ApplyForRecruitmentPayload! @hasEmailVerificationStatus(status: VERIFIED)
+  ): ApplyForRecruitmentPayload!
 }
 
 type ApplyForRecruitmentPayload {

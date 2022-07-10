@@ -7,12 +7,6 @@ enum Role {
   GENERAL
 }
 
-directive @auth on FIELD_DEFINITION
-
-directive @hasEmailVerificationStatus(
-  status: EmailVerificationStatus!
-) on FIELD_DEFINITION
-
 enum EmailVerificationStatus {
   PENDING
   VERIFIED

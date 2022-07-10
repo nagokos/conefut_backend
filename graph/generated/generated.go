@@ -48,8 +48,8 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	Auth                       func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
-	HasEmailVerificationStatus func(ctx context.Context, obj interface{}, next graphql.Resolver, status model.EmailVerificationStatus) (res interface{}, err error)
+	EmailVerified func(ctx context.Context, obj interface{}, next graphql.Resolver, status model.EmailVerificationStatus) (res interface{}, err error)
+	HasLoggedIn   func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -238,7 +238,7 @@ type MutationResolver interface {
 	AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error)
 	CreateMessage(ctx context.Context, roomID string, input model.CreateMessageInput) (*model.Message, error)
 	ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (*model.ApplyForRecruitmentPayload, error)
-	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.Recruitment, error)
+	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentEdge, error)
 	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
 	DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error)
@@ -1104,10 +1104,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputApplyForRecruitmentInput,
 		ec.unmarshalInputCreateTagInput,
 		ec.unmarshalInputLoginUserInput,
+		ec.unmarshalInputRecruitmentInput,
 		ec.unmarshalInputRegisterUserInput,
 		ec.unmarshalInputapplicantInput,
 		ec.unmarshalInputcreateMessageInput,
-		ec.unmarshalInputrecruitmentInput,
 		ec.unmarshalInputrecruitmentTagInput,
 	)
 	first := true
@@ -1190,7 +1190,7 @@ extend type Mutation {
   applyForRecruitment(
     recruitmentId: String!
     input: applicantInput
-  ): ApplyForRecruitmentPayload! @hasEmailVerificationStatus(status: VERIFIED)
+  ): ApplyForRecruitmentPayload!
 }
 
 type ApplyForRecruitmentPayload {
@@ -1290,10 +1290,10 @@ type Recruitment implements Node {
 
 enum Type {
   OPPONENT
-  INDIVIDUAL
+  PERSONAL
   MEMBER
-  JOINING
-  OTHERS
+  JOIN
+  OTHER
 }
 
 enum Status {
@@ -1303,12 +1303,14 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: recruitmentInput!): Recruitment!
-  updateRecruitment(id: String!, input: recruitmentInput!): Recruitment!
+  createRecruitment(input: RecruitmentInput!): RecruitmentEdge!
+    @emailVerified(status: VERIFIED)
+    @hasLoggedIn
+  updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
   deleteRecruitment(id: String!): Recruitment!
 }
 
-input recruitmentInput {
+input RecruitmentInput {
   title: String!
   competitionId: String!
   type: Type!
@@ -1329,6 +1331,9 @@ directive @goField(
   forceResolver: Boolean
   name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+directive @emailVerified(status: EmailVerificationStatus!) on FIELD_DEFINITION
+directive @hasLoggedIn on FIELD_DEFINITION | OBJECT
 
 interface Connection {
   pageInfo: PageInfo!
@@ -1446,12 +1451,6 @@ enum Role {
   GENERAL
 }
 
-directive @auth on FIELD_DEFINITION
-
-directive @hasEmailVerificationStatus(
-  status: EmailVerificationStatus!
-) on FIELD_DEFINITION
-
 enum EmailVerificationStatus {
   PENDING
   VERIFIED
@@ -1532,7 +1531,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) dir_hasEmailVerificationStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) dir_emailVerified_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.EmailVerificationStatus
@@ -1625,7 +1624,7 @@ func (ec *executionContext) field_Mutation_createRecruitment_args(ctx context.Co
 	var arg0 model.RecruitmentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
+		arg0, err = ec.unmarshalNRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1739,7 +1738,7 @@ func (ec *executionContext) field_Mutation_updateRecruitment_args(ctx context.Co
 	var arg1 model.RecruitmentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
+		arg1, err = ec.unmarshalNRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3433,32 +3432,8 @@ func (ec *executionContext) _Mutation_applyForRecruitment(ctx context.Context, f
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().ApplyForRecruitment(rctx, fc.Args["recruitmentId"].(string), fc.Args["input"].(*model.ApplicantInput))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			status, err := ec.unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, "VERIFIED")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.HasEmailVerificationStatus == nil {
-				return nil, errors.New("directive hasEmailVerificationStatus is not implemented")
-			}
-			return ec.directives.HasEmailVerificationStatus(ctx, nil, directive0, status)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.ApplyForRecruitmentPayload); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.ApplyForRecruitmentPayload`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ApplyForRecruitment(rctx, fc.Args["recruitmentId"].(string), fc.Args["input"].(*model.ApplicantInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3518,8 +3493,38 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateRecruitment(rctx, fc.Args["input"].(model.RecruitmentInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateRecruitment(rctx, fc.Args["input"].(model.RecruitmentInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			status, err := ec.unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, "VERIFIED")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.EmailVerified == nil {
+				return nil, errors.New("directive emailVerified is not implemented")
+			}
+			return ec.directives.EmailVerified(ctx, nil, directive0, status)
+		}
+		directive2 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.HasLoggedIn == nil {
+				return nil, errors.New("directive hasLoggedIn is not implemented")
+			}
+			return ec.directives.HasLoggedIn(ctx, nil, directive1)
+		}
+
+		tmp, err := directive2(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.RecruitmentEdge); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.RecruitmentEdge`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3531,9 +3536,9 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Recruitment)
+	res := resTmp.(*model.RecruitmentEdge)
 	fc.Result = res
-	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3544,44 +3549,12 @@ func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Recruitment_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Recruitment_databaseId(ctx, field)
-			case "title":
-				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "detail":
-				return ec.fieldContext_Recruitment_detail(ctx, field)
-			case "type":
-				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "place":
-				return ec.fieldContext_Recruitment_place(ctx, field)
-			case "startAt":
-				return ec.fieldContext_Recruitment_startAt(ctx, field)
-			case "locationLat":
-				return ec.fieldContext_Recruitment_locationLat(ctx, field)
-			case "locationLng":
-				return ec.fieldContext_Recruitment_locationLng(ctx, field)
-			case "status":
-				return ec.fieldContext_Recruitment_status(ctx, field)
-			case "closingAt":
-				return ec.fieldContext_Recruitment_closingAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Recruitment_createdAt(ctx, field)
-			case "publishedAt":
-				return ec.fieldContext_Recruitment_publishedAt(ctx, field)
-			case "competition":
-				return ec.fieldContext_Recruitment_competition(ctx, field)
-			case "prefecture":
-				return ec.fieldContext_Recruitment_prefecture(ctx, field)
-			case "user":
-				return ec.fieldContext_Recruitment_user(ctx, field)
-			case "tags":
-				return ec.fieldContext_Recruitment_tags(ctx, field)
-			case "applicant":
-				return ec.fieldContext_Recruitment_applicant(ctx, field)
+			case "cursor":
+				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
 		},
 	}
 	defer func() {
@@ -9154,107 +9127,7 @@ func (ec *executionContext) unmarshalInputLoginUserInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRegisterUserInput(ctx context.Context, obj interface{}) (model.RegisterUserInput, error) {
-	var it model.RegisterUserInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "email", "password"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "email":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "password":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
-			it.Password, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, obj interface{}) (model.ApplicantInput, error) {
-	var it model.ApplicantInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"message"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "message":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
-			it.Message, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputcreateMessageInput(ctx context.Context, obj interface{}) (model.CreateMessageInput, error) {
-	var it model.CreateMessageInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"content"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "content":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			it.Content, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, obj interface{}) (model.RecruitmentInput, error) {
+func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, obj interface{}) (model.RecruitmentInput, error) {
 	var it model.RecruitmentInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
@@ -9361,6 +9234,106 @@ func (ec *executionContext) unmarshalInputrecruitmentInput(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tags"))
 			it.Tags, err = ec.unmarshalNrecruitmentTagInput2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRegisterUserInput(ctx context.Context, obj interface{}) (model.RegisterUserInput, error) {
+	var it model.RegisterUserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "email", "password"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, obj interface{}) (model.ApplicantInput, error) {
+	var it model.ApplicantInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"message"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "message":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			it.Message, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputcreateMessageInput(ctx context.Context, obj interface{}) (model.CreateMessageInput, error) {
+	var it model.CreateMessageInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"content"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "content":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
+			it.Content, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12046,6 +12019,10 @@ func (ec *executionContext) marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnago
 	return ec._RecruitmentConnection(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNRecruitmentEdge2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx context.Context, sel ast.SelectionSet, v model.RecruitmentEdge) graphql.Marshaler {
+	return ec._RecruitmentEdge(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNRecruitmentEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RecruitmentEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -12098,6 +12075,11 @@ func (ec *executionContext) marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋ
 		return graphql.Null
 	}
 	return ec._RecruitmentEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx context.Context, v interface{}) (model.RecruitmentInput, error) {
+	res, err := ec.unmarshalInputRecruitmentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNRegisterUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRegisterUserInput(ctx context.Context, v interface{}) (model.RegisterUserInput, error) {
@@ -12647,11 +12629,6 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 
 func (ec *executionContext) unmarshalNcreateMessageInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateMessageInput(ctx context.Context, v interface{}) (model.CreateMessageInput, error) {
 	res, err := ec.unmarshalInputcreateMessageInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNrecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx context.Context, v interface{}) (model.RecruitmentInput, error) {
-	res, err := ec.unmarshalInputrecruitmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
