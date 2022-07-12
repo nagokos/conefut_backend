@@ -149,7 +149,7 @@ type ComplexityRoot struct {
 		CheckStocked               func(childComplexity int, recruitmentID string) int
 		Competitions               func(childComplexity int) int
 		CurrentUser                func(childComplexity int) int
-		CurrentUserRecruitments    func(childComplexity int) int
+		CurrentUserRecruitments    func(childComplexity int, first *int, after *string) int
 		GetCurrentUserRooms        func(childComplexity int) int
 		GetEntrieUser              func(childComplexity int, roomID string) int
 		GetRoomMessages            func(childComplexity int, roomID string) int
@@ -157,7 +157,7 @@ type ComplexityRoot struct {
 		Node                       func(childComplexity int, id string) int
 		Prefectures                func(childComplexity int) int
 		Recruitment                func(childComplexity int, id string) int
-		Recruitments               func(childComplexity int, first *int, after *string, last *int, before *string) int
+		Recruitments               func(childComplexity int, first *int, after *string) int
 		StockedRecruitments        func(childComplexity int) int
 		Tags                       func(childComplexity int) int
 	}
@@ -259,8 +259,8 @@ type QueryResolver interface {
 	CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (*model.FeedbackApplicant, error)
 	Competitions(ctx context.Context) ([]*model.Competition, error)
 	Prefectures(ctx context.Context) ([]*model.Prefecture, error)
-	Recruitments(ctx context.Context, first *int, after *string, last *int, before *string) (*model.RecruitmentConnection, error)
-	CurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	Recruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
+	CurrentUserRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	Recruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
@@ -718,7 +718,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.CurrentUserRecruitments(childComplexity), true
+		args, err := ec.field_Query_currentUserRecruitments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CurrentUserRecruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.getCurrentUserRooms":
 		if e.complexity.Query.GetCurrentUserRooms == nil {
@@ -804,7 +809,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Recruitments(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+		return e.complexity.Query.Recruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.stockedRecruitments":
 		if e.complexity.Query.StockedRecruitments == nil {
@@ -1245,13 +1250,8 @@ type Prefecture implements Node {
 }
 `, BuiltIn: false},
 	{Name: "../schema/recruitment.graphqls", Input: `extend type Query {
-  recruitments(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): RecruitmentConnection!
-  currentUserRecruitments: [Recruitment!]!
+  recruitments(first: Int, after: String): RecruitmentConnection!
+  currentUserRecruitments(first: Int, after: String): RecruitmentConnection!
   recruitment(id: String!): Recruitment!
   stockedRecruitments: [Recruitment!]!
   appliedRecruitments: [Recruitment!]!
@@ -1792,6 +1792,30 @@ func (ec *executionContext) field_Query_checkStocked_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_currentUserRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getEntrieUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1888,24 +1912,6 @@ func (ec *executionContext) field_Query_recruitments_args(ctx context.Context, r
 		}
 	}
 	args["after"] = arg1
-	var arg2 *int
-	if tmp, ok := rawArgs["last"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
-		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["last"] = arg2
-	var arg3 *string
-	if tmp, ok := rawArgs["before"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
-		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["before"] = arg3
 	return args, nil
 }
 
@@ -4817,7 +4823,7 @@ func (ec *executionContext) _Query_recruitments(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Recruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["last"].(*int), fc.Args["before"].(*string))
+		return ec.resolvers.Query().Recruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4878,7 +4884,7 @@ func (ec *executionContext) _Query_currentUserRecruitments(ctx context.Context, 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CurrentUserRecruitments(rctx)
+		return ec.resolvers.Query().CurrentUserRecruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4890,9 +4896,9 @@ func (ec *executionContext) _Query_currentUserRecruitments(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Recruitment)
+	res := resTmp.(*model.RecruitmentConnection)
 	fc.Result = res
-	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
+	return ec.marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_currentUserRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4903,45 +4909,24 @@ func (ec *executionContext) fieldContext_Query_currentUserRecruitments(ctx conte
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Recruitment_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Recruitment_databaseId(ctx, field)
-			case "title":
-				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "detail":
-				return ec.fieldContext_Recruitment_detail(ctx, field)
-			case "type":
-				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "venue":
-				return ec.fieldContext_Recruitment_venue(ctx, field)
-			case "startAt":
-				return ec.fieldContext_Recruitment_startAt(ctx, field)
-			case "locationLat":
-				return ec.fieldContext_Recruitment_locationLat(ctx, field)
-			case "locationLng":
-				return ec.fieldContext_Recruitment_locationLng(ctx, field)
-			case "status":
-				return ec.fieldContext_Recruitment_status(ctx, field)
-			case "closingAt":
-				return ec.fieldContext_Recruitment_closingAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Recruitment_createdAt(ctx, field)
-			case "publishedAt":
-				return ec.fieldContext_Recruitment_publishedAt(ctx, field)
-			case "competition":
-				return ec.fieldContext_Recruitment_competition(ctx, field)
-			case "prefecture":
-				return ec.fieldContext_Recruitment_prefecture(ctx, field)
-			case "user":
-				return ec.fieldContext_Recruitment_user(ctx, field)
-			case "tags":
-				return ec.fieldContext_Recruitment_tags(ctx, field)
-			case "applicant":
-				return ec.fieldContext_Recruitment_applicant(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_RecruitmentConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_RecruitmentConnection_edges(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_currentUserRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
