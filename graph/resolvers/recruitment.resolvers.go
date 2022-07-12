@@ -109,8 +109,8 @@ func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*m
 }
 
 // Recruitments is the resolver for the recruitments field.
-func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *string, last *int, before *string) (*model.RecruitmentConnection, error) {
-	sp, err := search.NewSearchParams(first, after, last, before)
+func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error) {
+	sp, err := search.NewSearchParams(first, after, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,14 @@ func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *str
 }
 
 // CurrentUserRecruitments is the resolver for the currentUserRecruitments field.
-func (r *queryResolver) CurrentUserRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool)
+func (r *queryResolver) CurrentUserRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error) {
+	params, err := search.NewSearchParams(first, after, nil, nil)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool, params)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +184,10 @@ func (r *recruitmentResolver) Competition(ctx context.Context, obj *model.Recrui
 
 // Prefecture is the resolver for the prefecture field.
 func (r *recruitmentResolver) Prefecture(ctx context.Context, obj *model.Recruitment) (*model.Prefecture, error) {
-	prefecture, err := loader.GetPrefecture(ctx, obj.PrefectureID)
+	if obj.PrefectureID == nil {
+		return &model.Prefecture{}, nil
+	}
+	prefecture, err := loader.GetPrefecture(ctx, *obj.PrefectureID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
