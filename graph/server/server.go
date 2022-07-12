@@ -34,7 +34,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(
 		cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+			AllowedOrigins:   []string{"http://localhost:3000"},
 			AllowCredentials: true,
 		}),
 	)
