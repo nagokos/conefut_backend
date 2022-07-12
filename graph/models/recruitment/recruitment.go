@@ -161,7 +161,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	currentUser := auth.ForContext(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Venue, r.StartAt,
+		r.Title, r.CompetitionID, strings.ToLower(string(r.Type)), r.Detail, r.PrefectureID, r.Venue, r.StartAt,
 		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
@@ -183,18 +183,13 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	}
 
 	cmd = "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
-	tx, err := dbPool.Begin(ctx)
 
-	if len(r.Tags) != 0 {
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		defer tx.Rollback(ctx)
+	if len(r.Tags) > 0 {
 
 		var newTags []*model.Tag
 		for _, tag := range r.Tags {
 			if tag.IsNew {
-				row := tx.QueryRow(ctx, cmd, xid.New().String(), tag.Name, timeNow, timeNow)
+				row := dbPool.QueryRow(ctx, cmd, xid.New().String(), tag.Name, timeNow, timeNow)
 
 				var tag model.Tag
 				err := row.Scan(&tag.ID, &tag.Name)
@@ -210,48 +205,59 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		cmd = "INSERT INTO recruitment_tags (id, recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
 
 		for _, tag := range newTags {
-			if _, err := tx.Exec(ctx, cmd, xid.New().String(), recruitment.ID, tag.ID, timeNow, timeNow); err != nil {
+			if _, err := dbPool.Exec(ctx, cmd, xid.New().String(), recruitment.ID, tag.ID, timeNow, timeNow); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
-		}
-
-		if err := tx.Commit(ctx); err != nil {
-			logger.NewLogger().Error(err.Error())
-			return nil, err
 		}
 	}
 
 	return &recruitmentEdge, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
+func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	currentUser := auth.ForContext(ctx)
 
 	cmd := `
-	  SELECT r.id, r.title, r.type, r.status, r.closing_at, r.created_at, r.published_at
-		FROM recruitments AS r
-		WHERE r.user_id = $1
-		ORDER BY r.status DESC, r.updated_at DESC
-		`
+		SELECT r.id, r.title, r.type, r.status, r.closing_at, r.created_at, 
+		       r.published_at, r.prefecture_id, r.user_id, r.competition_id
+		FROM 
+			(
+				SELECT *
+				FROM recruitments 
+				WHERE ($1 OR id < $2)
+				ORDER BY id DESC
+				LIMIT $3
+			) AS r
+		WHERE r.user_id = $4
+		ORDER BY r.id DESC
+	`
 
-	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
+	rows, err := dbPool.Query(
+		ctx, cmd,
+		!params.UseAfter, params.After, params.NumRows, currentUser.DatabaseID,
+	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 	defer rows.Close()
 
-	var recruitments []*model.Recruitment
+	var connection model.RecruitmentConnection
 	for rows.Next() {
 		var recruitment model.Recruitment
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.ClosingAt,
-			&recruitment.CreatedAt, &recruitment.PublishedAt,
+		err := rows.Scan(
+			&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.ClosingAt, &recruitment.CreatedAt,
+			&recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-
-		recruitments = append(recruitments, &recruitment)
+		recruitment.Type = model.Type(strings.ToUpper(recruitment.Type.String()))
+		recruitment.Status = model.Status(strings.ToUpper(recruitment.Status.String()))
+		connection.Edges = append(connection.Edges, &model.RecruitmentEdge{
+			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
+			Node:   &recruitment,
+		})
 	}
 
 	err = rows.Err()
@@ -260,7 +266,35 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*m
 		return nil, err
 	}
 
-	return recruitments, nil
+	if len(connection.Edges) > 0 {
+		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
+
+		cmd = `
+		  SELECT COUNT(DISTINCT r.id)
+			FROM (
+				SELECT id
+				FROM recruitments
+				WHERE id < $1
+				ORDER BY id DESC
+			) as r
+			LIMIT 1
+		`
+		isNextPage, err := search.NextPageExists(ctx, dbPool, endCursor, cmd)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+
+		var pageInfo model.PageInfo
+		pageInfo.EndCursor = &endCursor
+		pageInfo.HasNextPage = isNextPage
+
+		connection.PageInfo = &pageInfo
+	} else {
+		connection.PageInfo = &model.PageInfo{}
+	}
+
+	return &connection, nil
 }
 
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
@@ -297,6 +331,7 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 		FROM recruitments AS r
 		INNER JOIN applicants AS a
 		ON r.id = a.recruitment_id
+		WHERE a.user_id = $1
 		ORDER BY a.created_at DESC
 	`
 
@@ -342,18 +377,17 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 			(
 				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
 				FROM recruitments 
-				WHERE status = $1
-				AND ($2 OR id < $3)
-				AND ($4 OR id > $5)
+				WHERE status = 'published'
+				AND ($1 OR id < $2)
 				ORDER BY id %s
-				LIMIT $6
+				LIMIT $3
 			) AS r
 		ORDER BY r.id DESC
 	`, sort)
 
 	rows, err := dbPool.Query(
 		ctx, cmd,
-		"published", !params.UseAfter, params.After, !params.UseBefore, params.Before, params.NumRows,
+		!params.UseAfter, params.After, params.NumRows,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -387,15 +421,21 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 
 	if len(recConnection.Edges) > 0 {
-		startCursor := recConnection.Edges[0].Cursor
 		endCursor := recConnection.Edges[len(recConnection.Edges)-1].Cursor
 
-		isNext, err := search.NextPageExists(ctx, dbPool, endCursor, params, sort)
-		if err != nil {
-			return &model.RecruitmentConnection{}, err
-		}
+		cmd = `
+			SELECT COUNT(DISTINCT r.id)
+			FROM 
+				(
+					SELECT id FROM recruitments
+					WHERE status = 'published'
+					AND id < $1
+					ORDER BY id DESC
+				) AS r
+			LIMIT 1
+		`
 
-		isPrevious, err := search.PreviousPageExists(ctx, dbPool, startCursor, params, sort)
+		isNext, err := search.NextPageExists(ctx, dbPool, endCursor, cmd)
 		if err != nil {
 			return &model.RecruitmentConnection{}, err
 		}
@@ -403,8 +443,6 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 		var pageInfo model.PageInfo
 
 		pageInfo.HasNextPage = isNext
-		pageInfo.HasPreviousPage = isPrevious
-		pageInfo.StartCursor = &startCursor
 		pageInfo.EndCursor = &endCursor
 
 		recConnection.PageInfo = &pageInfo
@@ -625,17 +663,17 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	return &recruitment, nil
 }
 
-func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
+func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.Recruitment, error) {
 	currentUser := auth.ForContext(ctx)
 	if currentUser == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
 	}
 
-	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id, title"
-	row := dbPool.QueryRow(ctx, cmd, recID, currentUser.ID)
+	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
+	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), currentUser.DatabaseID)
 
 	var recruitment model.Recruitment
-	err := row.Scan(&recruitment.ID, &recruitment.Title)
+	err := row.Scan(&recruitment.DatabaseID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return &recruitment, err
