@@ -43,22 +43,11 @@ func NewSearchParams(first *int, after *string, last *int, before *string) (Sear
 	return sp, nil
 }
 
-func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID string, params SearchParams, sort string) (bool, error) {
-	cmd := fmt.Sprintf(`
-		SELECT COUNT(DISTINCT r.id)
-		FROM 
-			(
-				SELECT id FROM recruitments
-				WHERE status = $1
-				AND id < $2
-				ORDER BY id %s
-			) AS r
-		LIMIT 1
-	`, sort)
+func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID, cmd string) (bool, error) {
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		"published", utils.DecodeUniqueID(nextID),
+		utils.DecodeUniqueID(nextID),
 	)
 
 	var count int

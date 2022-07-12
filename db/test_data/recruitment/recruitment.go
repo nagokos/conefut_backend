@@ -17,7 +17,7 @@ type recruitment struct {
 	recType       string
 	title         string
 	detail        string
-	place         string
+	venue         string
 	startAt       time.Time
 	closingAt     time.Time
 	competitionID int
@@ -102,7 +102,7 @@ func main() {
 		recruitment := &recruitment{
 			recType:       "opponent",
 			title:         fmt.Sprintf("対戦相手募集 朝霞中央公園陸上競技場(人工芝) %v", i+1),
-			place:         "朝霞中央公園陸上競技場",
+			venue:         "朝霞中央公園陸上競技場",
 			startAt:       time.Now().Add(time.Hour * 240).Local(),
 			closingAt:     time.Now().Add(time.Hour * 230).Local(),
 			competitionID: competitionID,
@@ -133,7 +133,7 @@ func main() {
 	for _, recruitment := range recruitments {
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.title, recruitment.recType, recruitment.place, recruitment.startAt, recruitment.detail,
+			recruitment.title, recruitment.recType, recruitment.venue, recruitment.startAt, recruitment.detail,
 			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
 		); err != nil {
 			logger.NewLogger().Fatal(err.Error())

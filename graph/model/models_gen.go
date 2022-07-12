@@ -164,7 +164,7 @@ type RecruitmentInput struct {
 	Type          Type                   `json:"type"`
 	Detail        *string                `json:"detail"`
 	PrefectureID  *string                `json:"prefectureId"`
-	Place         *string                `json:"place"`
+	Venue         *string                `json:"venue"`
 	StartAt       *time.Time             `json:"startAt"`
 	ClosingAt     *time.Time             `json:"closingAt"`
 	LocationLat   *float64               `json:"locationLat"`
