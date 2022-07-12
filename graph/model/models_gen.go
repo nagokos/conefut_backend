@@ -118,7 +118,7 @@ func (LoginUserInvalidInputError) IsLoginUserError() {}
 func (LoginUserInvalidInputError) IsError()          {}
 
 type LoginUserPayload struct {
-	User       *User            `json:"user"`
+	Viewer     *Viewer          `json:"viewer"`
 	UserErrors []LoginUserError `json:"userErrors"`
 }
 
@@ -187,7 +187,7 @@ type RegisterUserInvalidInputError struct {
 func (RegisterUserInvalidInputError) IsError() {}
 
 type RegisterUserPayload struct {
-	User       *User                            `json:"user"`
+	Viewer     *Viewer                          `json:"viewer"`
 	UserErrors []*RegisterUserInvalidInputError `json:"userErrors"`
 }
 
@@ -209,13 +209,25 @@ type User struct {
 	DatabaseID              int                     `json:"databaseId"`
 	Name                    string                  `json:"name"`
 	Email                   string                  `json:"email"`
-	Role                    Role                    `json:"role"`
 	Avatar                  string                  `json:"avatar"`
 	Introduction            *string                 `json:"introduction"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
 
 func (User) IsNode() {}
+
+type Viewer struct {
+	ID                      string                  `json:"id"`
+	DatabaseID              int                     `json:"databaseId"`
+	Name                    string                  `json:"name"`
+	Email                   string                  `json:"email"`
+	Avatar                  string                  `json:"avatar"`
+	Introduction            *string                 `json:"introduction"`
+	Role                    Role                    `json:"role"`
+	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
+}
+
+func (Viewer) IsNode() {}
 
 type ApplicantInput struct {
 	Message string `json:"message"`

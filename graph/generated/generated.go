@@ -45,6 +45,7 @@ type ResolverRoot interface {
 	Recruitment() RecruitmentResolver
 	Tag() TagResolver
 	User() UserResolver
+	Viewer() ViewerResolver
 }
 
 type DirectiveRoot struct {
@@ -104,8 +105,8 @@ type ComplexityRoot struct {
 	}
 
 	LoginUserPayload struct {
-		User       func(childComplexity int) int
 		UserErrors func(childComplexity int) int
+		Viewer     func(childComplexity int) int
 	}
 
 	Message struct {
@@ -148,18 +149,18 @@ type ComplexityRoot struct {
 		CheckAppliedForRecruitment func(childComplexity int, recruitmentID string) int
 		CheckStocked               func(childComplexity int, recruitmentID string) int
 		Competitions               func(childComplexity int) int
-		CurrentUser                func(childComplexity int) int
-		CurrentUserRecruitments    func(childComplexity int, first *int, after *string) int
-		GetCurrentUserRooms        func(childComplexity int) int
 		GetEntrieUser              func(childComplexity int, roomID string) int
 		GetRoomMessages            func(childComplexity int, roomID string) int
 		GetStockedCount            func(childComplexity int, recruitmentID string) int
+		GetViewerRooms             func(childComplexity int) int
 		Node                       func(childComplexity int, id string) int
 		Prefectures                func(childComplexity int) int
 		Recruitment                func(childComplexity int, id string) int
 		Recruitments               func(childComplexity int, first *int, after *string) int
 		StockedRecruitments        func(childComplexity int) int
 		Tags                       func(childComplexity int) int
+		Viewer                     func(childComplexity int) int
+		ViewerRecruitments         func(childComplexity int, first *int, after *string) int
 	}
 
 	Recruitment struct {
@@ -199,8 +200,8 @@ type ComplexityRoot struct {
 	}
 
 	RegisterUserPayload struct {
-		User       func(childComplexity int) int
 		UserErrors func(childComplexity int) int
+		Viewer     func(childComplexity int) int
 	}
 
 	Room struct {
@@ -215,6 +216,16 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		Avatar                  func(childComplexity int) int
+		DatabaseID              func(childComplexity int) int
+		Email                   func(childComplexity int) int
+		EmailVerificationStatus func(childComplexity int) int
+		ID                      func(childComplexity int) int
+		Introduction            func(childComplexity int) int
+		Name                    func(childComplexity int) int
+	}
+
+	Viewer struct {
 		Avatar                  func(childComplexity int) int
 		DatabaseID              func(childComplexity int) int
 		Email                   func(childComplexity int) int
@@ -253,19 +264,19 @@ type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
-	GetCurrentUserRooms(ctx context.Context) ([]*model.Room, error)
+	GetViewerRooms(ctx context.Context) ([]*model.Room, error)
 	GetEntrieUser(ctx context.Context, roomID string) (*model.User, error)
 	GetRoomMessages(ctx context.Context, roomID string) ([]*model.Message, error)
 	CheckAppliedForRecruitment(ctx context.Context, recruitmentID string) (*model.FeedbackApplicant, error)
 	Competitions(ctx context.Context) ([]*model.Competition, error)
 	Prefectures(ctx context.Context) ([]*model.Prefecture, error)
 	Recruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
-	CurrentUserRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
+	ViewerRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	Recruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	Tags(ctx context.Context) ([]*model.Tag, error)
-	CurrentUser(ctx context.Context) (*model.User, error)
+	Viewer(ctx context.Context) (*model.Viewer, error)
 }
 type RecruitmentResolver interface {
 	ID(ctx context.Context, obj *model.Recruitment) (string, error)
@@ -281,6 +292,9 @@ type TagResolver interface {
 }
 type UserResolver interface {
 	ID(ctx context.Context, obj *model.User) (string, error)
+}
+type ViewerResolver interface {
+	ID(ctx context.Context, obj *model.Viewer) (string, error)
 }
 
 type executableSchema struct {
@@ -438,19 +452,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.LoginUserInvalidInputError.Message(childComplexity), true
 
-	case "LoginUserPayload.user":
-		if e.complexity.LoginUserPayload.User == nil {
-			break
-		}
-
-		return e.complexity.LoginUserPayload.User(childComplexity), true
-
 	case "LoginUserPayload.userErrors":
 		if e.complexity.LoginUserPayload.UserErrors == nil {
 			break
 		}
 
 		return e.complexity.LoginUserPayload.UserErrors(childComplexity), true
+
+	case "LoginUserPayload.viewer":
+		if e.complexity.LoginUserPayload.Viewer == nil {
+			break
+		}
+
+		return e.complexity.LoginUserPayload.Viewer(childComplexity), true
 
 	case "Message.applicant":
 		if e.complexity.Message.Applicant == nil {
@@ -706,32 +720,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Competitions(childComplexity), true
 
-	case "Query.currentUser":
-		if e.complexity.Query.CurrentUser == nil {
-			break
-		}
-
-		return e.complexity.Query.CurrentUser(childComplexity), true
-
-	case "Query.currentUserRecruitments":
-		if e.complexity.Query.CurrentUserRecruitments == nil {
-			break
-		}
-
-		args, err := ec.field_Query_currentUserRecruitments_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.CurrentUserRecruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
-
-	case "Query.getCurrentUserRooms":
-		if e.complexity.Query.GetCurrentUserRooms == nil {
-			break
-		}
-
-		return e.complexity.Query.GetCurrentUserRooms(childComplexity), true
-
 	case "Query.getEntrieUser":
 		if e.complexity.Query.GetEntrieUser == nil {
 			break
@@ -767,6 +755,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetStockedCount(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Query.getViewerRooms":
+		if e.complexity.Query.GetViewerRooms == nil {
+			break
+		}
+
+		return e.complexity.Query.GetViewerRooms(childComplexity), true
 
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
@@ -824,6 +819,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Tags(childComplexity), true
+
+	case "Query.viewer":
+		if e.complexity.Query.Viewer == nil {
+			break
+		}
+
+		return e.complexity.Query.Viewer(childComplexity), true
+
+	case "Query.viewerRecruitments":
+		if e.complexity.Query.ViewerRecruitments == nil {
+			break
+		}
+
+		args, err := ec.field_Query_viewerRecruitments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ViewerRecruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Recruitment.applicant":
 		if e.complexity.Recruitment.Applicant == nil {
@@ -993,19 +1007,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.RegisterUserInvalidInputError.Message(childComplexity), true
 
-	case "RegisterUserPayload.user":
-		if e.complexity.RegisterUserPayload.User == nil {
-			break
-		}
-
-		return e.complexity.RegisterUserPayload.User(childComplexity), true
-
 	case "RegisterUserPayload.userErrors":
 		if e.complexity.RegisterUserPayload.UserErrors == nil {
 			break
 		}
 
 		return e.complexity.RegisterUserPayload.UserErrors(childComplexity), true
+
+	case "RegisterUserPayload.viewer":
+		if e.complexity.RegisterUserPayload.Viewer == nil {
+			break
+		}
+
+		return e.complexity.RegisterUserPayload.Viewer(childComplexity), true
 
 	case "Room.entrie":
 		if e.complexity.Room.Entrie == nil {
@@ -1091,12 +1105,61 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
-	case "User.role":
-		if e.complexity.User.Role == nil {
+	case "Viewer.avatar":
+		if e.complexity.Viewer.Avatar == nil {
 			break
 		}
 
-		return e.complexity.User.Role(childComplexity), true
+		return e.complexity.Viewer.Avatar(childComplexity), true
+
+	case "Viewer.databaseId":
+		if e.complexity.Viewer.DatabaseID == nil {
+			break
+		}
+
+		return e.complexity.Viewer.DatabaseID(childComplexity), true
+
+	case "Viewer.email":
+		if e.complexity.Viewer.Email == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Email(childComplexity), true
+
+	case "Viewer.emailVerificationStatus":
+		if e.complexity.Viewer.EmailVerificationStatus == nil {
+			break
+		}
+
+		return e.complexity.Viewer.EmailVerificationStatus(childComplexity), true
+
+	case "Viewer.id":
+		if e.complexity.Viewer.ID == nil {
+			break
+		}
+
+		return e.complexity.Viewer.ID(childComplexity), true
+
+	case "Viewer.introduction":
+		if e.complexity.Viewer.Introduction == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Introduction(childComplexity), true
+
+	case "Viewer.name":
+		if e.complexity.Viewer.Name == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Name(childComplexity), true
+
+	case "Viewer.role":
+		if e.complexity.Viewer.Role == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Role(childComplexity), true
 
 	}
 	return 0, false
@@ -1251,7 +1314,7 @@ type Prefecture implements Node {
 `, BuiltIn: false},
 	{Name: "../schema/recruitment.graphqls", Input: `extend type Query {
   recruitments(first: Int, after: String): RecruitmentConnection!
-  currentUserRecruitments(first: Int, after: String): RecruitmentConnection!
+  viewerRecruitments(first: Int, after: String): RecruitmentConnection!
   recruitment(id: String!): Recruitment!
   stockedRecruitments: [Recruitment!]!
   appliedRecruitments: [Recruitment!]!
@@ -1385,7 +1448,7 @@ type Query {
   getStockedCount(recruitmentId: String!): Int!
 
   # room
-  getCurrentUserRooms: [Room!]!
+  getViewerRooms: [Room!]!
 
   # entrie
   getEntrieUser(roomId: String!): User!
@@ -1443,7 +1506,7 @@ input CreateTagInput {
 }
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `extend type Query {
-  currentUser: User
+  viewer: Viewer
 }
 
 enum Role {
@@ -1456,12 +1519,22 @@ enum EmailVerificationStatus {
   VERIFIED
 }
 
+type Viewer implements Node {
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
+  name: String!
+  email: String!
+  avatar: String!
+  introduction: String
+  role: Role!
+  emailVerificationStatus: EmailVerificationStatus!
+}
+
 type User implements Node {
   id: ID! @goField(forceResolver: true)
   databaseId: Int!
   name: String!
   email: String!
-  role: Role!
   avatar: String!
   introduction: String
   emailVerificationStatus: EmailVerificationStatus!
@@ -1476,7 +1549,7 @@ extend type Mutation {
 
 # Register
 type RegisterUserPayload {
-  user: User
+  viewer: Viewer
   userErrors: [RegisterUserInvalidInputError!]!
 }
 
@@ -1499,7 +1572,7 @@ input RegisterUserInput {
 
 # Login
 type LoginUserPayload {
-  user: User
+  viewer: Viewer
   userErrors: [LoginUserError!]!
 }
 
@@ -1792,30 +1865,6 @@ func (ec *executionContext) field_Query_checkStocked_args(ctx context.Context, r
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_currentUserRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_getEntrieUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1892,6 +1941,30 @@ func (ec *executionContext) field_Query_recruitment_args(ctx context.Context, ra
 }
 
 func (ec *executionContext) field_Query_recruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_viewerRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -2657,8 +2730,6 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -2892,8 +2963,8 @@ func (ec *executionContext) fieldContext_LoginUserInvalidInputError_field(ctx co
 	return fc, nil
 }
 
-func (ec *executionContext) _LoginUserPayload_user(ctx context.Context, field graphql.CollectedField, obj *model.LoginUserPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_LoginUserPayload_user(ctx, field)
+func (ec *executionContext) _LoginUserPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.LoginUserPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LoginUserPayload_viewer(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2906,7 +2977,7 @@ func (ec *executionContext) _LoginUserPayload_user(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return obj.Viewer, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2915,12 +2986,12 @@ func (ec *executionContext) _LoginUserPayload_user(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.Viewer)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_LoginUserPayload_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LoginUserPayload",
 		Field:      field,
@@ -2929,23 +3000,23 @@ func (ec *executionContext) fieldContext_LoginUserPayload_user(ctx context.Conte
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_User_id(ctx, field)
+				return ec.fieldContext_Viewer_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_User_databaseId(ctx, field)
+				return ec.fieldContext_Viewer_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+				return ec.fieldContext_Viewer_name(ctx, field)
 			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
+				return ec.fieldContext_Viewer_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_User_avatar(ctx, field)
+				return ec.fieldContext_Viewer_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_User_introduction(ctx, field)
+				return ec.fieldContext_Viewer_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_Viewer_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
 		},
 	}
 	return fc, nil
@@ -3136,8 +3207,6 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -3865,8 +3934,8 @@ func (ec *executionContext) fieldContext_Mutation_registerUser(ctx context.Conte
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "user":
-				return ec.fieldContext_RegisterUserPayload_user(ctx, field)
+			case "viewer":
+				return ec.fieldContext_RegisterUserPayload_viewer(ctx, field)
 			case "userErrors":
 				return ec.fieldContext_RegisterUserPayload_userErrors(ctx, field)
 			}
@@ -3926,8 +3995,8 @@ func (ec *executionContext) fieldContext_Mutation_loginUser(ctx context.Context,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "user":
-				return ec.fieldContext_LoginUserPayload_user(ctx, field)
+			case "viewer":
+				return ec.fieldContext_LoginUserPayload_viewer(ctx, field)
 			case "userErrors":
 				return ec.fieldContext_LoginUserPayload_userErrors(ctx, field)
 			}
@@ -4456,8 +4525,8 @@ func (ec *executionContext) fieldContext_Query_getStockedCount(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_getCurrentUserRooms(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_getCurrentUserRooms(ctx, field)
+func (ec *executionContext) _Query_getViewerRooms(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getViewerRooms(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -4470,7 +4539,7 @@ func (ec *executionContext) _Query_getCurrentUserRooms(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetCurrentUserRooms(rctx)
+		return ec.resolvers.Query().GetViewerRooms(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4487,7 +4556,7 @@ func (ec *executionContext) _Query_getCurrentUserRooms(ctx context.Context, fiel
 	return ec.marshalNRoom2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRoomᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getCurrentUserRooms(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getViewerRooms(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4553,8 +4622,6 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -4870,8 +4937,8 @@ func (ec *executionContext) fieldContext_Query_recruitments(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_currentUserRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_currentUserRecruitments(ctx, field)
+func (ec *executionContext) _Query_viewerRecruitments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_viewerRecruitments(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -4884,7 +4951,7 @@ func (ec *executionContext) _Query_currentUserRecruitments(ctx context.Context, 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CurrentUserRecruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.Query().ViewerRecruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4901,7 +4968,7 @@ func (ec *executionContext) _Query_currentUserRecruitments(ctx context.Context, 
 	return ec.marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_currentUserRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_viewerRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4924,7 +4991,7 @@ func (ec *executionContext) fieldContext_Query_currentUserRecruitments(ctx conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_currentUserRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_viewerRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -5240,8 +5307,8 @@ func (ec *executionContext) fieldContext_Query_tags(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_currentUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_currentUser(ctx, field)
+func (ec *executionContext) _Query_viewer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_viewer(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -5254,7 +5321,7 @@ func (ec *executionContext) _Query_currentUser(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CurrentUser(rctx)
+		return ec.resolvers.Query().Viewer(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5263,12 +5330,12 @@ func (ec *executionContext) _Query_currentUser(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.Viewer)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_currentUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -5277,23 +5344,23 @@ func (ec *executionContext) fieldContext_Query_currentUser(ctx context.Context, 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_User_id(ctx, field)
+				return ec.fieldContext_Viewer_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_User_databaseId(ctx, field)
+				return ec.fieldContext_Viewer_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+				return ec.fieldContext_Viewer_name(ctx, field)
 			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
+				return ec.fieldContext_Viewer_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_User_avatar(ctx, field)
+				return ec.fieldContext_Viewer_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_User_introduction(ctx, field)
+				return ec.fieldContext_Viewer_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_Viewer_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
 		},
 	}
 	return fc, nil
@@ -6127,8 +6194,6 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -6565,8 +6630,8 @@ func (ec *executionContext) fieldContext_RegisterUserInvalidInputError_field(ctx
 	return fc, nil
 }
 
-func (ec *executionContext) _RegisterUserPayload_user(ctx context.Context, field graphql.CollectedField, obj *model.RegisterUserPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_RegisterUserPayload_user(ctx, field)
+func (ec *executionContext) _RegisterUserPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.RegisterUserPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RegisterUserPayload_viewer(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -6579,7 +6644,7 @@ func (ec *executionContext) _RegisterUserPayload_user(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return obj.Viewer, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6588,12 +6653,12 @@ func (ec *executionContext) _RegisterUserPayload_user(ctx context.Context, field
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.Viewer)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_RegisterUserPayload_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RegisterUserPayload",
 		Field:      field,
@@ -6602,23 +6667,23 @@ func (ec *executionContext) fieldContext_RegisterUserPayload_user(ctx context.Co
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_User_id(ctx, field)
+				return ec.fieldContext_Viewer_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_User_databaseId(ctx, field)
+				return ec.fieldContext_Viewer_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+				return ec.fieldContext_Viewer_name(ctx, field)
 			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
+				return ec.fieldContext_Viewer_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_User_avatar(ctx, field)
+				return ec.fieldContext_Viewer_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_User_introduction(ctx, field)
+				return ec.fieldContext_Viewer_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_Viewer_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
 		},
 	}
 	return fc, nil
@@ -7074,50 +7139,6 @@ func (ec *executionContext) fieldContext_User_email(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_role(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Role, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Role)
-	fc.Result = res
-	return ec.marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_User_role(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Role does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _User_avatar(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_avatar(ctx, field)
 	if err != nil {
@@ -7237,6 +7258,355 @@ func (ec *executionContext) _User_emailVerificationStatus(ctx context.Context, f
 func (ec *executionContext) fieldContext_User_emailVerificationStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EmailVerificationStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Viewer().ID(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_databaseId(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_databaseId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatabaseID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_databaseId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_name(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_email(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_email(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_avatar(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_avatar(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Avatar, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_avatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_introduction(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_introduction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Introduction, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_introduction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_role(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_role(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Role)
+	fc.Result = res
+	return ec.marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_role(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_emailVerificationStatus(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EmailVerificationStatus, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.EmailVerificationStatus)
+	fc.Result = res
+	return ec.marshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Viewer_emailVerificationStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Viewer",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9558,6 +9928,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Tag(ctx, sel, obj)
+	case model.Viewer:
+		return ec._Viewer(ctx, sel, &obj)
+	case *model.Viewer:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Viewer(ctx, sel, obj)
 	case model.User:
 		return ec._User(ctx, sel, &obj)
 	case *model.User:
@@ -9957,9 +10334,9 @@ func (ec *executionContext) _LoginUserPayload(ctx context.Context, sel ast.Selec
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("LoginUserPayload")
-		case "user":
+		case "viewer":
 
-			out.Values[i] = ec._LoginUserPayload_user(ctx, field, obj)
+			out.Values[i] = ec._LoginUserPayload_viewer(ctx, field, obj)
 
 		case "userErrors":
 
@@ -10343,7 +10720,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "getCurrentUserRooms":
+		case "getViewerRooms":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -10352,7 +10729,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_getCurrentUserRooms(ctx, field)
+				res = ec._Query_getViewerRooms(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -10504,7 +10881,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "currentUserRecruitments":
+		case "viewerRecruitments":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -10513,7 +10890,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_currentUserRecruitments(ctx, field)
+				res = ec._Query_viewerRecruitments(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -10619,7 +10996,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "currentUser":
+		case "viewer":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -10628,7 +11005,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_currentUser(ctx, field)
+				res = ec._Query_viewer(ctx, field)
 				return res
 			}
 
@@ -10975,9 +11352,9 @@ func (ec *executionContext) _RegisterUserPayload(ctx context.Context, sel ast.Se
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("RegisterUserPayload")
-		case "user":
+		case "viewer":
 
-			out.Values[i] = ec._RegisterUserPayload_user(ctx, field, obj)
+			out.Values[i] = ec._RegisterUserPayload_viewer(ctx, field, obj)
 
 		case "userErrors":
 
@@ -11138,13 +11515,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "role":
-
-			out.Values[i] = ec._User_role(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "avatar":
 
 			out.Values[i] = ec._User_avatar(ctx, field, obj)
@@ -11159,6 +11529,93 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "emailVerificationStatus":
 
 			out.Values[i] = ec._User_emailVerificationStatus(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var viewerImplementors = []string{"Viewer", "Node"}
+
+func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, obj *model.Viewer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, viewerImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Viewer")
+		case "id":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Viewer_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "databaseId":
+
+			out.Values[i] = ec._Viewer_databaseId(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+
+			out.Values[i] = ec._Viewer_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "email":
+
+			out.Values[i] = ec._Viewer_email(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "avatar":
+
+			out.Values[i] = ec._Viewer_avatar(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "introduction":
+
+			out.Values[i] = ec._Viewer_introduction(ctx, field, obj)
+
+		case "role":
+
+			out.Values[i] = ec._Viewer_role(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "emailVerificationStatus":
+
+			out.Values[i] = ec._Viewer_emailVerificationStatus(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
@@ -12759,11 +13216,11 @@ func (ec *executionContext) marshalOTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_bac
 	return ec._Tag(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._User(ctx, sel, v)
+	return ec._Viewer(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

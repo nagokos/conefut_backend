@@ -48,7 +48,7 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 		return payload, nil
 	}
 
-	token, _ := user.CreateToken(payload.User.DatabaseID)
+	token, _ := user.CreateToken(payload.Viewer.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
 	return payload, nil
@@ -83,7 +83,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 		return payload, nil
 	}
 
-	token, _ := user.CreateToken(payload.User.DatabaseID)
+	token, _ := user.CreateToken(payload.Viewer.DatabaseID)
 	auth.SetAuthCookie(ctx, token)
 
 	return payload, nil
@@ -95,8 +95,8 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// CurrentUser is the resolver for the currentUser field.
-func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
+// Viewer is the resolver for the viewer field.
+func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
 	user := auth.ForContext(ctx)
 	return user, nil
 }
@@ -106,7 +106,16 @@ func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) 
 	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
 }
 
+// ID is the resolver for the id field.
+func (r *viewerResolver) ID(ctx context.Context, obj *model.Viewer) (string, error) {
+	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
+}
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+// Viewer returns generated.ViewerResolver implementation.
+func (r *Resolver) Viewer() generated.ViewerResolver { return &viewerResolver{r} }
+
 type userResolver struct{ *Resolver }
+type viewerResolver struct{ *Resolver }

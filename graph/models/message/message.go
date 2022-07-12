@@ -27,8 +27,8 @@ func (m Message) MessageValidate() error {
 }
 
 func (m *Message) CreateMessage(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (*model.Message, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")
 	}
@@ -46,7 +46,7 @@ func (m *Message) CreateMessage(ctx context.Context, dbPool *pgxpool.Pool, roomI
 	var message model.Message
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		xid.New().String(), m.Content, roomID, currentUser.ID, timeNow, timeNow,
+		xid.New().String(), m.Content, roomID, viewer.ID, timeNow, timeNow,
 	)
 	err := row.Scan(&message.Content)
 	if err != nil {
@@ -58,8 +58,8 @@ func (m *Message) CreateMessage(ctx context.Context, dbPool *pgxpool.Pool, roomI
 }
 
 func GetRoomMessages(ctx context.Context, dbPool *pgxpool.Pool, roomID string) ([]*model.Message, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")
 	}

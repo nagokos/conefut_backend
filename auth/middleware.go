@@ -30,21 +30,21 @@ func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := validateAndGetUserID(c)
+			viewerID, err := validateAndGetUserID(c)
 			if err != nil {
 				http.Error(w, "Invalid cookie", http.StatusForbidden)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			user, err := getUserByID(dbPool, userID)
+			viewer, err := getUserByID(dbPool, viewerID)
 			if err != nil {
 				http.Error(w, "user not found", http.StatusForbidden)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userCtxKey, user)
+			ctx := context.WithValue(r.Context(), userCtxKey, viewer)
 
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
@@ -52,8 +52,8 @@ func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 	}
 }
 
-func ForContext(ctx context.Context) *model.User {
-	raw, _ := ctx.Value(userCtxKey).(*model.User)
+func ForContext(ctx context.Context) *model.Viewer {
+	raw, _ := ctx.Value(userCtxKey).(*model.Viewer)
 	return raw
 }
 
@@ -79,24 +79,24 @@ func validateAndGetUserID(c *http.Cookie) (float64, error) {
 
 	claims := token.Claims.(jwt.MapClaims)
 
-	userID := claims["user_id"].(float64)
+	viewerID := claims["user_id"].(float64)
 
-	return userID, nil
+	return viewerID, nil
 }
 
-func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.User, error) {
-	var user model.User
+func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.Viewer, error) {
+	var viewer model.Viewer
 
 	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 	row := dbPool.QueryRow(context.Background(), cmd, ID)
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Role, &user.Avatar, &user.Introduction, &user.EmailVerificationStatus)
+	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Role, &viewer.Avatar, &viewer.Introduction, &viewer.EmailVerificationStatus)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	user.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(user.EmailVerificationStatus)))
-	return &user, nil
+	viewer.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(viewer.EmailVerificationStatus)))
+	return &viewer, nil
 }
 
 func CookieMiddleWare() func(http.Handler) http.Handler {

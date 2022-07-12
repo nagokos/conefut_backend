@@ -1,5 +1,5 @@
 extend type Query {
-  currentUser: User
+  viewer: Viewer
 }
 
 enum Role {
@@ -12,12 +12,22 @@ enum EmailVerificationStatus {
   VERIFIED
 }
 
+type Viewer implements Node {
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
+  name: String!
+  email: String!
+  avatar: String!
+  introduction: String
+  role: Role!
+  emailVerificationStatus: EmailVerificationStatus!
+}
+
 type User implements Node {
   id: ID! @goField(forceResolver: true)
   databaseId: Int!
   name: String!
   email: String!
-  role: Role!
   avatar: String!
   introduction: String
   emailVerificationStatus: EmailVerificationStatus!
@@ -32,7 +42,7 @@ extend type Mutation {
 
 # Register
 type RegisterUserPayload {
-  user: User
+  viewer: Viewer
   userErrors: [RegisterUserInvalidInputError!]!
 }
 
@@ -55,7 +65,7 @@ input RegisterUserInput {
 
 # Login
 type LoginUserPayload {
-  user: User
+  viewer: Viewer
   userErrors: [LoginUserError!]!
 }
 

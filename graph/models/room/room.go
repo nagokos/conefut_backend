@@ -35,7 +35,7 @@ func CreateRoom(ctx context.Context, tx pgx.Tx) (string, error) {
 	return roomID, nil
 }
 
-func GetCurrentUserRooms(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Room, error) {
+func GetviewerRooms(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Room, error) {
 	currenUser := auth.ForContext(ctx)
 	if currenUser == nil {
 		logger.NewLogger().Error("user not loggedIn")
