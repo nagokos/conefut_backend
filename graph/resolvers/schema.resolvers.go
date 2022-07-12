@@ -91,14 +91,9 @@ func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID strin
 	return res, nil
 }
 
-// GetCurrentUserRooms is the resolver for the getCurrentUserRooms field.
-func (r *queryResolver) GetCurrentUserRooms(ctx context.Context) ([]*model.Room, error) {
-	res, err := room.GetCurrentUserRooms(ctx, r.dbPool)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
+// GetViewerRooms is the resolver for the getViewerRooms field.
+func (r *queryResolver) GetViewerRooms(ctx context.Context) ([]*model.Room, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // GetEntrieUser is the resolver for the getEntrieUser field.
@@ -130,3 +125,18 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) GetviewerRooms(ctx context.Context) ([]*model.Room, error) {
+	res, err := room.GetviewerRooms(ctx, r.dbPool)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}

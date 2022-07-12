@@ -29,8 +29,8 @@ func GetApplicant(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.App
 }
 
 func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return false, nil
 	}
 
@@ -41,7 +41,7 @@ func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID
 		AND a.user_id = $2
 	`
 
-	row := dbPool.QueryRow(ctx, cmd, recID, currentUser.ID)
+	row := dbPool.QueryRow(ctx, cmd, recID, viewer.ID)
 
 	var count int
 	err := row.Scan(&count)
@@ -59,8 +59,8 @@ func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID
 }
 
 func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, message string) (bool, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return false, errors.New("ログインしてください")
 	}
 
@@ -74,7 +74,7 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 		return false, err
 	}
 
-	if currentUser.ID == userID {
+	if viewer.ID == userID {
 		logger.NewLogger().Error("This is a self-generated recruitment")
 		return false, errors.New("自分が作成した募集には応募できません")
 	}
@@ -97,7 +97,7 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 
 	row = tx.QueryRow(
 		ctx, cmd,
-		xid.New().String(), recruitmentID, currentUser.ID, timeNow, timeNow, message,
+		xid.New().String(), recruitmentID, viewer.ID, timeNow, timeNow, message,
 	)
 
 	var applicantID string
@@ -122,7 +122,7 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 	`
 	row = tx.QueryRow(
 		ctx, cmd,
-		currentUser.ID, userID,
+		viewer.ID, userID,
 	)
 
 	var roomID string
@@ -136,7 +136,7 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 				return false, err
 			}
 
-			entrieUsers := [2]string{currentUser.ID, userID}
+			entrieUsers := [2]string{viewer.ID, userID}
 			cmd = `
 				INSERT INTO entries
 					(id, room_id, user_id, created_at, updated_at)
@@ -170,7 +170,7 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 	`
 	_, err = tx.Exec(
 		ctx, cmd,
-		xid.New().String(), roomID, currentUser.ID, applicantID, timeNow, timeNow,
+		xid.New().String(), roomID, viewer.ID, applicantID, timeNow, timeNow,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())

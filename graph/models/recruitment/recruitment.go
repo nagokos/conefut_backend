@@ -158,11 +158,11 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		RETURNING id, status
 		`
 
-	currentUser := auth.ForContext(ctx)
+	viewer := auth.ForContext(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		r.Title, r.CompetitionID, strings.ToLower(string(r.Type)), r.Detail, r.PrefectureID, r.Venue, r.StartAt,
-		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), currentUser.DatabaseID, timeNow, timeNow, publishedAt,
+		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
 	var recruitment model.Recruitment
@@ -214,12 +214,12 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	return &recruitmentEdge, nil
 }
 
-func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
-	currentUser := auth.ForContext(ctx)
+func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
+	viewer := auth.ForContext(ctx)
 
 	cmd := `
 		SELECT r.id, r.title, r.type, r.status, r.closing_at, r.created_at, 
-		       r.published_at, r.prefecture_id, r.user_id, r.competition_id
+		       r.published_at, r.prefecture_id, r.competition_id
 		FROM 
 			(
 				SELECT *
@@ -234,7 +234,7 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, param
 
 	rows, err := dbPool.Query(
 		ctx, cmd,
-		!params.UseAfter, params.After, params.NumRows, currentUser.DatabaseID,
+		!params.UseAfter, params.After, params.NumRows, viewer.DatabaseID,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -247,7 +247,7 @@ func GetCurrentUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, param
 		var recruitment model.Recruitment
 		err := rows.Scan(
 			&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.ClosingAt, &recruitment.CreatedAt,
-			&recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID,
+			&recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.CompetitionID,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
@@ -324,7 +324,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.R
 }
 
 func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
+	viewer := auth.ForContext(ctx)
 
 	cmd := `
 	  SELECT r.id, r.title, r.type
@@ -335,7 +335,7 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 		ORDER BY a.created_at DESC
 	`
 
-	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
+	rows, err := dbPool.Query(ctx, cmd, viewer.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -454,7 +454,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 }
 
 func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
+	viewer := auth.ForContext(ctx)
 
 	cmd := `
 		SELECT r.id, r.title, r.closing_at, r.user_id
@@ -465,7 +465,7 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 		ORDER BY s.created_at DESC
 	`
 
-	rows, err := dbPool.Query(ctx, cmd, currentUser.ID)
+	rows, err := dbPool.Query(ctx, cmd, viewer.ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -492,8 +492,8 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 }
 
 func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return nil, errors.New("ログインしてください")
 	}
 
@@ -524,7 +524,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		r.Title, r.CompetitionID, r.Type, r.Detail, r.PrefectureID, r.Venue,
-		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), publishedAt, recID, currentUser.ID,
+		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)), publishedAt, recID, viewer.ID,
 	)
 
 	var ID string
@@ -664,13 +664,13 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 }
 
 func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return &model.Recruitment{}, errors.New("ログインしてください")
 	}
 
 	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
-	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), currentUser.DatabaseID)
+	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID)
 
 	var recruitment model.Recruitment
 	err := row.Scan(&recruitment.DatabaseID)

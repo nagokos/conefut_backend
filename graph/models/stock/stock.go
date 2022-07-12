@@ -12,13 +12,13 @@ import (
 )
 
 func CreateStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return false, errors.New("ログインしてください")
 	}
 
 	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	row := dbPool.QueryRow(ctx, cmd, currentUser.ID, recruitmentID)
+	row := dbPool.QueryRow(ctx, cmd, viewer.ID, recruitmentID)
 
 	var count int
 	err := row.Scan(&count)
@@ -35,7 +35,7 @@ func CreateStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string
 	timeNow := time.Now().Local()
 
 	cmd = "INSERT INTO stocks (id, recruitment_id, user_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
-	_, err = dbPool.Exec(ctx, cmd, xid.New().String(), recruitmentID, currentUser.ID, timeNow, timeNow)
+	_, err = dbPool.Exec(ctx, cmd, xid.New().String(), recruitmentID, viewer.ID, timeNow, timeNow)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
@@ -45,13 +45,13 @@ func CreateStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string
 }
 
 func DeleteStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
-	currentUser := auth.ForContext(ctx)
-	if currentUser == nil {
+	viewer := auth.ForContext(ctx)
+	if viewer == nil {
 		return false, errors.New("ログインしてください")
 	}
 
 	cmd := "DELETE FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	_, err := dbPool.Exec(ctx, cmd, currentUser.ID, recruitmentID)
+	_, err := dbPool.Exec(ctx, cmd, viewer.ID, recruitmentID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, errors.New("delete stock error")
@@ -75,14 +75,14 @@ func GetStockedCount(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID st
 }
 
 func CheckStocked(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
-	currentUser := auth.ForContext(ctx)
+	viewer := auth.ForContext(ctx)
 
-	if currentUser == nil {
+	if viewer == nil {
 		return false, nil
 	}
 
 	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	row := dbPool.QueryRow(ctx, cmd, currentUser.ID, recruitmentID)
+	row := dbPool.QueryRow(ctx, cmd, viewer.ID, recruitmentID)
 
 	var count int
 	err := row.Scan(&count)

@@ -198,9 +198,9 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 	)
 
 	var payload model.RegisterUserPayload
-	var user model.User
+	var viewer model.Viewer
 
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
+	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -211,19 +211,19 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 		return nil, err
 	}
 
-	payload.User = &user
+	payload.Viewer = &viewer
 	return &payload, nil
 }
 
 func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
 	var payload model.LoginUserPayload
-	var user model.User
+	var viewer model.Viewer
 	var passwordDigest string
 
 	cmd := "SELECT id, name, email, avatar, email_verification_status, password_digest FROM users WHERE email = $1"
 	row := dbPool.QueryRow(ctx, cmd, u.Email)
 
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
+	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
 		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
@@ -239,7 +239,7 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 		return &payload, err
 	}
 
-	payload.User = &user
+	payload.Viewer = &viewer
 	return &payload, nil
 }
 

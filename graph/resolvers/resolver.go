@@ -26,16 +26,16 @@ func NewSchema(dbPool *pgxpool.Pool) graphql.ExecutableSchema {
 		Resolvers: &Resolver{dbPool: dbPool},
 		Directives: generated.DirectiveRoot{
 			HasLoggedIn: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
-				currentUser := auth.ForContext(ctx)
-				if currentUser == nil {
+				viewer := auth.ForContext(ctx)
+				if viewer == nil {
 					logger.NewLogger().Error("user not loggedIn")
 					return nil, nil
 				}
 				return next(ctx)
 			},
 			EmailVerified: func(ctx context.Context, obj interface{}, next graphql.Resolver, status model.EmailVerificationStatus) (res interface{}, err error) {
-				currentUser := auth.ForContext(ctx)
-				if currentUser.EmailVerificationStatus != status {
+				viewer := auth.ForContext(ctx)
+				if viewer.EmailVerificationStatus != status {
 					logger.NewLogger().Error("access denined")
 					return nil, fmt.Errorf("access denined")
 				}

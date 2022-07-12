@@ -58,9 +58,9 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 
 // UpdateRecruitment is the resolver for the updateRecruitment field.
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
-	currentUser := auth.ForContext(ctx)
+	viewer := auth.ForContext(ctx)
 	if model.Status(input.Status) == model.StatusPublished &&
-		currentUser.EmailVerificationStatus == model.EmailVerificationStatusPending {
+		viewer.EmailVerificationStatus == model.EmailVerificationStatusPending {
 		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
 	}
 
@@ -123,15 +123,15 @@ func (r *queryResolver) Recruitments(ctx context.Context, first *int, after *str
 	return res, nil
 }
 
-// CurrentUserRecruitments is the resolver for the currentUserRecruitments field.
-func (r *queryResolver) CurrentUserRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error) {
+// ViewerRecruitments is the resolver for the viewerRecruitments field.
+func (r *queryResolver) ViewerRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error) {
 	params, err := search.NewSearchParams(first, after, nil, nil)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	res, err := recruitment.GetCurrentUserRecruitments(ctx, r.dbPool, params)
+	res, err := recruitment.GetViewerRecruitments(ctx, r.dbPool, params)
 	if err != nil {
 		return nil, err
 	}
@@ -224,13 +224,3 @@ func (r *recruitmentResolver) Applicant(ctx context.Context, obj *model.Recruitm
 func (r *Resolver) Recruitment() generated.RecruitmentResolver { return &recruitmentResolver{r} }
 
 type recruitmentResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *recruitmentResolver) Venue(ctx context.Context, obj *model.Recruitment) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
-}
