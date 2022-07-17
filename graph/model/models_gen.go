@@ -86,6 +86,10 @@ type CreateTagInput struct {
 	Name string `json:"name"`
 }
 
+type DeleteRecruitmentPayload struct {
+	DeletedRecruitmentID string `json:"deletedRecruitmentId"`
+}
+
 type Entrie struct {
 	User *User `json:"user"`
 }
@@ -96,6 +100,13 @@ type FeedbackApplicant struct {
 }
 
 func (FeedbackApplicant) IsNode() {}
+
+type FeedbackStock struct {
+	ID              string `json:"id"`
+	ViewerDoesStock bool   `json:"viewerDoesStock"`
+}
+
+func (FeedbackStock) IsNode() {}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -171,6 +182,10 @@ type RecruitmentInput struct {
 	LocationLng   *float64               `json:"locationLng"`
 	Status        Status                 `json:"status"`
 	Tags          []*RecruitmentTagInput `json:"tags"`
+}
+
+type RecruitmentPayload struct {
+	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
 }
 
 type RegisterUserInput struct {
