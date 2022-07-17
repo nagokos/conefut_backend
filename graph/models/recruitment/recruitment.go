@@ -634,7 +634,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		timeNow := time.Now().Local()
 		if _, err := tx.Exec(ctx, cmd, xid.New().String(), ID, tag.ID, timeNow, timeNow, timeNow); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback(ctx)
+			err = tx.Rollback(ctx)
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 			return nil, err
 		}
 	}
@@ -647,7 +650,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	for _, tag := range oldTags {
 		if _, err := tx.Exec(ctx, cmd, ID, tag.ID); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback(ctx)
+			err = tx.Rollback(ctx)
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 			return nil, err
 		}
 	}
@@ -655,7 +661,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	err = tx.Commit(ctx)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		tx.Rollback(ctx)
+		err = tx.Rollback(ctx)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return nil, err
 	}
 
