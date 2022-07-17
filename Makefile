@@ -29,7 +29,7 @@ go_install: package_add
 	${DC_WEB} go install ${PACKAGE_NAME}
 
 lint:
-	${DC_WEB} staticcheck -f stylish ./...
+	${DC_WEB} golangci-lint run
 
 # GraphQL Server Start
 start_server:

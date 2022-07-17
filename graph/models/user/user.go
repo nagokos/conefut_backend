@@ -250,7 +250,10 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 
 	token := chi.URLParam(r, "token")
 	if token == "" {
-		w.Write([]byte("無効なURLです"))
+		_, err := w.Write([]byte("無効なURLです"))
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		logger.NewLogger().Error("Invalid URL")
 		return
 	}
@@ -265,13 +268,19 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	err := row.Scan(&ID, &tokenExpiresAt)
 
 	if err != nil {
-		w.Write([]byte("ユーザーが見つかりませんでした"))
+		_, err = w.Write([]byte("ユーザーが見つかりませんでした"))
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
 		return
 	}
 
 	if time.Now().After(tokenExpiresAt) {
-		w.Write([]byte("有効期限が切れています"))
+		_, err = w.Write([]byte("有効期限が切れています"))
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		logger.NewLogger().Error("token expires at expired")
 		return
 	}
@@ -284,7 +293,10 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	_, err = dbPool.Exec(ctx, cmd, "verified", nil, time.Now().Local(), ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		w.Write([]byte("メールアドレスの認証に失敗しました"))
+		_, err = w.Write([]byte("メールアドレスの認証に失敗しました"))
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return
 	}
 
