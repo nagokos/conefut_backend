@@ -54,8 +54,6 @@ type Query {
   node(id: ID!): Node
 
   # stock
-  checkStocked(recruitmentId: String!): Boolean!
-  getStockedCount(recruitmentId: String!): Int!
 
   # room
   getViewerRooms: [Room!]!
@@ -82,12 +80,6 @@ input createMessageInput {
 }
 
 type Mutation {
-  # stock
-  createStock(recruitmentId: String!): Boolean!
-  deleteStock(recruitmentId: String!): Boolean!
-
-  # tag
-
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
 
