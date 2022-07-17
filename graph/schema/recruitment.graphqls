@@ -2,7 +2,7 @@ extend type Query {
   recruitments(first: Int, after: String): RecruitmentConnection!
   viewerRecruitments(first: Int, after: String): RecruitmentConnection!
   recruitment(id: String!): Recruitment!
-  stockedRecruitments: [Recruitment!]!
+  stockedRecruitments(first: Int, after: String): RecruitmentConnection!
   appliedRecruitments: [Recruitment!]!
 }
 
