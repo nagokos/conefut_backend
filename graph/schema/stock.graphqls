@@ -1,0 +1,14 @@
+extend type Query {
+  checkStocked(recruitmentId: String!): FeedbackStock!
+  getStockedCount(recruitmentId: String!): FeedbackStock!
+}
+
+type FeedbackStock implements Node {
+  id: ID!
+  viewerDoesStock: Boolean!
+}
+
+extend type Mutation {
+  addStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
+  removeStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
+}
