@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/nagokos/connefut_backend/logger"
 )
 
 /*
@@ -32,9 +33,15 @@ func UnmarshalDateTime(v interface{}) (time.Time, error) {
 func MarshalDateTime(t time.Time) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
 		if t.IsZero() {
-			w.Write([]byte(`""`))
+			_, err := w.Write([]byte(`""`))
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 		} else {
-			w.Write([]byte(strconv.Quote(t.Format("2006/01/02 15:04"))))
+			_, err := w.Write([]byte(strconv.Quote(t.Format("2006/01/02 15:04"))))
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 		}
 	})
 }

@@ -52,11 +52,19 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: RecruitmentInput!): RecruitmentEdge!
+  createRecruitment(input: RecruitmentInput!): RecruitmentPayload!
     @emailVerified(status: VERIFIED)
     @hasLoggedIn
   updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): Recruitment!
+  deleteRecruitment(id: String!): DeleteRecruitmentPayload! @hasLoggedIn
+}
+
+type RecruitmentPayload {
+  feedbackRecruitmentEdge: RecruitmentEdge!
+}
+
+type DeleteRecruitmentPayload {
+  deletedRecruitmentId: ID!
 }
 
 input RecruitmentInput {

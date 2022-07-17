@@ -26,7 +26,11 @@ func init() {
 	}
 
 	var c map[string]ConfigList
-	yaml.Unmarshal(b, &c)
+	err = yaml.Unmarshal(b, &c)
+	if err != nil {
+		log.Printf("Failed to file unmarshal: %v", err)
+		os.Exit(1)
+	}
 
 	Config = ConfigList{
 		DBName:       c["db"].DBName,

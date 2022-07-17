@@ -140,7 +140,7 @@ func (r Recruitment) RecruitmentValidate() error {
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.RecruitmentEdge, error) {
+func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.RecruitmentPayload, error) {
 	timeNow := time.Now().Local()
 
 	var publishedAt *time.Time
@@ -155,7 +155,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		  (title, competition_id, type, detail, prefecture_id, venue, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
 		VALUES
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-		RETURNING id, status
+		RETURNING id, title, status, created_at, published_at, competition_id, user_id, closing_at, type, prefecture_id
 		`
 
 	viewer := auth.ForContext(ctx)
@@ -165,22 +165,23 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
+	var payload model.RecruitmentPayload
 	var recruitment model.Recruitment
-	err := row.Scan(&recruitment.DatabaseID, &recruitment.Status)
+	err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt, &recruitment.PublishedAt,
+		&recruitment.CompetitionID, &recruitment.UserID, &recruitment.ClosingAt, &recruitment.Type, &recruitment.PrefectureID,
+	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
 	var recruitmentEdge model.RecruitmentEdge
-	if recruitment.Status == model.StatusPublished {
-		recruitment, err := GetRecruitment(ctx, dbPool, recruitment.DatabaseID)
-		if err != nil {
-			return nil, err
-		}
-		recruitmentEdge.Node = recruitment
-		recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
-	}
+
+	recruitment.Status = model.Status(strings.ToUpper(recruitment.Status.String()))
+	recruitment.Type = model.Type(strings.ToUpper(recruitment.Type.String()))
+	recruitmentEdge.Node = &recruitment
+	recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
+	payload.FeedbackRecruitmentEdge = &recruitmentEdge
 
 	cmd = "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
 
@@ -211,7 +212,8 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		}
 	}
 
-	return &recruitmentEdge, nil
+	fmt.Println(*payload.FeedbackRecruitmentEdge.Node)
+	return &payload, nil
 }
 
 func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
@@ -272,17 +274,29 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 		cmd = `
 		  SELECT COUNT(DISTINCT r.id)
 			FROM (
-				SELECT id
+				SELECT *
 				FROM recruitments
 				WHERE id < $1
+				AND user_id = $2
 				ORDER BY id DESC
-			) as r
+			) as r 
 			LIMIT 1
 		`
-		isNextPage, err := search.NextPageExists(ctx, dbPool, endCursor, cmd)
+		row := dbPool.QueryRow(
+			ctx, cmd,
+			utils.DecodeUniqueID(endCursor), viewer.DatabaseID,
+		)
+
+		var count int
+		err := row.Scan(&count)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 			return nil, err
+		}
+
+		var isNextPage bool
+		if count > 0 {
+			isNextPage = true
 		}
 
 		var pageInfo model.PageInfo
@@ -300,7 +314,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
 	cmd := `
 	  SELECT id, title, type, status, detail, start_at, closing_at, venue, location_lat, 
-		       location_lng, user_id, prefecture_id, competition_id 
+		       location_lng, user_id, prefecture_id, competition_id, published_at, created_at
 		FROM recruitments
 		WHERE id = $1
 	`
@@ -310,7 +324,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.R
 	var recruitment model.Recruitment
 	err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Venue, &recruitment.LocationLat, &recruitment.LocationLng,
-		&recruitment.UserID, &recruitment.PrefectureID, &recruitment.CompetitionID,
+		&recruitment.UserID, &recruitment.PrefectureID, &recruitment.CompetitionID, &recruitment.PublishedAt, &recruitment.CreatedAt,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -620,7 +634,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		timeNow := time.Now().Local()
 		if _, err := tx.Exec(ctx, cmd, xid.New().String(), ID, tag.ID, timeNow, timeNow, timeNow); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback(ctx)
+			err = tx.Rollback(ctx)
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 			return nil, err
 		}
 	}
@@ -633,7 +650,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	for _, tag := range oldTags {
 		if _, err := tx.Exec(ctx, cmd, ID, tag.ID); err != nil {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback(ctx)
+			err = tx.Rollback(ctx)
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 			return nil, err
 		}
 	}
@@ -641,7 +661,10 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	err = tx.Commit(ctx)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		tx.Rollback(ctx)
+		err = tx.Rollback(ctx)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return nil, err
 	}
 
@@ -663,11 +686,8 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	return &recruitment, nil
 }
 
-func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.Recruitment, error) {
+func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.DeleteRecruitmentPayload, error) {
 	viewer := auth.ForContext(ctx)
-	if viewer == nil {
-		return &model.Recruitment{}, errors.New("ログインしてください")
-	}
 
 	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
 	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID)
@@ -676,8 +696,8 @@ func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID 
 	err := row.Scan(&recruitment.DatabaseID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return &recruitment, err
+		return nil, err
 	}
 
-	return &recruitment, nil
+	return &model.DeleteRecruitmentPayload{DeletedRecruitmentID: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)}, nil
 }

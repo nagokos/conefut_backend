@@ -13,29 +13,9 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/entrie"
 	"github.com/nagokos/connefut_backend/graph/models/message"
-	"github.com/nagokos/connefut_backend/graph/models/room"
-	"github.com/nagokos/connefut_backend/graph/models/stock"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
-
-// CreateStock is the resolver for the createStock field.
-func (r *mutationResolver) CreateStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.CreateStock(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-// DeleteStock is the resolver for the deleteStock field.
-func (r *mutationResolver) DeleteStock(ctx context.Context, recruitmentID string) (bool, error) {
-	_, err := stock.DeleteStock(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
 
 // AddRecruitmentTag is the resolver for the addRecruitmentTag field.
 func (r *mutationResolver) AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error) {
@@ -73,24 +53,6 @@ func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error)
 	panic(fmt.Errorf("not implemented"))
 }
 
-// CheckStocked is the resolver for the checkStocked field.
-func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (bool, error) {
-	res, err := stock.CheckStocked(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
-
-// GetStockedCount is the resolver for the getStockedCount field.
-func (r *queryResolver) GetStockedCount(ctx context.Context, recruitmentID string) (int, error) {
-	res, err := stock.GetStockedCount(ctx, r.dbPool, recruitmentID)
-	if err != nil {
-		return 0, err
-	}
-	return res, nil
-}
-
 // GetViewerRooms is the resolver for the getViewerRooms field.
 func (r *queryResolver) GetViewerRooms(ctx context.Context) ([]*model.Room, error) {
 	panic(fmt.Errorf("not implemented"))
@@ -125,18 +87,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *queryResolver) GetviewerRooms(ctx context.Context) ([]*model.Room, error) {
-	res, err := room.GetviewerRooms(ctx, r.dbPool)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}

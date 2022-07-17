@@ -21,7 +21,7 @@ import (
 )
 
 // CreateRecruitment is the resolver for the createRecruitment field.
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentEdge, error) {
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentPayload, error) {
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -100,7 +100,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 }
 
 // DeleteRecruitment is the resolver for the deleteRecruitment field.
-func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error) {
+func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error) {
 	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
 	if err != nil {
 		return res, err

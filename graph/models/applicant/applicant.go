@@ -105,7 +105,10 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		tx.Rollback(ctx)
+		err = tx.Rollback(ctx)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return false, err
 	}
 
@@ -132,7 +135,10 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 		if err == pgx.ErrNoRows {
 			roomID, err = room.CreateRoom(ctx, tx)
 			if err != nil {
-				tx.Rollback(ctx)
+				err = tx.Rollback(ctx)
+				if err != nil {
+					logger.NewLogger().Error(err.Error())
+				}
 				return false, err
 			}
 
@@ -151,13 +157,19 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 				)
 				if err != nil {
 					logger.NewLogger().Error(err.Error())
-					tx.Rollback(ctx)
+					err = tx.Rollback(ctx)
+					if err != nil {
+						logger.NewLogger().Error(err.Error())
+					}
 					return false, err
 				}
 			}
 		} else {
 			logger.NewLogger().Error(err.Error())
-			tx.Rollback(ctx)
+			err = tx.Rollback(ctx)
+			if err != nil {
+				logger.NewLogger().Error(err.Error())
+			}
 			return false, err
 		}
 	}
@@ -174,14 +186,20 @@ func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, m
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		tx.Rollback(ctx)
+		err = tx.Rollback(ctx)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return false, err
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		tx.Rollback(ctx)
+		err = tx.Rollback(ctx)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
 		return false, err
 	}
 

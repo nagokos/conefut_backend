@@ -86,6 +86,10 @@ type ComplexityRoot struct {
 		Name       func(childComplexity int) int
 	}
 
+	DeleteRecruitmentPayload struct {
+		DeletedRecruitmentID func(childComplexity int) int
+	}
+
 	Entrie struct {
 		User func(childComplexity int) int
 	}
@@ -93,6 +97,11 @@ type ComplexityRoot struct {
 	FeedbackApplicant struct {
 		ID           func(childComplexity int) int
 		IsAppliedFor func(childComplexity int) int
+	}
+
+	FeedbackStock struct {
+		ID              func(childComplexity int) int
+		ViewerDoesStock func(childComplexity int) int
 	}
 
 	LoginUserAuthenticationError struct {
@@ -118,16 +127,16 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddRecruitmentTag   func(childComplexity int, tagID string, recruitmentID string) int
+		AddStock            func(childComplexity int, recruitmentID string) int
 		ApplyForRecruitment func(childComplexity int, recruitmentID string, input *model.ApplicantInput) int
 		CreateMessage       func(childComplexity int, roomID string, input model.CreateMessageInput) int
 		CreateRecruitment   func(childComplexity int, input model.RecruitmentInput) int
-		CreateStock         func(childComplexity int, recruitmentID string) int
 		CreateTag           func(childComplexity int, input model.CreateTagInput) int
 		DeleteRecruitment   func(childComplexity int, id string) int
-		DeleteStock         func(childComplexity int, recruitmentID string) int
 		LoginUser           func(childComplexity int, input model.LoginUserInput) int
 		LogoutUser          func(childComplexity int) int
 		RegisterUser        func(childComplexity int, input model.RegisterUserInput) int
+		RemoveStock         func(childComplexity int, recruitmentID string) int
 		UpdateRecruitment   func(childComplexity int, id string, input model.RecruitmentInput) int
 	}
 
@@ -194,6 +203,10 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
+	RecruitmentPayload struct {
+		FeedbackRecruitmentEdge func(childComplexity int) int
+	}
+
 	RegisterUserInvalidInputError struct {
 		Field   func(childComplexity int) int
 		Message func(childComplexity int) int
@@ -244,14 +257,14 @@ type CompetitionResolver interface {
 	ID(ctx context.Context, obj *model.Competition) (string, error)
 }
 type MutationResolver interface {
-	CreateStock(ctx context.Context, recruitmentID string) (bool, error)
-	DeleteStock(ctx context.Context, recruitmentID string) (bool, error)
 	AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error)
 	CreateMessage(ctx context.Context, roomID string, input model.CreateMessageInput) (*model.Message, error)
 	ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (*model.ApplyForRecruitmentPayload, error)
-	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentEdge, error)
+	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentPayload, error)
 	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
-	DeleteRecruitment(ctx context.Context, id string) (*model.Recruitment, error)
+	DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error)
+	AddStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
+	RemoveStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error)
 	RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error)
 	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error)
@@ -262,8 +275,6 @@ type PrefectureResolver interface {
 }
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
-	CheckStocked(ctx context.Context, recruitmentID string) (bool, error)
-	GetStockedCount(ctx context.Context, recruitmentID string) (int, error)
 	GetViewerRooms(ctx context.Context) ([]*model.Room, error)
 	GetEntrieUser(ctx context.Context, roomID string) (*model.User, error)
 	GetRoomMessages(ctx context.Context, roomID string) ([]*model.Message, error)
@@ -275,6 +286,8 @@ type QueryResolver interface {
 	Recruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
+	GetStockedCount(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	Tags(ctx context.Context) ([]*model.Tag, error)
 	Viewer(ctx context.Context) (*model.Viewer, error)
 }
@@ -410,6 +423,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Competition.Name(childComplexity), true
 
+	case "DeleteRecruitmentPayload.deletedRecruitmentId":
+		if e.complexity.DeleteRecruitmentPayload.DeletedRecruitmentID == nil {
+			break
+		}
+
+		return e.complexity.DeleteRecruitmentPayload.DeletedRecruitmentID(childComplexity), true
+
 	case "Entrie.user":
 		if e.complexity.Entrie.User == nil {
 			break
@@ -430,6 +450,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FeedbackApplicant.IsAppliedFor(childComplexity), true
+
+	case "FeedbackStock.id":
+		if e.complexity.FeedbackStock.ID == nil {
+			break
+		}
+
+		return e.complexity.FeedbackStock.ID(childComplexity), true
+
+	case "FeedbackStock.viewerDoesStock":
+		if e.complexity.FeedbackStock.ViewerDoesStock == nil {
+			break
+		}
+
+		return e.complexity.FeedbackStock.ViewerDoesStock(childComplexity), true
 
 	case "LoginUserAuthenticationError.message":
 		if e.complexity.LoginUserAuthenticationError.Message == nil {
@@ -506,6 +540,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddRecruitmentTag(childComplexity, args["tagId"].(string), args["recruitmentId"].(string)), true
 
+	case "Mutation.addStock":
+		if e.complexity.Mutation.AddStock == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addStock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddStock(childComplexity, args["recruitmentId"].(string)), true
+
 	case "Mutation.applyForRecruitment":
 		if e.complexity.Mutation.ApplyForRecruitment == nil {
 			break
@@ -542,18 +588,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateRecruitment(childComplexity, args["input"].(model.RecruitmentInput)), true
 
-	case "Mutation.createStock":
-		if e.complexity.Mutation.CreateStock == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createStock_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateStock(childComplexity, args["recruitmentId"].(string)), true
-
 	case "Mutation.createTag":
 		if e.complexity.Mutation.CreateTag == nil {
 			break
@@ -577,18 +611,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteRecruitment(childComplexity, args["id"].(string)), true
-
-	case "Mutation.deleteStock":
-		if e.complexity.Mutation.DeleteStock == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteStock_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteStock(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Mutation.loginUser":
 		if e.complexity.Mutation.LoginUser == nil {
@@ -620,6 +642,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RegisterUser(childComplexity, args["input"].(model.RegisterUserInput)), true
+
+	case "Mutation.removeStock":
+		if e.complexity.Mutation.RemoveStock == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeStock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveStock(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Mutation.updateRecruitment":
 		if e.complexity.Mutation.UpdateRecruitment == nil {
@@ -992,6 +1026,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RecruitmentEdge.Node(childComplexity), true
+
+	case "RecruitmentPayload.feedbackRecruitmentEdge":
+		if e.complexity.RecruitmentPayload.FeedbackRecruitmentEdge == nil {
+			break
+		}
+
+		return e.complexity.RecruitmentPayload.FeedbackRecruitmentEdge(childComplexity), true
 
 	case "RegisterUserInvalidInputError.field":
 		if e.complexity.RegisterUserInvalidInputError.Field == nil {
@@ -1366,11 +1407,19 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: RecruitmentInput!): RecruitmentEdge!
+  createRecruitment(input: RecruitmentInput!): RecruitmentPayload!
     @emailVerified(status: VERIFIED)
     @hasLoggedIn
   updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): Recruitment!
+  deleteRecruitment(id: String!): DeleteRecruitmentPayload! @hasLoggedIn
+}
+
+type RecruitmentPayload {
+  feedbackRecruitmentEdge: RecruitmentEdge!
+}
+
+type DeleteRecruitmentPayload {
+  deletedRecruitmentId: ID!
 }
 
 input RecruitmentInput {
@@ -1444,8 +1493,6 @@ type Query {
   node(id: ID!): Node
 
   # stock
-  checkStocked(recruitmentId: String!): Boolean!
-  getStockedCount(recruitmentId: String!): Int!
 
   # room
   getViewerRooms: [Room!]!
@@ -1472,12 +1519,6 @@ input createMessageInput {
 }
 
 type Mutation {
-  # stock
-  createStock(recruitmentId: String!): Boolean!
-  deleteStock(recruitmentId: String!): Boolean!
-
-  # tag
-
   # recruitment_tags
   addRecruitmentTag(tagId: String!, recruitmentId: String!): Boolean!
 
@@ -1485,6 +1526,21 @@ type Mutation {
 
   # message
   createMessage(roomId: String!, input: createMessageInput!): Message!
+}
+`, BuiltIn: false},
+	{Name: "../schema/stock.graphqls", Input: `extend type Query {
+  checkStocked(recruitmentId: String!): FeedbackStock!
+  getStockedCount(recruitmentId: String!): FeedbackStock!
+}
+
+type FeedbackStock implements Node {
+  id: ID!
+  viewerDoesStock: Boolean!
+}
+
+extend type Mutation {
+  addStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
+  removeStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
 }
 `, BuiltIn: false},
 	{Name: "../schema/tag.graphqls", Input: `extend type Query {
@@ -1643,6 +1699,21 @@ func (ec *executionContext) field_Mutation_addRecruitmentTag_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_applyForRecruitment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1706,21 +1777,6 @@ func (ec *executionContext) field_Mutation_createRecruitment_args(ctx context.Co
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["recruitmentId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["recruitmentId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createTag_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1751,21 +1807,6 @@ func (ec *executionContext) field_Mutation_deleteRecruitment_args(ctx context.Co
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_deleteStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["recruitmentId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["recruitmentId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_loginUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1793,6 +1834,21 @@ func (ec *executionContext) field_Mutation_registerUser_args(ctx context.Context
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeStock_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
 	return args, nil
 }
 
@@ -2683,6 +2739,50 @@ func (ec *executionContext) fieldContext_Competition_name(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _DeleteRecruitmentPayload_deletedRecruitmentId(ctx context.Context, field graphql.CollectedField, obj *model.DeleteRecruitmentPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DeleteRecruitmentPayload_deletedRecruitmentId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletedRecruitmentID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DeleteRecruitmentPayload_deletedRecruitmentId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DeleteRecruitmentPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Entrie_user(ctx context.Context, field graphql.CollectedField, obj *model.Entrie) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Entrie_user(ctx, field)
 	if err != nil {
@@ -2821,6 +2921,94 @@ func (ec *executionContext) _FeedbackApplicant_isAppliedFor(ctx context.Context,
 func (ec *executionContext) fieldContext_FeedbackApplicant_isAppliedFor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FeedbackApplicant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackStock_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackStock) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackStock_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackStock_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackStock",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackStock_viewerDoesStock(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackStock) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ViewerDoesStock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackStock_viewerDoesStock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackStock",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3264,116 +3452,6 @@ func (ec *executionContext) fieldContext_Message_createdAt(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_createStock(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateStock(rctx, fc.Args["recruitmentId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createStock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createStock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_deleteStock(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteStock(rctx, fc.Args["recruitmentId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteStock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteStock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Mutation_addRecruitmentTag(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_addRecruitmentTag(ctx, field)
 	if err != nil {
@@ -3596,10 +3674,10 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.RecruitmentEdge); ok {
+		if data, ok := tmp.(*model.RecruitmentPayload); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.RecruitmentEdge`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.RecruitmentPayload`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3611,9 +3689,9 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.RecruitmentEdge)
+	res := resTmp.(*model.RecruitmentPayload)
 	fc.Result = res
-	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
+	return ec.marshalNRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3624,12 +3702,10 @@ func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "cursor":
-				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
-			case "node":
-				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3752,8 +3828,28 @@ func (ec *executionContext) _Mutation_deleteRecruitment(ctx context.Context, fie
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteRecruitment(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteRecruitment(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.HasLoggedIn == nil {
+				return nil, errors.New("directive hasLoggedIn is not implemented")
+			}
+			return ec.directives.HasLoggedIn(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.DeleteRecruitmentPayload); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.DeleteRecruitmentPayload`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3765,9 +3861,9 @@ func (ec *executionContext) _Mutation_deleteRecruitment(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Recruitment)
+	res := resTmp.(*model.DeleteRecruitmentPayload)
 	fc.Result = res
-	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+	return ec.marshalNDeleteRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐDeleteRecruitmentPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3778,44 +3874,10 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Recruitment_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Recruitment_databaseId(ctx, field)
-			case "title":
-				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "detail":
-				return ec.fieldContext_Recruitment_detail(ctx, field)
-			case "type":
-				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "venue":
-				return ec.fieldContext_Recruitment_venue(ctx, field)
-			case "startAt":
-				return ec.fieldContext_Recruitment_startAt(ctx, field)
-			case "locationLat":
-				return ec.fieldContext_Recruitment_locationLat(ctx, field)
-			case "locationLng":
-				return ec.fieldContext_Recruitment_locationLng(ctx, field)
-			case "status":
-				return ec.fieldContext_Recruitment_status(ctx, field)
-			case "closingAt":
-				return ec.fieldContext_Recruitment_closingAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Recruitment_createdAt(ctx, field)
-			case "publishedAt":
-				return ec.fieldContext_Recruitment_publishedAt(ctx, field)
-			case "competition":
-				return ec.fieldContext_Recruitment_competition(ctx, field)
-			case "prefecture":
-				return ec.fieldContext_Recruitment_prefecture(ctx, field)
-			case "user":
-				return ec.fieldContext_Recruitment_user(ctx, field)
-			case "tags":
-				return ec.fieldContext_Recruitment_tags(ctx, field)
-			case "applicant":
-				return ec.fieldContext_Recruitment_applicant(ctx, field)
+			case "deletedRecruitmentId":
+				return ec.fieldContext_DeleteRecruitmentPayload_deletedRecruitmentId(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type DeleteRecruitmentPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3826,6 +3888,168 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteRecruitment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addStock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddStock(rctx, fc.Args["recruitmentId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.HasLoggedIn == nil {
+				return nil, errors.New("directive hasLoggedIn is not implemented")
+			}
+			return ec.directives.HasLoggedIn(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.FeedbackStock); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.FeedbackStock`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackStock)
+	fc.Result = res
+	return ec.marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addStock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackStock_id(ctx, field)
+			case "viewerDoesStock":
+				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addStock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeStock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeStock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().RemoveStock(rctx, fc.Args["recruitmentId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.HasLoggedIn == nil {
+				return nil, errors.New("directive hasLoggedIn is not implemented")
+			}
+			return ec.directives.HasLoggedIn(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.FeedbackStock); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.FeedbackStock`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackStock)
+	fc.Result = res
+	return ec.marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeStock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackStock_id(ctx, field)
+			case "viewerDoesStock":
+				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeStock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -4409,116 +4633,6 @@ func (ec *executionContext) fieldContext_Query_node(ctx context.Context, field g
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_node_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_checkStocked(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CheckStocked(rctx, fc.Args["recruitmentId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_checkStocked(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_checkStocked_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_getStockedCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_getStockedCount(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetStockedCount(rctx, fc.Args["recruitmentId"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_getStockedCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_getStockedCount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -5251,6 +5365,128 @@ func (ec *executionContext) fieldContext_Query_appliedRecruitments(ctx context.C
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_checkStocked(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckStocked(rctx, fc.Args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackStock)
+	fc.Result = res
+	return ec.marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_checkStocked(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackStock_id(ctx, field)
+			case "viewerDoesStock":
+				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_checkStocked_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getStockedCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getStockedCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetStockedCount(rctx, fc.Args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackStock)
+	fc.Result = res
+	return ec.marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getStockedCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackStock_id(ctx, field)
+			case "viewerDoesStock":
+				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getStockedCount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -6537,6 +6773,56 @@ func (ec *executionContext) fieldContext_RecruitmentEdge_node(ctx context.Contex
 				return ec.fieldContext_Recruitment_applicant(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField, obj *model.RecruitmentPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedbackRecruitmentEdge, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RecruitmentEdge)
+	fc.Result = res
+	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RecruitmentPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
 		},
 	}
 	return fc, nil
@@ -9921,6 +10207,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Recruitment(ctx, sel, obj)
+	case model.FeedbackStock:
+		return ec._FeedbackStock(ctx, sel, &obj)
+	case *model.FeedbackStock:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FeedbackStock(ctx, sel, obj)
 	case model.Tag:
 		return ec._Tag(ctx, sel, &obj)
 	case *model.Tag:
@@ -10198,6 +10491,34 @@ func (ec *executionContext) _Competition(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var deleteRecruitmentPayloadImplementors = []string{"DeleteRecruitmentPayload"}
+
+func (ec *executionContext) _DeleteRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, obj *model.DeleteRecruitmentPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deleteRecruitmentPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeleteRecruitmentPayload")
+		case "deletedRecruitmentId":
+
+			out.Values[i] = ec._DeleteRecruitmentPayload_deletedRecruitmentId(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var entrieImplementors = []string{"Entrie"}
 
 func (ec *executionContext) _Entrie(ctx context.Context, sel ast.SelectionSet, obj *model.Entrie) graphql.Marshaler {
@@ -10246,6 +10567,41 @@ func (ec *executionContext) _FeedbackApplicant(ctx context.Context, sel ast.Sele
 		case "isAppliedFor":
 
 			out.Values[i] = ec._FeedbackApplicant_isAppliedFor(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var feedbackStockImplementors = []string{"FeedbackStock", "Node"}
+
+func (ec *executionContext) _FeedbackStock(ctx context.Context, sel ast.SelectionSet, obj *model.FeedbackStock) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, feedbackStockImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FeedbackStock")
+		case "id":
+
+			out.Values[i] = ec._FeedbackStock_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "viewerDoesStock":
+
+			out.Values[i] = ec._FeedbackStock_viewerDoesStock(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -10418,24 +10774,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createStock":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createStock(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deleteStock":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteStock(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "addRecruitmentTag":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -10485,6 +10823,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteRecruitment(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addStock":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addStock(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removeStock":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeStock(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -10664,52 +11020,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_node(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return rrm(innerCtx)
-			})
-		case "checkStocked":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_checkStocked(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return rrm(innerCtx)
-			})
-		case "getStockedCount":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_getStockedCount(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			}
 
@@ -10960,6 +11270,52 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_appliedRecruitments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "checkStocked":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkStocked(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getStockedCount":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getStockedCount(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -11292,6 +11648,34 @@ func (ec *executionContext) _RecruitmentEdge(ctx context.Context, sel ast.Select
 		case "node":
 
 			out.Values[i] = ec._RecruitmentEdge_node(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var recruitmentPayloadImplementors = []string{"RecruitmentPayload"}
+
+func (ec *executionContext) _RecruitmentPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RecruitmentPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, recruitmentPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RecruitmentPayload")
+		case "feedbackRecruitmentEdge":
+
+			out.Values[i] = ec._RecruitmentPayload_feedbackRecruitmentEdge(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -12120,6 +12504,20 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 	return res
 }
 
+func (ec *executionContext) marshalNDeleteRecruitmentPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐDeleteRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v model.DeleteRecruitmentPayload) graphql.Marshaler {
+	return ec._DeleteRecruitmentPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeleteRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐDeleteRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v *model.DeleteRecruitmentPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._DeleteRecruitmentPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx context.Context, v interface{}) (model.EmailVerificationStatus, error) {
 	var res model.EmailVerificationStatus
 	err := res.UnmarshalGQL(v)
@@ -12152,6 +12550,20 @@ func (ec *executionContext) marshalNFeedbackApplicant2ᚖgithubᚗcomᚋnagokos�
 		return graphql.Null
 	}
 	return ec._FeedbackApplicant(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFeedbackStock2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx context.Context, sel ast.SelectionSet, v model.FeedbackStock) graphql.Marshaler {
+	return ec._FeedbackStock(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx context.Context, sel ast.SelectionSet, v *model.FeedbackStock) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FeedbackStock(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -12461,10 +12873,6 @@ func (ec *executionContext) marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnago
 	return ec._RecruitmentConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRecruitmentEdge2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx context.Context, sel ast.SelectionSet, v model.RecruitmentEdge) graphql.Marshaler {
-	return ec._RecruitmentEdge(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNRecruitmentEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RecruitmentEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -12522,6 +12930,20 @@ func (ec *executionContext) marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋ
 func (ec *executionContext) unmarshalNRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx context.Context, v interface{}) (model.RecruitmentInput, error) {
 	res, err := ec.unmarshalInputRecruitmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRecruitmentPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v model.RecruitmentPayload) graphql.Marshaler {
+	return ec._RecruitmentPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RecruitmentPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNRegisterUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRegisterUserInput(ctx context.Context, v interface{}) (model.RegisterUserInput, error) {
