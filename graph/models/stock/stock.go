@@ -7,94 +7,118 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 )
 
-func CreateStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
-	viewer := auth.ForContext(ctx)
-	if viewer == nil {
-		return false, errors.New("ログインしてください")
+func AddStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.FeedbackStock, error) {
+	feedback := model.FeedbackStock{
+		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
 	}
 
-	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	row := dbPool.QueryRow(ctx, cmd, viewer.ID, recruitmentID)
+	viewer := auth.ForContext(ctx)
+
+	cmd := `
+	  SELECT COUNT(DISTINCT id) 
+	  FROM stocks 
+		WHERE user_id = $1 
+		AND recruitment_id = $2
+	`
+	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID, utils.DecodeUniqueID(recruitmentID))
 
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return false, err
+		return &feedback, err
 	}
 
 	if count == 1 {
 		logger.NewLogger().Error("Already stocked.")
-		return false, errors.New("既にストックしています")
+		feedback.ViewerDoesStock = true
+		return &feedback, nil
 	}
 
 	timeNow := time.Now().Local()
 
-	cmd = "INSERT INTO stocks (id, recruitment_id, user_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
-	_, err = dbPool.Exec(ctx, cmd, xid.New().String(), recruitmentID, viewer.ID, timeNow, timeNow)
+	cmd = "INSERT INTO stocks (recruitment_id, user_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	_, err = dbPool.Exec(
+		ctx, cmd,
+		utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID, timeNow, timeNow,
+	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return false, err
+		return &feedback, err
 	}
 
-	return true, nil
+	feedback.ViewerDoesStock = true
+	return &feedback, nil
 }
 
-func DeleteStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
+func RemoveStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.FeedbackStock, error) {
+	feedback := model.FeedbackStock{
+		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
+	}
+
+	viewer := auth.ForContext(ctx)
+
+	cmd := `
+	  DELETE FROM stocks 
+		WHERE user_id = $1 
+		AND recruitment_id = $2
+	`
+	_, err := dbPool.Exec(ctx, cmd, viewer.DatabaseID, utils.DecodeUniqueID(recruitmentID))
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return &feedback, errors.New("delete stock error")
+	}
+
+	return &feedback, nil
+}
+
+func CheckStocked(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.FeedbackStock, error) {
+	feedback := model.FeedbackStock{
+		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
+	}
+
 	viewer := auth.ForContext(ctx)
 	if viewer == nil {
-		return false, errors.New("ログインしてください")
+		return &feedback, nil
 	}
 
-	cmd := "DELETE FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	_, err := dbPool.Exec(ctx, cmd, viewer.ID, recruitmentID)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return false, errors.New("delete stock error")
-	}
-
-	return true, nil
-}
-
-func GetStockedCount(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (int, error) {
-	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE recruitment_id = $1"
-	row := dbPool.QueryRow(ctx, cmd, recruitmentID)
+	cmd := `
+	  SELECT COUNT(DISTINCT id) 
+		FROM stocks 
+		WHERE user_id = $1 
+		AND recruitment_id = $2
+	`
+	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID, utils.DecodeUniqueID(recruitmentID))
 
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return count, err
+		return &feedback, err
 	}
 
-	return count, nil
-}
-
-func CheckStocked(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (bool, error) {
-	viewer := auth.ForContext(ctx)
-
-	if viewer == nil {
-		return false, nil
-	}
-
-	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE user_id = $1 AND recruitment_id = $2"
-	row := dbPool.QueryRow(ctx, cmd, viewer.ID, recruitmentID)
-
-	var count int
-	err := row.Scan(&count)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return false, err
-	}
-
-	var isStocked bool
 	if count == 1 {
-		isStocked = true
+		feedback.ViewerDoesStock = true
 	}
 
-	return isStocked, nil
+	return &feedback, nil
 }
+
+// func GetStockedCount(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (int, error) {
+// 	cmd := "SELECT COUNT(DISTINCT id) FROM stocks WHERE recruitment_id = $1"
+// 	row := dbPool.QueryRow(ctx, cmd, recruitmentID)
+
+// 	var count int
+// 	err := row.Scan(&count)
+// 	if err != nil {
+// 		logger.NewLogger().Error(err.Error())
+// 		return count, err
+// 	}
+
+// 	return count, nil
+// }
