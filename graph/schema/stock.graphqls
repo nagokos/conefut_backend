@@ -6,6 +6,8 @@ extend type Query {
 type FeedbackStock implements Node {
   id: ID!
   viewerDoesStock: Boolean!
+  feedbackRecruitmentEdge: RecruitmentEdge
+  removedRecruitmentId: ID
 }
 
 extend type Mutation {
