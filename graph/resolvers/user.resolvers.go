@@ -96,7 +96,7 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 }
 
 // Viewer is the resolver for the viewer field.
-func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
+func (r *queryResolver) Viewer(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return user, nil
 }
@@ -106,16 +106,7 @@ func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) 
 	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
 }
 
-// ID is the resolver for the id field.
-func (r *viewerResolver) ID(ctx context.Context, obj *model.Viewer) (string, error) {
-	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
-}
-
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
-// Viewer returns generated.ViewerResolver implementation.
-func (r *Resolver) Viewer() generated.ViewerResolver { return &viewerResolver{r} }
-
 type userResolver struct{ *Resolver }
-type viewerResolver struct{ *Resolver }

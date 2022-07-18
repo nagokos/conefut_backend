@@ -198,7 +198,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 	)
 
 	var payload model.RegisterUserPayload
-	var viewer model.Viewer
+	var viewer model.User
 
 	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
 	if err != nil {
@@ -217,7 +217,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 
 func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
 	var payload model.LoginUserPayload
-	var viewer model.Viewer
+	var viewer model.User
 	var passwordDigest string
 
 	cmd := "SELECT id, name, email, avatar, email_verification_status, password_digest FROM users WHERE email = $1"

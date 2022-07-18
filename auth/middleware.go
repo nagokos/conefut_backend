@@ -52,8 +52,8 @@ func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 	}
 }
 
-func ForContext(ctx context.Context) *model.Viewer {
-	raw, _ := ctx.Value(userCtxKey).(*model.Viewer)
+func ForContext(ctx context.Context) *model.User {
+	raw, _ := ctx.Value(userCtxKey).(*model.User)
 	return raw
 }
 
@@ -84,8 +84,8 @@ func validateAndGetUserID(c *http.Cookie) (float64, error) {
 	return viewerID, nil
 }
 
-func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.Viewer, error) {
-	var viewer model.Viewer
+func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.User, error) {
+	var viewer model.User
 
 	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 	row := dbPool.QueryRow(context.Background(), cmd, ID)
