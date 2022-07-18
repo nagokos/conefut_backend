@@ -43,28 +43,6 @@ func NewSearchParams(first *int, after *string, last *int, before *string) (Sear
 	return sp, nil
 }
 
-func NextPageExists(ctx context.Context, dbPool *pgxpool.Pool, nextID, cmd string) (bool, error) {
-
-	row := dbPool.QueryRow(
-		ctx, cmd,
-		utils.DecodeUniqueID(nextID),
-	)
-
-	var count int
-	err := row.Scan(&count)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return false, err
-	}
-
-	var isNextPage bool
-	if count != 0 {
-		isNextPage = true
-	}
-
-	return isNextPage, nil
-}
-
 func PreviousPageExists(ctx context.Context, dbPool *pgxpool.Pool, previousID string, params SearchParams, sort string) (bool, error) {
 	cmd := fmt.Sprintf(`
 		SELECT COUNT(DISTINCT r.id)

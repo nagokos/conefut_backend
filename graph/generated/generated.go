@@ -45,7 +45,6 @@ type ResolverRoot interface {
 	Recruitment() RecruitmentResolver
 	Tag() TagResolver
 	User() UserResolver
-	Viewer() ViewerResolver
 }
 
 type DirectiveRoot struct {
@@ -100,8 +99,10 @@ type ComplexityRoot struct {
 	}
 
 	FeedbackStock struct {
-		ID              func(childComplexity int) int
-		ViewerDoesStock func(childComplexity int) int
+		FeedbackRecruitmentEdge func(childComplexity int) int
+		ID                      func(childComplexity int) int
+		RemovedRecruitmentID    func(childComplexity int) int
+		ViewerDoesStock         func(childComplexity int) int
 	}
 
 	LoginUserAuthenticationError struct {
@@ -166,7 +167,7 @@ type ComplexityRoot struct {
 		Prefectures                func(childComplexity int) int
 		Recruitment                func(childComplexity int, id string) int
 		Recruitments               func(childComplexity int, first *int, after *string) int
-		StockedRecruitments        func(childComplexity int) int
+		StockedRecruitments        func(childComplexity int, first *int, after *string) int
 		Tags                       func(childComplexity int) int
 		Viewer                     func(childComplexity int) int
 		ViewerRecruitments         func(childComplexity int, first *int, after *string) int
@@ -236,16 +237,6 @@ type ComplexityRoot struct {
 		ID                      func(childComplexity int) int
 		Introduction            func(childComplexity int) int
 		Name                    func(childComplexity int) int
-	}
-
-	Viewer struct {
-		Avatar                  func(childComplexity int) int
-		DatabaseID              func(childComplexity int) int
-		Email                   func(childComplexity int) int
-		EmailVerificationStatus func(childComplexity int) int
-		ID                      func(childComplexity int) int
-		Introduction            func(childComplexity int) int
-		Name                    func(childComplexity int) int
 		Role                    func(childComplexity int) int
 	}
 }
@@ -284,12 +275,12 @@ type QueryResolver interface {
 	Recruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	ViewerRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	Recruitment(ctx context.Context, id string) (*model.Recruitment, error)
-	StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	StockedRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	Tags(ctx context.Context) ([]*model.Tag, error)
-	Viewer(ctx context.Context) (*model.Viewer, error)
+	Viewer(ctx context.Context) (*model.User, error)
 }
 type RecruitmentResolver interface {
 	ID(ctx context.Context, obj *model.Recruitment) (string, error)
@@ -305,9 +296,6 @@ type TagResolver interface {
 }
 type UserResolver interface {
 	ID(ctx context.Context, obj *model.User) (string, error)
-}
-type ViewerResolver interface {
-	ID(ctx context.Context, obj *model.Viewer) (string, error)
 }
 
 type executableSchema struct {
@@ -451,12 +439,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FeedbackApplicant.IsAppliedFor(childComplexity), true
 
+	case "FeedbackStock.feedbackRecruitmentEdge":
+		if e.complexity.FeedbackStock.FeedbackRecruitmentEdge == nil {
+			break
+		}
+
+		return e.complexity.FeedbackStock.FeedbackRecruitmentEdge(childComplexity), true
+
 	case "FeedbackStock.id":
 		if e.complexity.FeedbackStock.ID == nil {
 			break
 		}
 
 		return e.complexity.FeedbackStock.ID(childComplexity), true
+
+	case "FeedbackStock.removedRecruitmentId":
+		if e.complexity.FeedbackStock.RemovedRecruitmentID == nil {
+			break
+		}
+
+		return e.complexity.FeedbackStock.RemovedRecruitmentID(childComplexity), true
 
 	case "FeedbackStock.viewerDoesStock":
 		if e.complexity.FeedbackStock.ViewerDoesStock == nil {
@@ -845,7 +847,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.StockedRecruitments(childComplexity), true
+		args, err := ec.field_Query_stockedRecruitments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StockedRecruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.tags":
 		if e.complexity.Query.Tags == nil {
@@ -1146,61 +1153,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
-	case "Viewer.avatar":
-		if e.complexity.Viewer.Avatar == nil {
+	case "User.role":
+		if e.complexity.User.Role == nil {
 			break
 		}
 
-		return e.complexity.Viewer.Avatar(childComplexity), true
-
-	case "Viewer.databaseId":
-		if e.complexity.Viewer.DatabaseID == nil {
-			break
-		}
-
-		return e.complexity.Viewer.DatabaseID(childComplexity), true
-
-	case "Viewer.email":
-		if e.complexity.Viewer.Email == nil {
-			break
-		}
-
-		return e.complexity.Viewer.Email(childComplexity), true
-
-	case "Viewer.emailVerificationStatus":
-		if e.complexity.Viewer.EmailVerificationStatus == nil {
-			break
-		}
-
-		return e.complexity.Viewer.EmailVerificationStatus(childComplexity), true
-
-	case "Viewer.id":
-		if e.complexity.Viewer.ID == nil {
-			break
-		}
-
-		return e.complexity.Viewer.ID(childComplexity), true
-
-	case "Viewer.introduction":
-		if e.complexity.Viewer.Introduction == nil {
-			break
-		}
-
-		return e.complexity.Viewer.Introduction(childComplexity), true
-
-	case "Viewer.name":
-		if e.complexity.Viewer.Name == nil {
-			break
-		}
-
-		return e.complexity.Viewer.Name(childComplexity), true
-
-	case "Viewer.role":
-		if e.complexity.Viewer.Role == nil {
-			break
-		}
-
-		return e.complexity.Viewer.Role(childComplexity), true
+		return e.complexity.User.Role(childComplexity), true
 
 	}
 	return 0, false
@@ -1357,7 +1315,7 @@ type Prefecture implements Node {
   recruitments(first: Int, after: String): RecruitmentConnection!
   viewerRecruitments(first: Int, after: String): RecruitmentConnection!
   recruitment(id: String!): Recruitment!
-  stockedRecruitments: [Recruitment!]!
+  stockedRecruitments(first: Int, after: String): RecruitmentConnection!
   appliedRecruitments: [Recruitment!]!
 }
 
@@ -1536,6 +1494,8 @@ type Mutation {
 type FeedbackStock implements Node {
   id: ID!
   viewerDoesStock: Boolean!
+  feedbackRecruitmentEdge: RecruitmentEdge
+  removedRecruitmentId: ID
 }
 
 extend type Mutation {
@@ -1562,7 +1522,7 @@ input CreateTagInput {
 }
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `extend type Query {
-  viewer: Viewer
+  viewer: User
 }
 
 enum Role {
@@ -1575,17 +1535,6 @@ enum EmailVerificationStatus {
   VERIFIED
 }
 
-type Viewer implements Node {
-  id: ID! @goField(forceResolver: true)
-  databaseId: Int!
-  name: String!
-  email: String!
-  avatar: String!
-  introduction: String
-  role: Role!
-  emailVerificationStatus: EmailVerificationStatus!
-}
-
 type User implements Node {
   id: ID! @goField(forceResolver: true)
   databaseId: Int!
@@ -1593,6 +1542,7 @@ type User implements Node {
   email: String!
   avatar: String!
   introduction: String
+  role: Role!
   emailVerificationStatus: EmailVerificationStatus!
 }
 
@@ -1605,7 +1555,7 @@ extend type Mutation {
 
 # Register
 type RegisterUserPayload {
-  viewer: Viewer
+  viewer: User
   userErrors: [RegisterUserInvalidInputError!]!
 }
 
@@ -1628,7 +1578,7 @@ input RegisterUserInput {
 
 # Login
 type LoginUserPayload {
-  viewer: Viewer
+  viewer: User
   userErrors: [LoginUserError!]!
 }
 
@@ -1997,6 +1947,30 @@ func (ec *executionContext) field_Query_recruitment_args(ctx context.Context, ra
 }
 
 func (ec *executionContext) field_Query_recruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_stockedRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -2834,6 +2808,8 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
 				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
@@ -3019,6 +2995,94 @@ func (ec *executionContext) fieldContext_FeedbackStock_viewerDoesStock(ctx conte
 	return fc, nil
 }
 
+func (ec *executionContext) _FeedbackStock_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackStock) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedbackRecruitmentEdge, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.RecruitmentEdge)
+	fc.Result = res
+	return ec.marshalORecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackStock",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackStock_removedRecruitmentId(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackStock) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackStock_removedRecruitmentId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RemovedRecruitmentID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackStock_removedRecruitmentId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackStock",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _LoginUserAuthenticationError_message(ctx context.Context, field graphql.CollectedField, obj *model.LoginUserAuthenticationError) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_LoginUserAuthenticationError_message(ctx, field)
 	if err != nil {
@@ -3174,9 +3238,9 @@ func (ec *executionContext) _LoginUserPayload_viewer(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Viewer)
+	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3188,23 +3252,23 @@ func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Con
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Viewer_id(ctx, field)
+				return ec.fieldContext_User_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_Viewer_databaseId(ctx, field)
+				return ec.fieldContext_User_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_Viewer_name(ctx, field)
+				return ec.fieldContext_User_name(ctx, field)
 			case "email":
-				return ec.fieldContext_Viewer_email(ctx, field)
+				return ec.fieldContext_User_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_Viewer_avatar(ctx, field)
+				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_Viewer_introduction(ctx, field)
+				return ec.fieldContext_User_introduction(ctx, field)
 			case "role":
-				return ec.fieldContext_Viewer_role(ctx, field)
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -3399,6 +3463,8 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
 				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
@@ -3957,6 +4023,10 @@ func (ec *executionContext) fieldContext_Mutation_addStock(ctx context.Context, 
 				return ec.fieldContext_FeedbackStock_id(ctx, field)
 			case "viewerDoesStock":
 				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx, field)
+			case "removedRecruitmentId":
+				return ec.fieldContext_FeedbackStock_removedRecruitmentId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
 		},
@@ -4038,6 +4108,10 @@ func (ec *executionContext) fieldContext_Mutation_removeStock(ctx context.Contex
 				return ec.fieldContext_FeedbackStock_id(ctx, field)
 			case "viewerDoesStock":
 				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx, field)
+			case "removedRecruitmentId":
+				return ec.fieldContext_FeedbackStock_removedRecruitmentId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
 		},
@@ -4740,6 +4814,8 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
 				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
@@ -5219,7 +5295,7 @@ func (ec *executionContext) _Query_stockedRecruitments(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().StockedRecruitments(rctx)
+		return ec.resolvers.Query().StockedRecruitments(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5231,9 +5307,9 @@ func (ec *executionContext) _Query_stockedRecruitments(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Recruitment)
+	res := resTmp.(*model.RecruitmentConnection)
 	fc.Result = res
-	return ec.marshalNRecruitment2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentᚄ(ctx, field.Selections, res)
+	return ec.marshalNRecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_stockedRecruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5244,45 +5320,24 @@ func (ec *executionContext) fieldContext_Query_stockedRecruitments(ctx context.C
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Recruitment_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Recruitment_databaseId(ctx, field)
-			case "title":
-				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "detail":
-				return ec.fieldContext_Recruitment_detail(ctx, field)
-			case "type":
-				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "venue":
-				return ec.fieldContext_Recruitment_venue(ctx, field)
-			case "startAt":
-				return ec.fieldContext_Recruitment_startAt(ctx, field)
-			case "locationLat":
-				return ec.fieldContext_Recruitment_locationLat(ctx, field)
-			case "locationLng":
-				return ec.fieldContext_Recruitment_locationLng(ctx, field)
-			case "status":
-				return ec.fieldContext_Recruitment_status(ctx, field)
-			case "closingAt":
-				return ec.fieldContext_Recruitment_closingAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Recruitment_createdAt(ctx, field)
-			case "publishedAt":
-				return ec.fieldContext_Recruitment_publishedAt(ctx, field)
-			case "competition":
-				return ec.fieldContext_Recruitment_competition(ctx, field)
-			case "prefecture":
-				return ec.fieldContext_Recruitment_prefecture(ctx, field)
-			case "user":
-				return ec.fieldContext_Recruitment_user(ctx, field)
-			case "tags":
-				return ec.fieldContext_Recruitment_tags(ctx, field)
-			case "applicant":
-				return ec.fieldContext_Recruitment_applicant(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_RecruitmentConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_RecruitmentConnection_edges(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_stockedRecruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -5412,6 +5467,10 @@ func (ec *executionContext) fieldContext_Query_checkStocked(ctx context.Context,
 				return ec.fieldContext_FeedbackStock_id(ctx, field)
 			case "viewerDoesStock":
 				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx, field)
+			case "removedRecruitmentId":
+				return ec.fieldContext_FeedbackStock_removedRecruitmentId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
 		},
@@ -5473,6 +5532,10 @@ func (ec *executionContext) fieldContext_Query_getStockedCount(ctx context.Conte
 				return ec.fieldContext_FeedbackStock_id(ctx, field)
 			case "viewerDoesStock":
 				return ec.fieldContext_FeedbackStock_viewerDoesStock(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_FeedbackStock_feedbackRecruitmentEdge(ctx, field)
+			case "removedRecruitmentId":
+				return ec.fieldContext_FeedbackStock_removedRecruitmentId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FeedbackStock", field.Name)
 		},
@@ -5566,9 +5629,9 @@ func (ec *executionContext) _Query_viewer(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Viewer)
+	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5580,23 +5643,23 @@ func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Viewer_id(ctx, field)
+				return ec.fieldContext_User_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_Viewer_databaseId(ctx, field)
+				return ec.fieldContext_User_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_Viewer_name(ctx, field)
+				return ec.fieldContext_User_name(ctx, field)
 			case "email":
-				return ec.fieldContext_Viewer_email(ctx, field)
+				return ec.fieldContext_User_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_Viewer_avatar(ctx, field)
+				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_Viewer_introduction(ctx, field)
+				return ec.fieldContext_User_introduction(ctx, field)
 			case "role":
-				return ec.fieldContext_Viewer_role(ctx, field)
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -6434,6 +6497,8 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
 				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
@@ -6939,9 +7004,9 @@ func (ec *executionContext) _RegisterUserPayload_viewer(ctx context.Context, fie
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Viewer)
+	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6953,23 +7018,23 @@ func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Viewer_id(ctx, field)
+				return ec.fieldContext_User_id(ctx, field)
 			case "databaseId":
-				return ec.fieldContext_Viewer_databaseId(ctx, field)
+				return ec.fieldContext_User_databaseId(ctx, field)
 			case "name":
-				return ec.fieldContext_Viewer_name(ctx, field)
+				return ec.fieldContext_User_name(ctx, field)
 			case "email":
-				return ec.fieldContext_Viewer_email(ctx, field)
+				return ec.fieldContext_User_email(ctx, field)
 			case "avatar":
-				return ec.fieldContext_Viewer_avatar(ctx, field)
+				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
-				return ec.fieldContext_Viewer_introduction(ctx, field)
+				return ec.fieldContext_User_introduction(ctx, field)
 			case "role":
-				return ec.fieldContext_Viewer_role(ctx, field)
+				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
-				return ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -7510,6 +7575,50 @@ func (ec *executionContext) fieldContext_User_introduction(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_role(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Role)
+	fc.Result = res
+	return ec.marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_role(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_emailVerificationStatus(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_emailVerificationStatus(ctx, field)
 	if err != nil {
@@ -7544,355 +7653,6 @@ func (ec *executionContext) _User_emailVerificationStatus(ctx context.Context, f
 func (ec *executionContext) fieldContext_User_emailVerificationStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type EmailVerificationStatus does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Viewer().ID(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_databaseId(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_databaseId(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DatabaseID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_databaseId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_name(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_email(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_email(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Email, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_avatar(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_avatar(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Avatar, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_avatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_introduction(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_introduction(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Introduction, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_introduction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_role(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_role(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Role, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Role)
-	fc.Result = res
-	return ec.marshalNRole2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_role(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Role does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Viewer_emailVerificationStatus(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Viewer_emailVerificationStatus(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.EmailVerificationStatus, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.EmailVerificationStatus)
-	fc.Result = res
-	return ec.marshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Viewer_emailVerificationStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Viewer",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -10221,13 +9981,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Tag(ctx, sel, obj)
-	case model.Viewer:
-		return ec._Viewer(ctx, sel, &obj)
-	case *model.Viewer:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Viewer(ctx, sel, obj)
 	case model.User:
 		return ec._User(ctx, sel, &obj)
 	case *model.User:
@@ -10606,6 +10359,14 @@ func (ec *executionContext) _FeedbackStock(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "feedbackRecruitmentEdge":
+
+			out.Values[i] = ec._FeedbackStock_feedbackRecruitmentEdge(ctx, field, obj)
+
+		case "removedRecruitmentId":
+
+			out.Values[i] = ec._FeedbackStock_removedRecruitmentId(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11910,96 +11671,16 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Values[i] = ec._User_introduction(ctx, field, obj)
 
+		case "role":
+
+			out.Values[i] = ec._User_role(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "emailVerificationStatus":
 
 			out.Values[i] = ec._User_emailVerificationStatus(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var viewerImplementors = []string{"Viewer", "Node"}
-
-func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, obj *model.Viewer) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, viewerImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Viewer")
-		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Viewer_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "databaseId":
-
-			out.Values[i] = ec._Viewer_databaseId(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "name":
-
-			out.Values[i] = ec._Viewer_name(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "email":
-
-			out.Values[i] = ec._Viewer_email(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "avatar":
-
-			out.Values[i] = ec._Viewer_avatar(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "introduction":
-
-			out.Values[i] = ec._Viewer_introduction(ctx, field, obj)
-
-		case "role":
-
-			out.Values[i] = ec._Viewer_role(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "emailVerificationStatus":
-
-			out.Values[i] = ec._Viewer_emailVerificationStatus(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
@@ -13585,6 +13266,22 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -13615,6 +13312,13 @@ func (ec *executionContext) marshalOPrefecture2ᚖgithubᚗcomᚋnagokosᚋconne
 	return ec._Prefecture(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalORecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RecruitmentEdge(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -13638,11 +13342,11 @@ func (ec *executionContext) marshalOTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_bac
 	return ec._Tag(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._Viewer(ctx, sel, v)
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

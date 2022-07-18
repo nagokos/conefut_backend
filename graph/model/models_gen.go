@@ -102,8 +102,10 @@ type FeedbackApplicant struct {
 func (FeedbackApplicant) IsNode() {}
 
 type FeedbackStock struct {
-	ID              string `json:"id"`
-	ViewerDoesStock bool   `json:"viewerDoesStock"`
+	ID                      string           `json:"id"`
+	ViewerDoesStock         bool             `json:"viewerDoesStock"`
+	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
+	RemovedRecruitmentID    *string          `json:"removedRecruitmentId"`
 }
 
 func (FeedbackStock) IsNode() {}
@@ -129,7 +131,7 @@ func (LoginUserInvalidInputError) IsLoginUserError() {}
 func (LoginUserInvalidInputError) IsError()          {}
 
 type LoginUserPayload struct {
-	Viewer     *Viewer          `json:"viewer"`
+	Viewer     *User            `json:"viewer"`
 	UserErrors []LoginUserError `json:"userErrors"`
 }
 
@@ -202,7 +204,7 @@ type RegisterUserInvalidInputError struct {
 func (RegisterUserInvalidInputError) IsError() {}
 
 type RegisterUserPayload struct {
-	Viewer     *Viewer                          `json:"viewer"`
+	Viewer     *User                            `json:"viewer"`
 	UserErrors []*RegisterUserInvalidInputError `json:"userErrors"`
 }
 
@@ -226,23 +228,11 @@ type User struct {
 	Email                   string                  `json:"email"`
 	Avatar                  string                  `json:"avatar"`
 	Introduction            *string                 `json:"introduction"`
-	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
-}
-
-func (User) IsNode() {}
-
-type Viewer struct {
-	ID                      string                  `json:"id"`
-	DatabaseID              int                     `json:"databaseId"`
-	Name                    string                  `json:"name"`
-	Email                   string                  `json:"email"`
-	Avatar                  string                  `json:"avatar"`
-	Introduction            *string                 `json:"introduction"`
 	Role                    Role                    `json:"role"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
 }
 
-func (Viewer) IsNode() {}
+func (User) IsNode() {}
 
 type ApplicantInput struct {
 	Message string `json:"message"`
