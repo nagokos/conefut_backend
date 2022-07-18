@@ -227,7 +227,6 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 				SELECT *
 				FROM recruitments 
 				WHERE ($1 OR id < $2)
-				ORDER BY id DESC
 				LIMIT $3
 			) AS r
 		WHERE r.user_id = $4
@@ -448,15 +447,22 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 				) AS r
 			LIMIT 1
 		`
+		row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(endCursor))
 
-		isNext, err := search.NextPageExists(ctx, dbPool, endCursor, cmd)
+		var count int
+		err = row.Scan(&count)
 		if err != nil {
-			return &model.RecruitmentConnection{}, err
+			logger.NewLogger().Error(err.Error())
+			return nil, err
 		}
 
+		var isNextPage bool
+		if count > 0 {
+			isNextPage = true
+		}
 		var pageInfo model.PageInfo
 
-		pageInfo.HasNextPage = isNext
+		pageInfo.HasNextPage = isNextPage
 		pageInfo.EndCursor = &endCursor
 
 		recConnection.PageInfo = &pageInfo
@@ -467,33 +473,92 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	return &recConnection, nil
 }
 
-func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
+func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	viewer := auth.ForContext(ctx)
 
 	cmd := `
 		SELECT r.id, r.title, r.closing_at, r.user_id
 		FROM recruitments AS r
-		INNER JOIN stocks AS s
-		ON s.recruitment_id = r.id
-		WHERE s.user_id = $1
-		ORDER BY s.created_at DESC
+		INNER JOIN stocks AS s 
+			ON r.id = s.recruitment_id
+		WHERE r.status = 'published'
+		AND s.user_id = $1
+		AND ($2 OR s.id < (
+												SELECT s.id
+												FROM stocks AS s 
+												WHERE s.recruitment_id = $3
+												AND s.user_id = $4
+											))
+		ORDER BY s.id DESC
+		LIMIT $5
 	`
 
-	rows, err := dbPool.Query(ctx, cmd, viewer.ID)
+	rows, err := dbPool.Query(
+		ctx, cmd,
+		viewer.DatabaseID, !params.UseAfter, params.After, viewer.DatabaseID, params.NumRows,
+	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 	defer rows.Close()
 
-	var recruitments []*model.Recruitment
+	connection := model.RecruitmentConnection{
+		PageInfo: &model.PageInfo{},
+		Edges:    []*model.RecruitmentEdge{},
+	}
+
 	for rows.Next() {
 		var recruitment model.Recruitment
-		err := rows.Scan(&recruitment.ID, &recruitment.Title, &recruitment.ClosingAt)
+		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.ClosingAt, &recruitment.UserID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		recruitments = append(recruitments, &recruitment)
+		connection.Edges = append(connection.Edges, &model.RecruitmentEdge{
+			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
+			Node:   &recruitment,
+		})
+	}
+
+	if len(connection.Edges) > 0 {
+		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
+		connection.PageInfo.EndCursor = &endCursor
+
+		cmd = `
+			SELECT COUNT(DISTINCT r.id)
+			FROM 
+			(
+				SELECT r.id
+				FROM recruitments AS r
+				INNER JOIN stocks AS s 
+					ON r.id = s.recruitment_id
+				WHERE s.user_id = $1
+				AND s.id < (
+												SELECT s.id
+												FROM stocks AS s 
+												WHERE s.recruitment_id = $2
+												AND s.user_id = $3
+											)
+				
+				ORDER BY s.id DESC
+				LIMIT 1
+			) as r
+		`
+		row := dbPool.QueryRow(
+			ctx, cmd,
+			viewer.DatabaseID, utils.DecodeUniqueID(endCursor), viewer.DatabaseID,
+		)
+
+		var count int
+		err = row.Scan(&count)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+
+		if count > 0 {
+			connection.PageInfo.HasNextPage = true
+		}
 	}
 
 	err = rows.Err()
@@ -502,7 +567,7 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 		return nil, err
 	}
 
-	return recruitments, nil
+	return &connection, nil
 }
 
 func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (*model.Recruitment, error) {

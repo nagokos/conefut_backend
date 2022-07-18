@@ -52,6 +52,25 @@ func AddStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (
 		return &feedback, err
 	}
 
+	cmd = `
+	  SELECT id, title, closing_at, user_id
+		FROM recruitments
+		WHERE id = $1
+	`
+	row = dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID))
+
+	var recruitment model.Recruitment
+	err = row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.ClosingAt, &recruitment.UserID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	feedback.FeedbackRecruitmentEdge = &model.RecruitmentEdge{
+		Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
+		Node:   &recruitment,
+	}
+
 	feedback.ViewerDoesStock = true
 	return &feedback, nil
 }
@@ -67,12 +86,14 @@ func RemoveStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string
 	  DELETE FROM stocks 
 		WHERE user_id = $1 
 		AND recruitment_id = $2
+		RETURNING id
 	`
 	_, err := dbPool.Exec(ctx, cmd, viewer.DatabaseID, utils.DecodeUniqueID(recruitmentID))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return &feedback, errors.New("delete stock error")
 	}
+	feedback.RemovedRecruitmentID = &recruitmentID
 
 	return &feedback, nil
 }

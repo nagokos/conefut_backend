@@ -148,8 +148,14 @@ func (r *queryResolver) Recruitment(ctx context.Context, id string) (*model.Recr
 }
 
 // StockedRecruitments is the resolver for the stockedRecruitments field.
-func (r *queryResolver) StockedRecruitments(ctx context.Context) ([]*model.Recruitment, error) {
-	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool)
+func (r *queryResolver) StockedRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error) {
+	params, err := search.NewSearchParams(first, after, nil, nil)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	res, err := recruitment.GetStockedRecruitments(ctx, r.dbPool, params)
 	if err != nil {
 		return nil, err
 	}
