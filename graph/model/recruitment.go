@@ -21,5 +21,5 @@ type Recruitment struct {
 	PublishedAt   *time.Time `json:"publishedAt"`
 	UserID        int        `json:"userId"`
 	CompetitionID int        `json:"competitionId"`
-	PrefectureID  *int       `json:"prefectureId"`
+	PrefectureID  int        `json:"prefectureId"`
 }
