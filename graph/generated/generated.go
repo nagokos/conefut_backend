@@ -85,6 +85,10 @@ type ComplexityRoot struct {
 		Name       func(childComplexity int) int
 	}
 
+	CreateRecruitmentPayload struct {
+		FeedbackRecruitmentEdge func(childComplexity int) int
+	}
+
 	DeleteRecruitmentPayload struct {
 		DeletedRecruitmentID func(childComplexity int) int
 	}
@@ -204,10 +208,6 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
-	RecruitmentPayload struct {
-		FeedbackRecruitmentEdge func(childComplexity int) int
-	}
-
 	RegisterUserInvalidInputError struct {
 		Field   func(childComplexity int) int
 		Message func(childComplexity int) int
@@ -227,6 +227,11 @@ type ComplexityRoot struct {
 		DatabaseID func(childComplexity int) int
 		ID         func(childComplexity int) int
 		Name       func(childComplexity int) int
+	}
+
+	UpdateRecruitmentPayload struct {
+		DeletedRecruitmentID    func(childComplexity int) int
+		FeedbackRecruitmentEdge func(childComplexity int) int
 	}
 
 	User struct {
@@ -251,8 +256,8 @@ type MutationResolver interface {
 	AddRecruitmentTag(ctx context.Context, tagID string, recruitmentID string) (bool, error)
 	CreateMessage(ctx context.Context, roomID string, input model.CreateMessageInput) (*model.Message, error)
 	ApplyForRecruitment(ctx context.Context, recruitmentID string, input *model.ApplicantInput) (*model.ApplyForRecruitmentPayload, error)
-	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentPayload, error)
-	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error)
+	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.CreateRecruitmentPayload, error)
+	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.UpdateRecruitmentPayload, error)
 	DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error)
 	AddStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	RemoveStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
@@ -284,6 +289,10 @@ type QueryResolver interface {
 }
 type RecruitmentResolver interface {
 	ID(ctx context.Context, obj *model.Recruitment) (string, error)
+
+	Type(ctx context.Context, obj *model.Recruitment) (model.Type, error)
+
+	Status(ctx context.Context, obj *model.Recruitment) (model.Status, error)
 
 	Competition(ctx context.Context, obj *model.Recruitment) (*model.Competition, error)
 	Prefecture(ctx context.Context, obj *model.Recruitment) (*model.Prefecture, error)
@@ -410,6 +419,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Competition.Name(childComplexity), true
+
+	case "CreateRecruitmentPayload.feedbackRecruitmentEdge":
+		if e.complexity.CreateRecruitmentPayload.FeedbackRecruitmentEdge == nil {
+			break
+		}
+
+		return e.complexity.CreateRecruitmentPayload.FeedbackRecruitmentEdge(childComplexity), true
 
 	case "DeleteRecruitmentPayload.deletedRecruitmentId":
 		if e.complexity.DeleteRecruitmentPayload.DeletedRecruitmentID == nil {
@@ -1034,13 +1050,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.RecruitmentEdge.Node(childComplexity), true
 
-	case "RecruitmentPayload.feedbackRecruitmentEdge":
-		if e.complexity.RecruitmentPayload.FeedbackRecruitmentEdge == nil {
-			break
-		}
-
-		return e.complexity.RecruitmentPayload.FeedbackRecruitmentEdge(childComplexity), true
-
 	case "RegisterUserInvalidInputError.field":
 		if e.complexity.RegisterUserInvalidInputError.Field == nil {
 			break
@@ -1103,6 +1112,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tag.Name(childComplexity), true
+
+	case "UpdateRecruitmentPayload.deletedRecruitmentId":
+		if e.complexity.UpdateRecruitmentPayload.DeletedRecruitmentID == nil {
+			break
+		}
+
+		return e.complexity.UpdateRecruitmentPayload.DeletedRecruitmentID(childComplexity), true
+
+	case "UpdateRecruitmentPayload.feedbackRecruitmentEdge":
+		if e.complexity.UpdateRecruitmentPayload.FeedbackRecruitmentEdge == nil {
+			break
+		}
+
+		return e.complexity.UpdateRecruitmentPayload.FeedbackRecruitmentEdge(childComplexity), true
 
 	case "User.avatar":
 		if e.complexity.User.Avatar == nil {
@@ -1314,7 +1337,7 @@ type Prefecture implements Node {
 	{Name: "../schema/recruitment.graphqls", Input: `extend type Query {
   recruitments(first: Int, after: String): RecruitmentConnection!
   viewerRecruitments(first: Int, after: String): RecruitmentConnection!
-  recruitment(id: String!): Recruitment!
+  recruitment(id: ID!): Recruitment!
   stockedRecruitments(first: Int, after: String): RecruitmentConnection!
   appliedRecruitments: [Recruitment!]!
 }
@@ -1334,17 +1357,17 @@ type Recruitment implements Node {
   databaseId: Int!
   title: String!
   detail: String
-  type: Type!
+  type: Type! @goField(forceResolver: true)
   venue: String
   startAt: DateTime
   locationLat: Float
   locationLng: Float
-  status: Status!
+  status: Status! @goField(forceResolver: true)
   closingAt: DateTime
   createdAt: DateTime!
   publishedAt: DateTime
   competition: Competition!
-  prefecture: Prefecture
+  prefecture: Prefecture!
   user: User!
   tags: [Tag]!
   applicant: Applicant
@@ -1365,15 +1388,25 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: RecruitmentInput!): RecruitmentPayload!
+  createRecruitment(input: RecruitmentInput!): CreateRecruitmentPayload!
     @emailVerified(status: VERIFIED)
     @hasLoggedIn
-  updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): DeleteRecruitmentPayload! @hasLoggedIn
+  updateRecruitment(
+    id: ID!
+    input: RecruitmentInput!
+  ): UpdateRecruitmentPayload! @emailVerified(status: VERIFIED) @hasLoggedIn
+  deleteRecruitment(id: ID!): DeleteRecruitmentPayload!
+    @emailVerified(status: VERIFIED)
+    @hasLoggedIn
 }
 
-type RecruitmentPayload {
+type CreateRecruitmentPayload {
   feedbackRecruitmentEdge: RecruitmentEdge!
+}
+
+type UpdateRecruitmentPayload {
+  feedbackRecruitmentEdge: RecruitmentEdge!
+  deletedRecruitmentId: ID
 }
 
 type DeleteRecruitmentPayload {
@@ -1382,10 +1415,10 @@ type DeleteRecruitmentPayload {
 
 input RecruitmentInput {
   title: String!
-  competitionId: String!
+  competitionId: ID!
   type: Type!
   detail: String
-  prefectureId: String
+  prefectureId: ID!
   venue: String
   startAt: DateTime
   closingAt: DateTime
@@ -1487,8 +1520,8 @@ type Mutation {
 }
 `, BuiltIn: false},
 	{Name: "../schema/stock.graphqls", Input: `extend type Query {
-  checkStocked(recruitmentId: String!): FeedbackStock!
-  getStockedCount(recruitmentId: String!): FeedbackStock!
+  checkStocked(recruitmentId: ID!): FeedbackStock!
+  getStockedCount(recruitmentId: ID!): FeedbackStock!
 }
 
 type FeedbackStock implements Node {
@@ -1499,8 +1532,8 @@ type FeedbackStock implements Node {
 }
 
 extend type Mutation {
-  addStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
-  removeStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
+  addStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
+  removeStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
 }
 `, BuiltIn: false},
 	{Name: "../schema/tag.graphqls", Input: `extend type Query {
@@ -1655,7 +1688,7 @@ func (ec *executionContext) field_Mutation_addStock_args(ctx context.Context, ra
 	var arg0 string
 	if tmp, ok := rawArgs["recruitmentId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1748,7 +1781,7 @@ func (ec *executionContext) field_Mutation_deleteRecruitment_args(ctx context.Co
 	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1793,7 +1826,7 @@ func (ec *executionContext) field_Mutation_removeStock_args(ctx context.Context,
 	var arg0 string
 	if tmp, ok := rawArgs["recruitmentId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1808,7 +1841,7 @@ func (ec *executionContext) field_Mutation_updateRecruitment_args(ctx context.Co
 	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1862,7 +1895,7 @@ func (ec *executionContext) field_Query_checkStocked_args(ctx context.Context, r
 	var arg0 string
 	if tmp, ok := rawArgs["recruitmentId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1907,7 +1940,7 @@ func (ec *executionContext) field_Query_getStockedCount_args(ctx context.Context
 	var arg0 string
 	if tmp, ok := rawArgs["recruitmentId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1937,7 +1970,7 @@ func (ec *executionContext) field_Query_recruitment_args(ctx context.Context, ra
 	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2708,6 +2741,56 @@ func (ec *executionContext) fieldContext_Competition_name(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField, obj *model.CreateRecruitmentPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedbackRecruitmentEdge, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RecruitmentEdge)
+	fc.Result = res
+	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateRecruitmentPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
 		},
 	}
 	return fc, nil
@@ -3740,10 +3823,10 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.RecruitmentPayload); ok {
+		if data, ok := tmp.(*model.CreateRecruitmentPayload); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.RecruitmentPayload`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.CreateRecruitmentPayload`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3755,9 +3838,9 @@ func (ec *executionContext) _Mutation_createRecruitment(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.RecruitmentPayload)
+	res := resTmp.(*model.CreateRecruitmentPayload)
 	fc.Result = res
-	return ec.marshalNRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx, field.Selections, res)
+	return ec.marshalNCreateRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateRecruitmentPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3769,9 +3852,9 @@ func (ec *executionContext) fieldContext_Mutation_createRecruitment(ctx context.
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "feedbackRecruitmentEdge":
-				return ec.fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
+				return ec.fieldContext_CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type RecruitmentPayload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type CreateRecruitmentPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3801,8 +3884,38 @@ func (ec *executionContext) _Mutation_updateRecruitment(ctx context.Context, fie
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateRecruitment(rctx, fc.Args["id"].(string), fc.Args["input"].(model.RecruitmentInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateRecruitment(rctx, fc.Args["id"].(string), fc.Args["input"].(model.RecruitmentInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			status, err := ec.unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, "VERIFIED")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.EmailVerified == nil {
+				return nil, errors.New("directive emailVerified is not implemented")
+			}
+			return ec.directives.EmailVerified(ctx, nil, directive0, status)
+		}
+		directive2 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.HasLoggedIn == nil {
+				return nil, errors.New("directive hasLoggedIn is not implemented")
+			}
+			return ec.directives.HasLoggedIn(ctx, nil, directive1)
+		}
+
+		tmp, err := directive2(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.UpdateRecruitmentPayload); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/nagokos/connefut_backend/graph/model.UpdateRecruitmentPayload`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3814,9 +3927,9 @@ func (ec *executionContext) _Mutation_updateRecruitment(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Recruitment)
+	res := resTmp.(*model.UpdateRecruitmentPayload)
 	fc.Result = res
-	return ec.marshalNRecruitment2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitment(ctx, field.Selections, res)
+	return ec.marshalNUpdateRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUpdateRecruitmentPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_updateRecruitment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3827,44 +3940,12 @@ func (ec *executionContext) fieldContext_Mutation_updateRecruitment(ctx context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Recruitment_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Recruitment_databaseId(ctx, field)
-			case "title":
-				return ec.fieldContext_Recruitment_title(ctx, field)
-			case "detail":
-				return ec.fieldContext_Recruitment_detail(ctx, field)
-			case "type":
-				return ec.fieldContext_Recruitment_type(ctx, field)
-			case "venue":
-				return ec.fieldContext_Recruitment_venue(ctx, field)
-			case "startAt":
-				return ec.fieldContext_Recruitment_startAt(ctx, field)
-			case "locationLat":
-				return ec.fieldContext_Recruitment_locationLat(ctx, field)
-			case "locationLng":
-				return ec.fieldContext_Recruitment_locationLng(ctx, field)
-			case "status":
-				return ec.fieldContext_Recruitment_status(ctx, field)
-			case "closingAt":
-				return ec.fieldContext_Recruitment_closingAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Recruitment_createdAt(ctx, field)
-			case "publishedAt":
-				return ec.fieldContext_Recruitment_publishedAt(ctx, field)
-			case "competition":
-				return ec.fieldContext_Recruitment_competition(ctx, field)
-			case "prefecture":
-				return ec.fieldContext_Recruitment_prefecture(ctx, field)
-			case "user":
-				return ec.fieldContext_Recruitment_user(ctx, field)
-			case "tags":
-				return ec.fieldContext_Recruitment_tags(ctx, field)
-			case "applicant":
-				return ec.fieldContext_Recruitment_applicant(ctx, field)
+			case "feedbackRecruitmentEdge":
+				return ec.fieldContext_UpdateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
+			case "deletedRecruitmentId":
+				return ec.fieldContext_UpdateRecruitmentPayload_deletedRecruitmentId(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type UpdateRecruitmentPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3899,13 +3980,23 @@ func (ec *executionContext) _Mutation_deleteRecruitment(ctx context.Context, fie
 			return ec.resolvers.Mutation().DeleteRecruitment(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
+			status, err := ec.unmarshalNEmailVerificationStatus2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐEmailVerificationStatus(ctx, "VERIFIED")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.EmailVerified == nil {
+				return nil, errors.New("directive emailVerified is not implemented")
+			}
+			return ec.directives.EmailVerified(ctx, nil, directive0, status)
+		}
+		directive2 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.HasLoggedIn == nil {
 				return nil, errors.New("directive hasLoggedIn is not implemented")
 			}
-			return ec.directives.HasLoggedIn(ctx, nil, directive0)
+			return ec.directives.HasLoggedIn(ctx, nil, directive1)
 		}
 
-		tmp, err := directive1(rctx)
+		tmp, err := directive2(rctx)
 		if err != nil {
 			return nil, graphql.ErrorOnPath(ctx, err)
 		}
@@ -5981,7 +6072,7 @@ func (ec *executionContext) _Recruitment_type(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
+		return ec.resolvers.Recruitment().Type(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6002,8 +6093,8 @@ func (ec *executionContext) fieldContext_Recruitment_type(ctx context.Context, f
 	fc = &graphql.FieldContext{
 		Object:     "Recruitment",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Type does not have child fields")
 		},
@@ -6189,7 +6280,7 @@ func (ec *executionContext) _Recruitment_status(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Status, nil
+		return ec.resolvers.Recruitment().Status(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6210,8 +6301,8 @@ func (ec *executionContext) fieldContext_Recruitment_status(ctx context.Context,
 	fc = &graphql.FieldContext{
 		Object:     "Recruitment",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Status does not have child fields")
 		},
@@ -6418,11 +6509,14 @@ func (ec *executionContext) _Recruitment_prefecture(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Prefecture)
 	fc.Result = res
-	return ec.marshalOPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx, field.Selections, res)
+	return ec.marshalNPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Recruitment_prefecture(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6838,56 +6932,6 @@ func (ec *executionContext) fieldContext_RecruitmentEdge_node(ctx context.Contex
 				return ec.fieldContext_Recruitment_applicant(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Recruitment", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField, obj *model.RecruitmentPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.FeedbackRecruitmentEdge, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.RecruitmentEdge)
-	fc.Result = res
-	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_RecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RecruitmentPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "cursor":
-				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
-			case "node":
-				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
 		},
 	}
 	return fc, nil
@@ -7309,6 +7353,97 @@ func (ec *executionContext) fieldContext_Tag_name(ctx context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateRecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField, obj *model.UpdateRecruitmentPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedbackRecruitmentEdge, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RecruitmentEdge)
+	fc.Result = res
+	return ec.marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateRecruitmentPayload_feedbackRecruitmentEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateRecruitmentPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_RecruitmentEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateRecruitmentPayload_deletedRecruitmentId(ctx context.Context, field graphql.CollectedField, obj *model.UpdateRecruitmentPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateRecruitmentPayload_deletedRecruitmentId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletedRecruitmentID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateRecruitmentPayload_deletedRecruitmentId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateRecruitmentPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9554,7 +9689,7 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("competitionId"))
-			it.CompetitionID, err = ec.unmarshalNString2string(ctx, v)
+			it.CompetitionID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -9578,7 +9713,7 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefectureId"))
-			it.PrefectureID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.PrefectureID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10232,6 +10367,34 @@ func (ec *executionContext) _Competition(ctx context.Context, sel ast.SelectionS
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var createRecruitmentPayloadImplementors = []string{"CreateRecruitmentPayload"}
+
+func (ec *executionContext) _CreateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CreateRecruitmentPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createRecruitmentPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateRecruitmentPayload")
+		case "feedbackRecruitmentEdge":
+
+			out.Values[i] = ec._CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -11205,12 +11368,25 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_detail(ctx, field, obj)
 
 		case "type":
+			field := field
 
-			out.Values[i] = ec._Recruitment_type(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Recruitment_type(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "venue":
 
 			out.Values[i] = ec._Recruitment_venue(ctx, field, obj)
@@ -11228,12 +11404,25 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._Recruitment_locationLng(ctx, field, obj)
 
 		case "status":
+			field := field
 
-			out.Values[i] = ec._Recruitment_status(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Recruitment_status(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "closingAt":
 
 			out.Values[i] = ec._Recruitment_closingAt(ctx, field, obj)
@@ -11279,6 +11468,9 @@ func (ec *executionContext) _Recruitment(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Recruitment_prefecture(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -11409,34 +11601,6 @@ func (ec *executionContext) _RecruitmentEdge(ctx context.Context, sel ast.Select
 		case "node":
 
 			out.Values[i] = ec._RecruitmentEdge_node(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var recruitmentPayloadImplementors = []string{"RecruitmentPayload"}
-
-func (ec *executionContext) _RecruitmentPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RecruitmentPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, recruitmentPayloadImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("RecruitmentPayload")
-		case "feedbackRecruitmentEdge":
-
-			out.Values[i] = ec._RecruitmentPayload_feedbackRecruitmentEdge(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -11598,6 +11762,38 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var updateRecruitmentPayloadImplementors = []string{"UpdateRecruitmentPayload"}
+
+func (ec *executionContext) _UpdateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, obj *model.UpdateRecruitmentPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateRecruitmentPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateRecruitmentPayload")
+		case "feedbackRecruitmentEdge":
+
+			out.Values[i] = ec._UpdateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deletedRecruitmentId":
+
+			out.Values[i] = ec._UpdateRecruitmentPayload_deletedRecruitmentId(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12165,6 +12361,20 @@ func (ec *executionContext) marshalNCompetition2ᚖgithubᚗcomᚋnagokosᚋconn
 	return ec._Competition(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCreateRecruitmentPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v model.CreateRecruitmentPayload) graphql.Marshaler {
+	return ec._CreateRecruitmentPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateRecruitmentPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateRecruitmentPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNCreateTagInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateTagInput(ctx context.Context, v interface{}) (model.CreateTagInput, error) {
 	res, err := ec.unmarshalInputCreateTagInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12428,6 +12638,10 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋnagokosᚋconnefu
 	return ec._PageInfo(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPrefecture2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx context.Context, sel ast.SelectionSet, v model.Prefecture) graphql.Marshaler {
+	return ec._Prefecture(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Prefecture) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -12611,20 +12825,6 @@ func (ec *executionContext) marshalNRecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋ
 func (ec *executionContext) unmarshalNRecruitmentInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentInput(ctx context.Context, v interface{}) (model.RecruitmentInput, error) {
 	res, err := ec.unmarshalInputRecruitmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRecruitmentPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v model.RecruitmentPayload) graphql.Marshaler {
-	return ec._RecruitmentPayload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentPayload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._RecruitmentPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNRegisterUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRegisterUserInput(ctx context.Context, v interface{}) (model.RegisterUserInput, error) {
@@ -12903,6 +13103,20 @@ func (ec *executionContext) unmarshalNType2githubᚗcomᚋnagokosᚋconnefut_bac
 
 func (ec *executionContext) marshalNType2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐType(ctx context.Context, sel ast.SelectionSet, v model.Type) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNUpdateRecruitmentPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUpdateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v model.UpdateRecruitmentPayload) graphql.Marshaler {
+	return ec._UpdateRecruitmentPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUpdateRecruitmentPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUpdateRecruitmentPayload(ctx context.Context, sel ast.SelectionSet, v *model.UpdateRecruitmentPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UpdateRecruitmentPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
@@ -13303,13 +13517,6 @@ func (ec *executionContext) marshalONode2githubᚗcomᚋnagokosᚋconnefut_backe
 		return graphql.Null
 	}
 	return ec._Node(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOPrefecture2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefecture(ctx context.Context, sel ast.SelectionSet, v *model.Prefecture) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Prefecture(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentEdge) graphql.Marshaler {
