@@ -67,12 +67,7 @@ func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-	}()
+	_ = tx.Rollback(ctx)
 
 	cmd := "INSERT INTO prefectures (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
@@ -103,12 +98,7 @@ func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-	}()
+	_ = tx.Rollback(ctx)
 
 	cmd := "INSERT INTO competitions (name, created_at, updated_at) VALUES ($1, $2, $3)"
 	if err != nil {
@@ -149,12 +139,7 @@ func InsertTags(ctx context.Context, dbPool *pgxpool.Pool) {
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-	}()
+	_ = tx.Rollback(ctx)
 
 	cmd := "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3)"
 

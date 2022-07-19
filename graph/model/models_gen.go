@@ -82,6 +82,10 @@ type Competition struct {
 
 func (Competition) IsNode() {}
 
+type CreateRecruitmentPayload struct {
+	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
+}
+
 type CreateTagInput struct {
 	Name string `json:"name"`
 }
@@ -176,7 +180,7 @@ type RecruitmentInput struct {
 	CompetitionID string                 `json:"competitionId"`
 	Type          Type                   `json:"type"`
 	Detail        *string                `json:"detail"`
-	PrefectureID  *string                `json:"prefectureId"`
+	PrefectureID  string                 `json:"prefectureId"`
 	Venue         *string                `json:"venue"`
 	StartAt       *time.Time             `json:"startAt"`
 	ClosingAt     *time.Time             `json:"closingAt"`
@@ -184,10 +188,6 @@ type RecruitmentInput struct {
 	LocationLng   *float64               `json:"locationLng"`
 	Status        Status                 `json:"status"`
 	Tags          []*RecruitmentTagInput `json:"tags"`
-}
-
-type RecruitmentPayload struct {
-	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
 }
 
 type RegisterUserInput struct {
@@ -220,6 +220,11 @@ type Tag struct {
 }
 
 func (Tag) IsNode() {}
+
+type UpdateRecruitmentPayload struct {
+	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
+	DeletedRecruitmentID    *string          `json:"deletedRecruitmentId"`
+}
 
 type User struct {
 	ID                      string                  `json:"id"`

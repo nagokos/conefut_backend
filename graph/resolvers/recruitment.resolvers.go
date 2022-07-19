@@ -5,12 +5,10 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -21,7 +19,7 @@ import (
 )
 
 // CreateRecruitment is the resolver for the createRecruitment field.
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.RecruitmentPayload, error) {
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.CreateRecruitmentPayload, error) {
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -57,13 +55,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 }
 
 // UpdateRecruitment is the resolver for the updateRecruitment field.
-func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.Recruitment, error) {
-	viewer := auth.ForContext(ctx)
-	if model.Status(input.Status) == model.StatusPublished &&
-		viewer.EmailVerificationStatus == model.EmailVerificationStatusPending {
-		return &model.Recruitment{}, errors.New("メールアドレスを認証してください")
-	}
-
+func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.UpdateRecruitmentPayload, error) {
 	rm := recruitment.Recruitment{
 		Title:         input.Title,
 		Type:          input.Type,
@@ -87,7 +79,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		for k, errMessage := range errs {
 			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
 		}
-		return &model.Recruitment{}, err
+		return &model.UpdateRecruitmentPayload{}, err
 	}
 
 	res, err := rm.UpdateRecruitment(ctx, r.dbPool, id)
@@ -178,6 +170,16 @@ func (r *recruitmentResolver) ID(ctx context.Context, obj *model.Recruitment) (s
 	return utils.GenerateUniqueID("Recruitment", obj.DatabaseID), nil
 }
 
+// Type is the resolver for the type field.
+func (r *recruitmentResolver) Type(ctx context.Context, obj *model.Recruitment) (model.Type, error) {
+	return model.Type(strings.ToUpper(obj.Type.String())), nil
+}
+
+// Status is the resolver for the status field.
+func (r *recruitmentResolver) Status(ctx context.Context, obj *model.Recruitment) (model.Status, error) {
+	return model.Status(strings.ToUpper(obj.Status.String())), nil
+}
+
 // Competition is the resolver for the competition field.
 func (r *recruitmentResolver) Competition(ctx context.Context, obj *model.Recruitment) (*model.Competition, error) {
 	competition, err := loader.GetCompetition(ctx, obj.CompetitionID)
@@ -190,10 +192,7 @@ func (r *recruitmentResolver) Competition(ctx context.Context, obj *model.Recrui
 
 // Prefecture is the resolver for the prefecture field.
 func (r *recruitmentResolver) Prefecture(ctx context.Context, obj *model.Recruitment) (*model.Prefecture, error) {
-	if obj.PrefectureID == nil {
-		return &model.Prefecture{}, nil
-	}
-	prefecture, err := loader.GetPrefecture(ctx, *obj.PrefectureID)
+	prefecture, err := loader.GetPrefecture(ctx, obj.PrefectureID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -218,6 +217,7 @@ func (r *recruitmentResolver) Tags(ctx context.Context, obj *model.Recruitment) 
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
+	fmt.Println(len(tags))
 	return tags, nil
 }
 

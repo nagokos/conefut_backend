@@ -125,7 +125,7 @@ func main() {
 
 	cmd = `
 	  INSERT INTO recruitments 
-		  (title, type, place, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
+		  (title, type, venue, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
 		VALUES 
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		`
