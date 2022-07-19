@@ -34,6 +34,7 @@ func (u *TagReader) GetRecruitmentTags(ctx context.Context, keys dataloader.Keys
 
 func LoadTagsByRecruitmentID(ctx context.Context, recruitmentID int) ([]*model.Tag, error) {
 	loaders := GetLoaders(ctx)
+	loaders.TagLoader.Clear(ctx, dataloader.StringKey(fmt.Sprintf("%d", recruitmentID))) // タグの更新ができなくなるため必要
 	thunk := loaders.TagLoader.Load(ctx, dataloader.StringKey(fmt.Sprintf("%d", recruitmentID)))
 	result, err := thunk()
 	if err != nil {
