@@ -1,7 +1,7 @@
 extend type Query {
   recruitments(first: Int, after: String): RecruitmentConnection!
   viewerRecruitments(first: Int, after: String): RecruitmentConnection!
-  recruitment(id: String!): Recruitment!
+  recruitment(id: ID!): Recruitment!
   stockedRecruitments(first: Int, after: String): RecruitmentConnection!
   appliedRecruitments: [Recruitment!]!
 }
@@ -21,17 +21,17 @@ type Recruitment implements Node {
   databaseId: Int!
   title: String!
   detail: String
-  type: Type!
+  type: Type! @goField(forceResolver: true)
   venue: String
   startAt: DateTime
   locationLat: Float
   locationLng: Float
-  status: Status!
+  status: Status! @goField(forceResolver: true)
   closingAt: DateTime
   createdAt: DateTime!
   publishedAt: DateTime
   competition: Competition!
-  prefecture: Prefecture
+  prefecture: Prefecture!
   user: User!
   tags: [Tag]!
   applicant: Applicant
@@ -52,15 +52,25 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: RecruitmentInput!): RecruitmentPayload!
+  createRecruitment(input: RecruitmentInput!): CreateRecruitmentPayload!
     @emailVerified(status: VERIFIED)
     @hasLoggedIn
-  updateRecruitment(id: String!, input: RecruitmentInput!): Recruitment!
-  deleteRecruitment(id: String!): DeleteRecruitmentPayload! @hasLoggedIn
+  updateRecruitment(
+    id: ID!
+    input: RecruitmentInput!
+  ): UpdateRecruitmentPayload! @emailVerified(status: VERIFIED) @hasLoggedIn
+  deleteRecruitment(id: ID!): DeleteRecruitmentPayload!
+    @emailVerified(status: VERIFIED)
+    @hasLoggedIn
 }
 
-type RecruitmentPayload {
+type CreateRecruitmentPayload {
   feedbackRecruitmentEdge: RecruitmentEdge!
+}
+
+type UpdateRecruitmentPayload {
+  feedbackRecruitmentEdge: RecruitmentEdge!
+  deletedRecruitmentId: ID
 }
 
 type DeleteRecruitmentPayload {
@@ -69,10 +79,10 @@ type DeleteRecruitmentPayload {
 
 input RecruitmentInput {
   title: String!
-  competitionId: String!
+  competitionId: ID!
   type: Type!
   detail: String
-  prefectureId: String
+  prefectureId: ID!
   venue: String
   startAt: DateTime
   closingAt: DateTime

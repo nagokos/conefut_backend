@@ -1,6 +1,6 @@
 extend type Query {
-  checkStocked(recruitmentId: String!): FeedbackStock!
-  getStockedCount(recruitmentId: String!): FeedbackStock!
+  checkStocked(recruitmentId: ID!): FeedbackStock!
+  getStockedCount(recruitmentId: ID!): FeedbackStock!
 }
 
 type FeedbackStock implements Node {
@@ -11,6 +11,6 @@ type FeedbackStock implements Node {
 }
 
 extend type Mutation {
-  addStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
-  removeStock(recruitmentId: String!): FeedbackStock! @hasLoggedIn
+  addStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
+  removeStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
 }
