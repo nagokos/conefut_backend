@@ -1,4 +1,4 @@
-DC = docker-compose
+DC = docker compose
 DC_WEB = $(DC) exec web
 DC_DB = $(DC) exec db
 POSTGRESQL_URL = postgres://root:password@db:5432/connefut_db?sslmode=disable
