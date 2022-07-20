@@ -89,6 +89,10 @@ type ComplexityRoot struct {
 		FeedbackRecruitmentEdge func(childComplexity int) int
 	}
 
+	CreateTagPayload struct {
+		FeedbackTagEdge func(childComplexity int) int
+	}
+
 	DeleteRecruitmentPayload struct {
 		DeletedRecruitmentID func(childComplexity int) int
 	}
@@ -172,7 +176,7 @@ type ComplexityRoot struct {
 		Recruitment                func(childComplexity int, id string) int
 		Recruitments               func(childComplexity int, first *int, after *string) int
 		StockedRecruitments        func(childComplexity int, first *int, after *string) int
-		Tags                       func(childComplexity int) int
+		Tags                       func(childComplexity int, first int) int
 		Viewer                     func(childComplexity int) int
 		ViewerRecruitments         func(childComplexity int, first *int, after *string) int
 	}
@@ -229,6 +233,16 @@ type ComplexityRoot struct {
 		Name       func(childComplexity int) int
 	}
 
+	TagConnection struct {
+		Edges    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	TagEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
 	UpdateRecruitmentPayload struct {
 		DeletedRecruitmentID    func(childComplexity int) int
 		FeedbackRecruitmentEdge func(childComplexity int) int
@@ -261,7 +275,7 @@ type MutationResolver interface {
 	DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error)
 	AddStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	RemoveStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
-	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error)
+	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.CreateTagPayload, error)
 	RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error)
 	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error)
 	LogoutUser(ctx context.Context) (bool, error)
@@ -284,7 +298,7 @@ type QueryResolver interface {
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
-	Tags(ctx context.Context) ([]*model.Tag, error)
+	Tags(ctx context.Context, first int) (*model.TagConnection, error)
 	Viewer(ctx context.Context) (*model.User, error)
 }
 type RecruitmentResolver interface {
@@ -426,6 +440,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CreateRecruitmentPayload.FeedbackRecruitmentEdge(childComplexity), true
+
+	case "CreateTagPayload.feedbackTagEdge":
+		if e.complexity.CreateTagPayload.FeedbackTagEdge == nil {
+			break
+		}
+
+		return e.complexity.CreateTagPayload.FeedbackTagEdge(childComplexity), true
 
 	case "DeleteRecruitmentPayload.deletedRecruitmentId":
 		if e.complexity.DeleteRecruitmentPayload.DeletedRecruitmentID == nil {
@@ -875,7 +896,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Tags(childComplexity), true
+		args, err := ec.field_Query_tags_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Tags(childComplexity, args["first"].(int)), true
 
 	case "Query.viewer":
 		if e.complexity.Query.Viewer == nil {
@@ -1113,6 +1139,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tag.Name(childComplexity), true
 
+	case "TagConnection.edges":
+		if e.complexity.TagConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.TagConnection.Edges(childComplexity), true
+
+	case "TagConnection.pageInfo":
+		if e.complexity.TagConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.TagConnection.PageInfo(childComplexity), true
+
+	case "TagEdge.cursor":
+		if e.complexity.TagEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.TagEdge.Cursor(childComplexity), true
+
+	case "TagEdge.node":
+		if e.complexity.TagEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.TagEdge.Node(childComplexity), true
+
 	case "UpdateRecruitmentPayload.deletedRecruitmentId":
 		if e.complexity.UpdateRecruitmentPayload.DeletedRecruitmentID == nil {
 			break
@@ -1198,7 +1252,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRegisterUserInput,
 		ec.unmarshalInputapplicantInput,
 		ec.unmarshalInputcreateMessageInput,
-		ec.unmarshalInputrecruitmentTagInput,
 	)
 	first := true
 
@@ -1425,7 +1478,7 @@ input RecruitmentInput {
   locationLat: Float
   locationLng: Float
   status: Status!
-  tags: [recruitmentTagInput]!
+  tagIds: [ID!]!
 }
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphqls", Input: `scalar DateTime
@@ -1495,12 +1548,6 @@ type Query {
   getRoomMessages(roomId: String!): [Message!]!
 }
 
-input recruitmentTagInput {
-  id: String!
-  name: String!
-  isNew: Boolean!
-}
-
 input applicantInput {
   message: String!
 }
@@ -1537,7 +1584,17 @@ extend type Mutation {
 }
 `, BuiltIn: false},
 	{Name: "../schema/tag.graphqls", Input: `extend type Query {
-  tags: [Tag!]!
+  tags(first: Int!): TagConnection
+}
+
+type TagConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [TagEdge!]!
+}
+
+type TagEdge implements Edge {
+  cursor: String!
+  node: Tag!
 }
 
 type Tag implements Node {
@@ -1547,7 +1604,11 @@ type Tag implements Node {
 }
 
 extend type Mutation {
-  createTag(input: CreateTagInput!): Tag!
+  createTag(input: CreateTagInput!): CreateTagPayload!
+}
+
+type CreateTagPayload {
+  feedbackTagEdge: TagEdge!
 }
 
 input CreateTagInput {
@@ -2024,6 +2085,21 @@ func (ec *executionContext) field_Query_stockedRecruitments_args(ctx context.Con
 		}
 	}
 	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_tags_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
 	return args, nil
 }
 
@@ -2791,6 +2867,56 @@ func (ec *executionContext) fieldContext_CreateRecruitmentPayload_feedbackRecrui
 				return ec.fieldContext_RecruitmentEdge_node(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RecruitmentEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateTagPayload_feedbackTagEdge(ctx context.Context, field graphql.CollectedField, obj *model.CreateTagPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateTagPayload_feedbackTagEdge(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FeedbackTagEdge, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TagEdge)
+	fc.Result = res
+	return ec.marshalNTagEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateTagPayload_feedbackTagEdge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateTagPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_TagEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_TagEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TagEdge", field.Name)
 		},
 	}
 	return fc, nil
@@ -4247,9 +4373,9 @@ func (ec *executionContext) _Mutation_createTag(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Tag)
+	res := resTmp.(*model.CreateTagPayload)
 	fc.Result = res
-	return ec.marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx, field.Selections, res)
+	return ec.marshalNCreateTagPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateTagPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createTag(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4260,14 +4386,10 @@ func (ec *executionContext) fieldContext_Mutation_createTag(ctx context.Context,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Tag_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Tag_databaseId(ctx, field)
-			case "name":
-				return ec.fieldContext_Tag_name(ctx, field)
+			case "feedbackTagEdge":
+				return ec.fieldContext_CreateTagPayload_feedbackTagEdge(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Tag", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type CreateTagPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -5659,21 +5781,18 @@ func (ec *executionContext) _Query_tags(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tags(rctx)
+		return ec.resolvers.Query().Tags(rctx, fc.Args["first"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Tag)
+	res := resTmp.(*model.TagConnection)
 	fc.Result = res
-	return ec.marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+	return ec.marshalOTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_tags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5684,15 +5803,24 @@ func (ec *executionContext) fieldContext_Query_tags(ctx context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Tag_id(ctx, field)
-			case "databaseId":
-				return ec.fieldContext_Tag_databaseId(ctx, field)
-			case "name":
-				return ec.fieldContext_Tag_name(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_TagConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_TagConnection_edges(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Tag", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type TagConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_tags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -7353,6 +7481,206 @@ func (ec *executionContext) fieldContext_Tag_name(ctx context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TagConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.TagConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TagConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TagConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TagConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TagConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.TagConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TagConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TagEdge)
+	fc.Result = res
+	return ec.marshalNTagEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TagConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TagConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_TagEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_TagEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TagEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TagEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.TagEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TagEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TagEdge_cursor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TagEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TagEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.TagEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TagEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tag)
+	fc.Result = res
+	return ec.marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TagEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TagEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Tag_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_Tag_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_Tag_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tag", field.Name)
 		},
 	}
 	return fc, nil
@@ -9670,7 +9998,7 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "competitionId", "type", "detail", "prefectureId", "venue", "startAt", "closingAt", "locationLat", "locationLng", "status", "tags"}
+	fieldsInOrder := [...]string{"title", "competitionId", "type", "detail", "prefectureId", "venue", "startAt", "closingAt", "locationLat", "locationLng", "status", "tagIds"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -9765,11 +10093,11 @@ func (ec *executionContext) unmarshalInputRecruitmentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "tags":
+		case "tagIds":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tags"))
-			it.Tags, err = ec.unmarshalNrecruitmentTagInput2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tagIds"))
+			it.TagIds, err = ec.unmarshalNID2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -9879,50 +10207,6 @@ func (ec *executionContext) unmarshalInputcreateMessageInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputrecruitmentTagInput(ctx context.Context, obj interface{}) (model.RecruitmentTagInput, error) {
-	var it model.RecruitmentTagInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "name", "isNew"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			it.ID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "isNew":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isNew"))
-			it.IsNew, err = ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -9968,6 +10252,13 @@ func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSe
 			return graphql.Null
 		}
 		return ec._RecruitmentConnection(ctx, sel, obj)
+	case model.TagConnection:
+		return ec._TagConnection(ctx, sel, &obj)
+	case *model.TagConnection:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TagConnection(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -9984,6 +10275,13 @@ func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._RecruitmentEdge(ctx, sel, obj)
+	case model.TagEdge:
+		return ec._TagEdge(ctx, sel, &obj)
+	case *model.TagEdge:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TagEdge(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -10392,6 +10690,34 @@ func (ec *executionContext) _CreateRecruitmentPayload(ctx context.Context, sel a
 		case "feedbackRecruitmentEdge":
 
 			out.Values[i] = ec._CreateRecruitmentPayload_feedbackRecruitmentEdge(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var createTagPayloadImplementors = []string{"CreateTagPayload"}
+
+func (ec *executionContext) _CreateTagPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CreateTagPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createTagPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateTagPayload")
+		case "feedbackTagEdge":
+
+			out.Values[i] = ec._CreateTagPayload_feedbackTagEdge(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -11263,9 +11589,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tags(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			}
 
@@ -11761,6 +12084,76 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var tagConnectionImplementors = []string{"TagConnection", "Connection"}
+
+func (ec *executionContext) _TagConnection(ctx context.Context, sel ast.SelectionSet, obj *model.TagConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tagConnectionImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TagConnection")
+		case "pageInfo":
+
+			out.Values[i] = ec._TagConnection_pageInfo(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "edges":
+
+			out.Values[i] = ec._TagConnection_edges(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var tagEdgeImplementors = []string{"TagEdge", "Edge"}
+
+func (ec *executionContext) _TagEdge(ctx context.Context, sel ast.SelectionSet, obj *model.TagEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tagEdgeImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TagEdge")
+		case "cursor":
+
+			out.Values[i] = ec._TagEdge_cursor(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "node":
+
+			out.Values[i] = ec._TagEdge_node(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -12380,6 +12773,20 @@ func (ec *executionContext) unmarshalNCreateTagInput2githubᚗcomᚋnagokosᚋco
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNCreateTagPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateTagPayload(ctx context.Context, sel ast.SelectionSet, v model.CreateTagPayload) graphql.Marshaler {
+	return ec._CreateTagPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateTagPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCreateTagPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateTagPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateTagPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
 	res, err := model.UnmarshalDateTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12470,6 +12877,38 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -12999,10 +13438,6 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNTag2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v model.Tag) graphql.Marshaler {
-	return ec._Tag(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v []*model.Tag) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -13041,7 +13476,17 @@ func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_
 	return ret
 }
 
-func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tag) graphql.Marshaler {
+func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v *model.Tag) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Tag(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTagEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TagEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -13065,7 +13510,7 @@ func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx, sel, v[i])
+			ret[i] = ec.marshalNTagEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -13085,14 +13530,14 @@ func (ec *executionContext) marshalNTag2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_
 	return ret
 }
 
-func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v *model.Tag) graphql.Marshaler {
+func (ec *executionContext) marshalNTagEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdge(ctx context.Context, sel ast.SelectionSet, v *model.TagEdge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Tag(ctx, sel, v)
+	return ec._TagEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNType2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐType(ctx context.Context, v interface{}) (model.Type, error) {
@@ -13391,23 +13836,6 @@ func (ec *executionContext) unmarshalNcreateMessageInput2githubᚗcomᚋnagokos�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNrecruitmentTagInput2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx context.Context, v interface{}) ([]*model.RecruitmentTagInput, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.RecruitmentTagInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOrecruitmentTagInput2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
 func (ec *executionContext) marshalOApplicant2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐApplicant(ctx context.Context, sel ast.SelectionSet, v *model.Applicant) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -13547,6 +13975,13 @@ func (ec *executionContext) marshalOTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_bac
 		return graphql.Null
 	}
 	return ec._Tag(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx context.Context, sel ast.SelectionSet, v *model.TagConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TagConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
@@ -13763,14 +14198,6 @@ func (ec *executionContext) unmarshalOapplicantInput2ᚖgithubᚗcomᚋnagokos�
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputapplicantInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOrecruitmentTagInput2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentTagInput(ctx context.Context, v interface{}) (*model.RecruitmentTagInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputrecruitmentTagInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
