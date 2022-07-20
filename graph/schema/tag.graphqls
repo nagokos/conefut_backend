@@ -1,5 +1,15 @@
 extend type Query {
-  tags: [Tag!]!
+  tags(first: Int!): TagConnection
+}
+
+type TagConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [TagEdge!]!
+}
+
+type TagEdge implements Edge {
+  cursor: String!
+  node: Tag!
 }
 
 type Tag implements Node {
@@ -9,7 +19,11 @@ type Tag implements Node {
 }
 
 extend type Mutation {
-  createTag(input: CreateTagInput!): Tag!
+  createTag(input: CreateTagInput!): CreateTagPayload!
+}
+
+type CreateTagPayload {
+  feedbackTagEdge: TagEdge!
 }
 
 input CreateTagInput {

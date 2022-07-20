@@ -90,6 +90,10 @@ type CreateTagInput struct {
 	Name string `json:"name"`
 }
 
+type CreateTagPayload struct {
+	FeedbackTagEdge *TagEdge `json:"feedbackTagEdge"`
+}
+
 type DeleteRecruitmentPayload struct {
 	DeletedRecruitmentID string `json:"deletedRecruitmentId"`
 }
@@ -176,18 +180,18 @@ type RecruitmentEdge struct {
 func (RecruitmentEdge) IsEdge() {}
 
 type RecruitmentInput struct {
-	Title         string                 `json:"title"`
-	CompetitionID string                 `json:"competitionId"`
-	Type          Type                   `json:"type"`
-	Detail        *string                `json:"detail"`
-	PrefectureID  string                 `json:"prefectureId"`
-	Venue         *string                `json:"venue"`
-	StartAt       *time.Time             `json:"startAt"`
-	ClosingAt     *time.Time             `json:"closingAt"`
-	LocationLat   *float64               `json:"locationLat"`
-	LocationLng   *float64               `json:"locationLng"`
-	Status        Status                 `json:"status"`
-	Tags          []*RecruitmentTagInput `json:"tags"`
+	Title         string     `json:"title"`
+	CompetitionID string     `json:"competitionId"`
+	Type          Type       `json:"type"`
+	Detail        *string    `json:"detail"`
+	PrefectureID  string     `json:"prefectureId"`
+	Venue         *string    `json:"venue"`
+	StartAt       *time.Time `json:"startAt"`
+	ClosingAt     *time.Time `json:"closingAt"`
+	LocationLat   *float64   `json:"locationLat"`
+	LocationLng   *float64   `json:"locationLng"`
+	Status        Status     `json:"status"`
+	TagIds        []string   `json:"tagIds"`
 }
 
 type RegisterUserInput struct {
@@ -221,6 +225,20 @@ type Tag struct {
 
 func (Tag) IsNode() {}
 
+type TagConnection struct {
+	PageInfo *PageInfo  `json:"pageInfo"`
+	Edges    []*TagEdge `json:"edges"`
+}
+
+func (TagConnection) IsConnection() {}
+
+type TagEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *Tag   `json:"node"`
+}
+
+func (TagEdge) IsEdge() {}
+
 type UpdateRecruitmentPayload struct {
 	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
 	DeletedRecruitmentID    *string          `json:"deletedRecruitmentId"`
@@ -245,12 +263,6 @@ type ApplicantInput struct {
 
 type CreateMessageInput struct {
 	Content string `json:"content"`
-}
-
-type RecruitmentTagInput struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	IsNew bool   `json:"isNew"`
 }
 
 type ApplyForRecruitmentInvalidInputField string
