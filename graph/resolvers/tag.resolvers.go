@@ -17,7 +17,7 @@ import (
 )
 
 // CreateTag is the resolver for the createTag field.
-func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.Tag, error) {
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.CreateTagPayload, error) {
 	tag := tag.Tag{
 		Name: input.Name,
 	}
@@ -42,12 +42,12 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagI
 }
 
 // Tags is the resolver for the tags field.
-func (r *queryResolver) Tags(ctx context.Context) ([]*model.Tag, error) {
-	res, err := tag.GetTags(ctx, r.dbPool)
+func (r *queryResolver) Tags(ctx context.Context, first int) (*model.TagConnection, error) {
+	payload, err := tag.GetTags(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	return payload, nil
 }
 
 // ID is the resolver for the id field.

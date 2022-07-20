@@ -14,7 +14,6 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
-	"github.com/rs/xid"
 )
 
 type Tag struct {
@@ -58,8 +57,10 @@ func (t Tag) CreateTagValidate() error {
 	)
 }
 
-func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
-	var tags []*model.Tag
+func GetTags(ctx context.Context, dbPool *pgxpool.Pool) (*model.TagConnection, error) {
+	connection := model.TagConnection{
+		PageInfo: &model.PageInfo{},
+	}
 
 	cmd := "SELECT id, name FROM tags"
 	rows, err := dbPool.Query(ctx, cmd)
@@ -75,8 +76,10 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-		tag.ID = utils.GenerateUniqueID("Tag", tag.DatabaseID)
-		tags = append(tags, &tag)
+		connection.Edges = append(connection.Edges, &model.TagEdge{
+			Cursor: utils.GenerateUniqueID("Tag", tag.DatabaseID),
+			Node:   &tag,
+		})
 	}
 
 	err = rows.Err()
@@ -85,7 +88,7 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Tag, error) {
 		return nil, err
 	}
 
-	return tags, nil
+	return &connection, nil
 }
 
 func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []interface{}, cmdArray []string) (map[string][]*model.Tag, error) {
@@ -135,19 +138,24 @@ func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []in
 	return tagByRecruitmentID, nil
 }
 
-func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Tag, error) {
-	lower := strings.ToLower(t.Name)
+func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.CreateTagPayload, error) {
 	timeNow := time.Now().Local()
 
-	cmd := "INSERT INTO tags (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, name"
-	row := dbPool.QueryRow(ctx, cmd, xid.New().String(), lower, timeNow, timeNow)
+	cmd := "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING id, name"
+	row := dbPool.QueryRow(ctx, cmd, t.Name, timeNow, timeNow)
 
 	var tag model.Tag
-	err := row.Scan(&tag.ID, &tag.Name)
+	err := row.Scan(&tag.DatabaseID, &tag.Name)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	return &tag, nil
+	payload := model.CreateTagPayload{
+		FeedbackTagEdge: &model.TagEdge{
+			Cursor: utils.GenerateUniqueID("Tag", tag.DatabaseID),
+			Node:   &tag,
+		},
+	}
+	return &payload, nil
 }

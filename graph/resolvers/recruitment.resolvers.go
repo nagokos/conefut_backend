@@ -32,7 +32,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
-		Tags:          input.Tags,
+		TagIDs:        input.TagIds,
 	}
 
 	err := rm.RecruitmentValidate()
@@ -68,7 +68,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		ClosingAt:     input.ClosingAt,
 		CompetitionID: input.CompetitionID,
 		PrefectureID:  input.PrefectureID,
-		Tags:          input.Tags,
+		TagIDs:        input.TagIds,
 	}
 
 	err := rm.RecruitmentValidate()
@@ -217,7 +217,6 @@ func (r *recruitmentResolver) Tags(ctx context.Context, obj *model.Recruitment) 
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	fmt.Println(len(tags))
 	return tags, nil
 }
 

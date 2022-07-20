@@ -28,7 +28,7 @@ type Recruitment struct {
 	ClosingAt     *time.Time
 	CompetitionID string
 	PrefectureID  string
-	Tags          []*model.RecruitmentTagInput
+	TagIDs        []string
 }
 
 func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
@@ -172,8 +172,6 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		return nil, err
 	}
 
-	fmt.Println(recruitment.PrefectureID)
-
 	var recruitmentEdge model.RecruitmentEdge
 
 	recruitment.Status = model.Status(strings.ToUpper(recruitment.Status.String()))
@@ -182,30 +180,10 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
 	payload.FeedbackRecruitmentEdge = &recruitmentEdge
 
-	cmd = "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING id, name"
-
-	if len(r.Tags) > 0 {
-
-		var newTags []*model.Tag
-		for _, tag := range r.Tags {
-			if tag.IsNew {
-				row := dbPool.QueryRow(ctx, cmd, tag.Name, timeNow, timeNow)
-
-				var tag model.Tag
-				err := row.Scan(&tag.DatabaseID, &tag.Name)
-				if err != nil {
-					logger.NewLogger().Error(err.Error())
-				}
-				newTags = append(newTags, &tag)
-			} else {
-				newTags = append(newTags, &model.Tag{DatabaseID: utils.DecodeUniqueID(tag.ID), Name: tag.Name})
-			}
-		}
-
+	if len(r.TagIDs) > 0 {
 		cmd = "INSERT INTO recruitment_tags (recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
-
-		for _, tag := range newTags {
-			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, tag.DatabaseID, timeNow, timeNow); err != nil {
+		for _, sentTagID := range r.TagIDs {
+			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, utils.DecodeUniqueID(sentTagID), timeNow, timeNow); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
 		}
@@ -621,7 +599,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	}
 
 	cmd = `
-	  SELECT t.id, t.name 
+	  SELECT t.id
 		FROM tags AS t
 		INNER JOIN recruitment_tags AS r_t
 		  ON r_t.tag_id = t.id
@@ -638,7 +616,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	var currentTags []*model.Tag // 更新する募集に既についているタグ
 	for rows.Next() {
 		var tag model.Tag
-		err := rows.Scan(&tag.DatabaseID, &tag.Name)
+		err := rows.Scan(&tag.DatabaseID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
@@ -651,32 +629,13 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		return nil, err
 	}
 
-	cmd = "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING id, name"
-
-	var sentTags []*model.Tag // フォームから送られてきたタグ
-	for _, tag := range r.Tags {
-		if tag.IsNew {
-			row := dbPool.QueryRow(ctx, cmd, tag.Name, timeNow, timeNow)
-
-			var tag model.Tag
-			err := row.Scan(&tag.DatabaseID, &tag.Name)
-			if err != nil {
-				logger.NewLogger().Error(err.Error())
-			}
-
-			sentTags = append(sentTags, &tag)
-		} else {
-			sentTags = append(sentTags, &model.Tag{DatabaseID: utils.DecodeUniqueID(tag.ID), Name: tag.Name})
-		}
-	}
-
 	var oldTags []*model.Tag // チェックを外されたタグ(削除するもの)
 
 	// 削除するタグを見つける処理
 	for _, currentTag := range currentTags {
 		found := false
-		for _, sentTag := range sentTags {
-			if currentTag.Name == sentTag.Name {
+		for _, sentTagID := range r.TagIDs {
+			if currentTag.DatabaseID == utils.DecodeUniqueID(sentTagID) {
 				found = true
 			}
 		}
@@ -702,11 +661,11 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		DO UPDATE SET updated_at = $5
 	`
 
-	for _, tag := range sentTags {
+	for _, sentTagID := range r.TagIDs {
 		timeNow := time.Now().Local()
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.DatabaseID, tag.DatabaseID, timeNow, timeNow, timeNow,
+			recruitment.DatabaseID, utils.DecodeUniqueID(sentTagID), timeNow, timeNow, timeNow,
 		); err != nil {
 			logger.NewLogger().Error(err.Error())
 			err = tx.Rollback(ctx)
