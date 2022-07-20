@@ -89,5 +89,5 @@ input RecruitmentInput {
   locationLat: Float
   locationLng: Float
   status: Status!
-  tags: [recruitmentTagInput]!
+  tagIds: [ID!]!
 }
