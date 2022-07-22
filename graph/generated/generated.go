@@ -106,11 +106,27 @@ type ComplexityRoot struct {
 		IsAppliedFor func(childComplexity int) int
 	}
 
+	FeedbackFollow struct {
+		ID               func(childComplexity int) int
+		ViewerDoesFollow func(childComplexity int) int
+	}
+
 	FeedbackStock struct {
 		FeedbackRecruitmentEdge func(childComplexity int) int
 		ID                      func(childComplexity int) int
 		RemovedRecruitmentID    func(childComplexity int) int
 		ViewerDoesStock         func(childComplexity int) int
+	}
+
+	FollowConnection struct {
+		Edges       func(childComplexity int) int
+		FollowCount func(childComplexity int) int
+		PageInfo    func(childComplexity int) int
+	}
+
+	FollowEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	LoginUserAuthenticationError struct {
@@ -142,10 +158,12 @@ type ComplexityRoot struct {
 		CreateRecruitment   func(childComplexity int, input model.RecruitmentInput) int
 		CreateTag           func(childComplexity int, input model.CreateTagInput) int
 		DeleteRecruitment   func(childComplexity int, id string) int
+		Follow              func(childComplexity int, userID string) int
 		LoginUser           func(childComplexity int, input model.LoginUserInput) int
 		LogoutUser          func(childComplexity int) int
 		RegisterUser        func(childComplexity int, input model.RegisterUserInput) int
 		RemoveStock         func(childComplexity int, recruitmentID string) int
+		UnFollow            func(childComplexity int, userID string) int
 		UpdateRecruitment   func(childComplexity int, id string, input model.RecruitmentInput) int
 	}
 
@@ -165,6 +183,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AppliedRecruitments        func(childComplexity int) int
 		CheckAppliedForRecruitment func(childComplexity int, recruitmentID string) int
+		CheckFollowed              func(childComplexity int, userID string) int
 		CheckStocked               func(childComplexity int, recruitmentID string) int
 		Competitions               func(childComplexity int) int
 		GetEntrieUser              func(childComplexity int, roomID string) int
@@ -177,6 +196,7 @@ type ComplexityRoot struct {
 		Recruitments               func(childComplexity int, first *int, after *string) int
 		StockedRecruitments        func(childComplexity int, first *int, after *string) int
 		Tags                       func(childComplexity int, first int) int
+		User                       func(childComplexity int, id string) int
 		Viewer                     func(childComplexity int) int
 		ViewerRecruitments         func(childComplexity int, first *int, after *string) int
 	}
@@ -253,9 +273,12 @@ type ComplexityRoot struct {
 		DatabaseID              func(childComplexity int) int
 		Email                   func(childComplexity int) int
 		EmailVerificationStatus func(childComplexity int) int
+		Followers               func(childComplexity int, first *int, after *string) int
+		Followings              func(childComplexity int, first *int, after *string) int
 		ID                      func(childComplexity int) int
 		Introduction            func(childComplexity int) int
 		Name                    func(childComplexity int) int
+		Recruitments            func(childComplexity int, first *int, after *string) int
 		Role                    func(childComplexity int) int
 	}
 }
@@ -273,6 +296,8 @@ type MutationResolver interface {
 	CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.CreateRecruitmentPayload, error)
 	UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.UpdateRecruitmentPayload, error)
 	DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error)
+	Follow(ctx context.Context, userID string) (*model.FeedbackFollow, error)
+	UnFollow(ctx context.Context, userID string) (*model.FeedbackFollow, error)
 	AddStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	RemoveStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	CreateTag(ctx context.Context, input model.CreateTagInput) (*model.CreateTagPayload, error)
@@ -296,10 +321,12 @@ type QueryResolver interface {
 	Recruitment(ctx context.Context, id string) (*model.Recruitment, error)
 	StockedRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
+	CheckFollowed(ctx context.Context, userID string) (*model.FeedbackFollow, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	Tags(ctx context.Context, first int) (*model.TagConnection, error)
 	Viewer(ctx context.Context) (*model.User, error)
+	User(ctx context.Context, id string) (*model.User, error)
 }
 type RecruitmentResolver interface {
 	ID(ctx context.Context, obj *model.Recruitment) (string, error)
@@ -319,6 +346,10 @@ type TagResolver interface {
 }
 type UserResolver interface {
 	ID(ctx context.Context, obj *model.User) (string, error)
+
+	Recruitments(ctx context.Context, obj *model.User, first *int, after *string) (*model.RecruitmentConnection, error)
+	Followings(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error)
+	Followers(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error)
 }
 
 type executableSchema struct {
@@ -476,6 +507,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FeedbackApplicant.IsAppliedFor(childComplexity), true
 
+	case "FeedbackFollow.id":
+		if e.complexity.FeedbackFollow.ID == nil {
+			break
+		}
+
+		return e.complexity.FeedbackFollow.ID(childComplexity), true
+
+	case "FeedbackFollow.viewerDoesFollow":
+		if e.complexity.FeedbackFollow.ViewerDoesFollow == nil {
+			break
+		}
+
+		return e.complexity.FeedbackFollow.ViewerDoesFollow(childComplexity), true
+
 	case "FeedbackStock.feedbackRecruitmentEdge":
 		if e.complexity.FeedbackStock.FeedbackRecruitmentEdge == nil {
 			break
@@ -503,6 +548,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FeedbackStock.ViewerDoesStock(childComplexity), true
+
+	case "FollowConnection.edges":
+		if e.complexity.FollowConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.FollowConnection.Edges(childComplexity), true
+
+	case "FollowConnection.followCount":
+		if e.complexity.FollowConnection.FollowCount == nil {
+			break
+		}
+
+		return e.complexity.FollowConnection.FollowCount(childComplexity), true
+
+	case "FollowConnection.pageInfo":
+		if e.complexity.FollowConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.FollowConnection.PageInfo(childComplexity), true
+
+	case "FollowEdge.cursor":
+		if e.complexity.FollowEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.FollowEdge.Cursor(childComplexity), true
+
+	case "FollowEdge.node":
+		if e.complexity.FollowEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.FollowEdge.Node(childComplexity), true
 
 	case "LoginUserAuthenticationError.message":
 		if e.complexity.LoginUserAuthenticationError.Message == nil {
@@ -651,6 +731,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteRecruitment(childComplexity, args["id"].(string)), true
 
+	case "Mutation.follow":
+		if e.complexity.Mutation.Follow == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_follow_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Follow(childComplexity, args["userId"].(string)), true
+
 	case "Mutation.loginUser":
 		if e.complexity.Mutation.LoginUser == nil {
 			break
@@ -693,6 +785,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveStock(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Mutation.unFollow":
+		if e.complexity.Mutation.UnFollow == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unFollow_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnFollow(childComplexity, args["userId"].(string)), true
 
 	case "Mutation.updateRecruitment":
 		if e.complexity.Mutation.UpdateRecruitment == nil {
@@ -773,6 +877,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CheckAppliedForRecruitment(childComplexity, args["recruitmentId"].(string)), true
+
+	case "Query.checkFollowed":
+		if e.complexity.Query.CheckFollowed == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkFollowed_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CheckFollowed(childComplexity, args["userId"].(string)), true
 
 	case "Query.checkStocked":
 		if e.complexity.Query.CheckStocked == nil {
@@ -902,6 +1018,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Tags(childComplexity, args["first"].(int)), true
+
+	case "Query.user":
+		if e.complexity.Query.User == nil {
+			break
+		}
+
+		args, err := ec.field_Query_user_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
 
 	case "Query.viewer":
 		if e.complexity.Query.Viewer == nil {
@@ -1209,6 +1337,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.EmailVerificationStatus(childComplexity), true
 
+	case "User.followers":
+		if e.complexity.User.Followers == nil {
+			break
+		}
+
+		args, err := ec.field_User_followers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Followers(childComplexity, args["first"].(*int), args["after"].(*string)), true
+
+	case "User.followings":
+		if e.complexity.User.Followings == nil {
+			break
+		}
+
+		args, err := ec.field_User_followings_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Followings(childComplexity, args["first"].(*int), args["after"].(*string)), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -1229,6 +1381,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Name(childComplexity), true
+
+	case "User.recruitments":
+		if e.complexity.User.Recruitments == nil {
+			break
+		}
+
+		args, err := ec.field_User_recruitments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Recruitments(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "User.role":
 		if e.complexity.User.Role == nil {
@@ -1481,6 +1645,31 @@ input RecruitmentInput {
   tagIds: [ID!]!
 }
 `, BuiltIn: false},
+	{Name: "../schema/relationships.graphqls", Input: `extend type Query {
+  checkFollowed(userId: ID!): FeedbackFollow!
+}
+
+type FollowConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [FollowEdge!]!
+  followCount: Int!
+}
+
+type FollowEdge implements Edge {
+  cursor: String!
+  node: User!
+}
+
+extend type Mutation {
+  follow(userId: ID!): FeedbackFollow!
+  unFollow(userId: ID!): FeedbackFollow!
+}
+
+type FeedbackFollow implements Node {
+  id: ID!
+  viewerDoesFollow: Boolean!
+}
+`, BuiltIn: false},
 	{Name: "../schema/schema.graphqls", Input: `scalar DateTime
 
 directive @goField(
@@ -1584,7 +1773,7 @@ extend type Mutation {
 }
 `, BuiltIn: false},
 	{Name: "../schema/tag.graphqls", Input: `extend type Query {
-  tags(first: Int!): TagConnection
+  tags(first: Int!): TagConnection!
 }
 
 type TagConnection implements Connection {
@@ -1617,6 +1806,7 @@ input CreateTagInput {
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `extend type Query {
   viewer: User
+  user(id: ID!): User!
 }
 
 enum Role {
@@ -1638,6 +1828,9 @@ type User implements Node {
   introduction: String
   role: Role!
   emailVerificationStatus: EmailVerificationStatus!
+  recruitments(first: Int, after: String): RecruitmentConnection
+  followings(first: Int, after: String): FollowConnection
+  followers(first: Int, after: String): FollowConnection
 }
 
 # *** Mutation ***
@@ -1851,6 +2044,21 @@ func (ec *executionContext) field_Mutation_deleteRecruitment_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_follow_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_loginUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1893,6 +2101,21 @@ func (ec *executionContext) field_Mutation_removeStock_args(ctx context.Context,
 		}
 	}
 	args["recruitmentId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unFollow_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1947,6 +2170,21 @@ func (ec *executionContext) field_Query_checkAppliedForRecruitment_args(ctx cont
 		}
 	}
 	args["recruitmentId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_checkFollowed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -2103,7 +2341,94 @@ func (ec *executionContext) field_Query_tags_args(ctx context.Context, rawArgs m
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_viewerRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_User_followers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_User_followings_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_User_recruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -3021,6 +3346,12 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3106,6 +3437,94 @@ func (ec *executionContext) _FeedbackApplicant_isAppliedFor(ctx context.Context,
 func (ec *executionContext) fieldContext_FeedbackApplicant_isAppliedFor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FeedbackApplicant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackFollow_id(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackFollow) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackFollow_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackFollow_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackFollow",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FeedbackFollow_viewerDoesFollow(ctx context.Context, field graphql.CollectedField, obj *model.FeedbackFollow) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ViewerDoesFollow, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FeedbackFollow_viewerDoesFollow(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FeedbackFollow",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3287,6 +3706,266 @@ func (ec *executionContext) fieldContext_FeedbackStock_removedRecruitmentId(ctx 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.FollowConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.FollowConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FollowEdge)
+	fc.Result = res
+	return ec.marshalNFollowEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_FollowEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_FollowEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FollowEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowConnection_followCount(ctx context.Context, field graphql.CollectedField, obj *model.FollowConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowConnection_followCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FollowCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowConnection_followCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.FollowEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowEdge_cursor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.FollowEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_User_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "avatar":
+				return ec.fieldContext_User_avatar(ctx, field)
+			case "introduction":
+				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "emailVerificationStatus":
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -3476,6 +4155,12 @@ func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Con
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3676,6 +4361,12 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -4171,6 +4862,128 @@ func (ec *executionContext) fieldContext_Mutation_deleteRecruitment(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteRecruitment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_follow(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_follow(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Follow(rctx, fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackFollow)
+	fc.Result = res
+	return ec.marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_follow(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackFollow_id(ctx, field)
+			case "viewerDoesFollow":
+				return ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackFollow", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_follow_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_unFollow(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_unFollow(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UnFollow(rctx, fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackFollow)
+	fc.Result = res
+	return ec.marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_unFollow(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackFollow_id(ctx, field)
+			case "viewerDoesFollow":
+				return ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackFollow", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_unFollow_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -5031,6 +5844,12 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -5637,6 +6456,67 @@ func (ec *executionContext) fieldContext_Query_appliedRecruitments(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_checkFollowed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_checkFollowed(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckFollowed(rctx, fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackFollow)
+	fc.Result = res
+	return ec.marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_checkFollowed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackFollow_id(ctx, field)
+			case "viewerDoesFollow":
+				return ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackFollow", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_checkFollowed_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_checkStocked(ctx, field)
 	if err != nil {
@@ -5788,11 +6668,14 @@ func (ec *executionContext) _Query_tags(ctx context.Context, field graphql.Colle
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.TagConnection)
 	fc.Result = res
-	return ec.marshalOTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx, field.Selections, res)
+	return ec.marshalNTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_tags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5877,9 +6760,94 @@ func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_User_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "avatar":
+				return ec.fieldContext_User_avatar(ctx, field)
+			case "introduction":
+				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "emailVerificationStatus":
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_user_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -6723,6 +7691,12 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7205,6 +8179,12 @@ func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.
 				return ec.fieldContext_User_role(ctx, field)
 			case "emailVerificationStatus":
 				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -8122,6 +9102,184 @@ func (ec *executionContext) fieldContext_User_emailVerificationStatus(ctx contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type EmailVerificationStatus does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_recruitments(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_recruitments(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Recruitments(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.RecruitmentConnection)
+	fc.Result = res
+	return ec.marshalORecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_recruitments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pageInfo":
+				return ec.fieldContext_RecruitmentConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_RecruitmentConnection_edges(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RecruitmentConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_User_recruitments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_followings(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_followings(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Followings(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FollowConnection)
+	fc.Result = res
+	return ec.marshalOFollowConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_followings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pageInfo":
+				return ec.fieldContext_FollowConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_FollowConnection_edges(ctx, field)
+			case "followCount":
+				return ec.fieldContext_FollowConnection_followCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FollowConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_User_followings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_followers(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_followers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Followers(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FollowConnection)
+	fc.Result = res
+	return ec.marshalOFollowConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_followers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "pageInfo":
+				return ec.fieldContext_FollowConnection_pageInfo(ctx, field)
+			case "edges":
+				return ec.fieldContext_FollowConnection_edges(ctx, field)
+			case "followCount":
+				return ec.fieldContext_FollowConnection_followCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FollowConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_User_followers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -10252,6 +11410,13 @@ func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSe
 			return graphql.Null
 		}
 		return ec._RecruitmentConnection(ctx, sel, obj)
+	case model.FollowConnection:
+		return ec._FollowConnection(ctx, sel, &obj)
+	case *model.FollowConnection:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FollowConnection(ctx, sel, obj)
 	case model.TagConnection:
 		return ec._TagConnection(ctx, sel, &obj)
 	case *model.TagConnection:
@@ -10275,6 +11440,13 @@ func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._RecruitmentEdge(ctx, sel, obj)
+	case model.FollowEdge:
+		return ec._FollowEdge(ctx, sel, &obj)
+	case *model.FollowEdge:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FollowEdge(ctx, sel, obj)
 	case model.TagEdge:
 		return ec._TagEdge(ctx, sel, &obj)
 	case *model.TagEdge:
@@ -10400,6 +11572,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Recruitment(ctx, sel, obj)
+	case model.FeedbackFollow:
+		return ec._FeedbackFollow(ctx, sel, &obj)
+	case *model.FeedbackFollow:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FeedbackFollow(ctx, sel, obj)
 	case model.FeedbackStock:
 		return ec._FeedbackStock(ctx, sel, &obj)
 	case *model.FeedbackStock:
@@ -10824,6 +12003,41 @@ func (ec *executionContext) _FeedbackApplicant(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var feedbackFollowImplementors = []string{"FeedbackFollow", "Node"}
+
+func (ec *executionContext) _FeedbackFollow(ctx context.Context, sel ast.SelectionSet, obj *model.FeedbackFollow) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, feedbackFollowImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FeedbackFollow")
+		case "id":
+
+			out.Values[i] = ec._FeedbackFollow_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "viewerDoesFollow":
+
+			out.Values[i] = ec._FeedbackFollow_viewerDoesFollow(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var feedbackStockImplementors = []string{"FeedbackStock", "Node"}
 
 func (ec *executionContext) _FeedbackStock(ctx context.Context, sel ast.SelectionSet, obj *model.FeedbackStock) graphql.Marshaler {
@@ -10856,6 +12070,83 @@ func (ec *executionContext) _FeedbackStock(ctx context.Context, sel ast.Selectio
 
 			out.Values[i] = ec._FeedbackStock_removedRecruitmentId(ctx, field, obj)
 
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var followConnectionImplementors = []string{"FollowConnection", "Connection"}
+
+func (ec *executionContext) _FollowConnection(ctx context.Context, sel ast.SelectionSet, obj *model.FollowConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, followConnectionImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FollowConnection")
+		case "pageInfo":
+
+			out.Values[i] = ec._FollowConnection_pageInfo(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "edges":
+
+			out.Values[i] = ec._FollowConnection_edges(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "followCount":
+
+			out.Values[i] = ec._FollowConnection_followCount(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var followEdgeImplementors = []string{"FollowEdge", "Edge"}
+
+func (ec *executionContext) _FollowEdge(ctx context.Context, sel ast.SelectionSet, obj *model.FollowEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, followEdgeImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FollowEdge")
+		case "cursor":
+
+			out.Values[i] = ec._FollowEdge_cursor(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "node":
+
+			out.Values[i] = ec._FollowEdge_node(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11073,6 +12364,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteRecruitment(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "follow":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_follow(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "unFollow":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_unFollow(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -11533,6 +12842,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "checkFollowed":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkFollowed(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "checkStocked":
 			field := field
 
@@ -11589,6 +12921,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tags(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -11609,6 +12944,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_viewer(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "user":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_user(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -12274,6 +13632,57 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "recruitments":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_recruitments(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "followings":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_followings(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "followers":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_followers(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12850,6 +14259,20 @@ func (ec *executionContext) marshalNFeedbackApplicant2ᚖgithubᚗcomᚋnagokos�
 	return ec._FeedbackApplicant(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNFeedbackFollow2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx context.Context, sel ast.SelectionSet, v model.FeedbackFollow) graphql.Marshaler {
+	return ec._FeedbackFollow(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx context.Context, sel ast.SelectionSet, v *model.FeedbackFollow) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FeedbackFollow(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNFeedbackStock2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackStock(ctx context.Context, sel ast.SelectionSet, v model.FeedbackStock) graphql.Marshaler {
 	return ec._FeedbackStock(ctx, sel, &v)
 }
@@ -12862,6 +14285,60 @@ func (ec *executionContext) marshalNFeedbackStock2ᚖgithubᚗcomᚋnagokosᚋco
 		return graphql.Null
 	}
 	return ec._FeedbackStock(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFollowEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FollowEdge) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFollowEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFollowEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowEdge(ctx context.Context, sel ast.SelectionSet, v *model.FollowEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FollowEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -13486,6 +14963,20 @@ func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_bac
 	return ec._Tag(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNTagConnection2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx context.Context, sel ast.SelectionSet, v model.TagConnection) graphql.Marshaler {
+	return ec._TagConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx context.Context, sel ast.SelectionSet, v *model.TagConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TagConnection(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNTagEdge2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TagEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -13908,6 +15399,13 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
+func (ec *executionContext) marshalOFollowConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowConnection(ctx context.Context, sel ast.SelectionSet, v *model.FollowConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FollowConnection(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -13947,6 +15445,13 @@ func (ec *executionContext) marshalONode2githubᚗcomᚋnagokosᚋconnefut_backe
 	return ec._Node(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalORecruitmentConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentConnection(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RecruitmentConnection(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalORecruitmentEdge2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐRecruitmentEdge(ctx context.Context, sel ast.SelectionSet, v *model.RecruitmentEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -13975,13 +15480,6 @@ func (ec *executionContext) marshalOTag2ᚖgithubᚗcomᚋnagokosᚋconnefut_bac
 		return graphql.Null
 	}
 	return ec._Tag(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTagConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐTagConnection(ctx context.Context, sel ast.SelectionSet, v *model.TagConnection) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._TagConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
