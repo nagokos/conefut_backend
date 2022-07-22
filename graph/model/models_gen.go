@@ -109,6 +109,13 @@ type FeedbackApplicant struct {
 
 func (FeedbackApplicant) IsNode() {}
 
+type FeedbackFollow struct {
+	ID               string `json:"id"`
+	ViewerDoesFollow bool   `json:"viewerDoesFollow"`
+}
+
+func (FeedbackFollow) IsNode() {}
+
 type FeedbackStock struct {
 	ID                      string           `json:"id"`
 	ViewerDoesStock         bool             `json:"viewerDoesStock"`
@@ -117,6 +124,21 @@ type FeedbackStock struct {
 }
 
 func (FeedbackStock) IsNode() {}
+
+type FollowConnection struct {
+	PageInfo    *PageInfo     `json:"pageInfo"`
+	Edges       []*FollowEdge `json:"edges"`
+	FollowCount int           `json:"followCount"`
+}
+
+func (FollowConnection) IsConnection() {}
+
+type FollowEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *User  `json:"node"`
+}
+
+func (FollowEdge) IsEdge() {}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -243,19 +265,6 @@ type UpdateRecruitmentPayload struct {
 	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
 	DeletedRecruitmentID    *string          `json:"deletedRecruitmentId"`
 }
-
-type User struct {
-	ID                      string                  `json:"id"`
-	DatabaseID              int                     `json:"databaseId"`
-	Name                    string                  `json:"name"`
-	Email                   string                  `json:"email"`
-	Avatar                  string                  `json:"avatar"`
-	Introduction            *string                 `json:"introduction"`
-	Role                    Role                    `json:"role"`
-	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
-}
-
-func (User) IsNode() {}
 
 type ApplicantInput struct {
 	Message string `json:"message"`
