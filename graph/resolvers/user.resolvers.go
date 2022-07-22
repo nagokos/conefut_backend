@@ -5,12 +5,15 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/recruitment"
+	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
@@ -101,9 +104,44 @@ func (r *queryResolver) Viewer(ctx context.Context) (*model.User, error) {
 	return user, nil
 }
 
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	user, err := user.GetUser(ctx, r.dbPool, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 // ID is the resolver for the id field.
 func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) {
 	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
+}
+
+// Recruitments is the resolver for the recruitments field.
+func (r *userResolver) Recruitments(ctx context.Context, obj *model.User, first *int, after *string) (*model.RecruitmentConnection, error) {
+	params, err := search.NewSearchParams(first, after, nil, nil)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	connection, err := recruitment.GetUserRecruitments(ctx, r.dbPool, obj.DatabaseID, params)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return connection, err
+}
+
+// Followings is the resolver for the followings field.
+func (r *userResolver) Followings(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// Followers is the resolver for the followers field.
+func (r *userResolver) Followers(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // User returns generated.UserResolver implementation.
