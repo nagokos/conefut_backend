@@ -357,10 +357,10 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 
 	cmd := fmt.Sprintf(`
-		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.published_at, r.prefecture_id, r.user_id, r.competition_id
+		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.start_at, r.published_at, r.prefecture_id, r.user_id, r.competition_id
 		FROM 
 			(
-				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at
+				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at, start_at
 				FROM recruitments 
 				WHERE status = 'published'
 				AND ($1 OR id < $2)
@@ -386,7 +386,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 		var recruitment model.Recruitment
 
 		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
-			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID)
+			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.StartAt, &recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
@@ -522,6 +522,87 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 
 		var count int
 		err = row.Scan(&count)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+
+		if count > 0 {
+			connection.PageInfo.HasNextPage = true
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return &connection, nil
+}
+
+func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, params search.SearchParams) (*model.RecruitmentConnection, error) {
+	cmd := `
+	  SELECT id, title, type, prefecture_id, competition_id, closing_at, start_at
+		FROM recruitments
+		WHERE status = 'published'
+		AND user_id = $1
+		AND ($2 OR id < $3)
+		ORDER BY id DESC
+		LIMIT $4
+	`
+
+	rows, err := dbPool.Query(
+		ctx, cmd,
+		userID, !params.UseAfter, params.After, params.NumRows,
+	)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	connection := model.RecruitmentConnection{
+		PageInfo: &model.PageInfo{},
+	}
+	for rows.Next() {
+		var recruitment model.Recruitment
+		err := rows.Scan(
+			&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.PrefectureID,
+			&recruitment.CompetitionID, &recruitment.ClosingAt, &recruitment.StartAt,
+		)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		connection.Edges = append(connection.Edges, &model.RecruitmentEdge{
+			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
+			Node:   &recruitment,
+		})
+	}
+
+	if len(connection.Edges) > 0 {
+		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
+		connection.PageInfo.EndCursor = &endCursor
+
+		cmd = `
+			SELECT COUNT(DISTINCT r.id)
+			FROM (
+				SELECT id
+				FROM recruitments
+				WHERE status = 'published'
+				AND user_id = $1
+				AND id < $2
+				ORDER BY id DESC
+				LIMIT 1
+			) as r
+		`
+		row := dbPool.QueryRow(
+			ctx, cmd,
+			userID, params.After,
+		)
+
+		var count int
+		err := row.Scan(&count)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 			return nil, err
