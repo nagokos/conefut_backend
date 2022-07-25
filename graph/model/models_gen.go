@@ -134,8 +134,9 @@ type FollowConnection struct {
 func (FollowConnection) IsConnection() {}
 
 type FollowEdge struct {
-	Cursor string `json:"cursor"`
-	Node   *User  `json:"node"`
+	Cursor   string          `json:"cursor"`
+	Node     *User           `json:"node"`
+	Feedback *FeedbackFollow `json:"feedback"`
 }
 
 func (FollowEdge) IsEdge() {}
