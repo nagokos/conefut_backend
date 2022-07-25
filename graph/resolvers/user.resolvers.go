@@ -5,7 +5,6 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -13,6 +12,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
+	"github.com/nagokos/connefut_backend/graph/models/relationship"
 	"github.com/nagokos/connefut_backend/graph/models/search"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
@@ -136,12 +136,17 @@ func (r *userResolver) Recruitments(ctx context.Context, obj *model.User, first 
 
 // Followings is the resolver for the followings field.
 func (r *userResolver) Followings(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-// Followers is the resolver for the followers field.
-func (r *userResolver) Followers(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error) {
-	panic(fmt.Errorf("not implemented"))
+	params, err := search.NewSearchParams(first, after, nil, nil)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	connection, err := relationship.GetFollowings(ctx, r.dbPool, obj.DatabaseID, params)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return connection, nil
 }
 
 // User returns generated.UserResolver implementation.
