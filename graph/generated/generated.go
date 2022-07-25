@@ -125,8 +125,9 @@ type ComplexityRoot struct {
 	}
 
 	FollowEdge struct {
-		Cursor func(childComplexity int) int
-		Node   func(childComplexity int) int
+		Cursor   func(childComplexity int) int
+		Feedback func(childComplexity int) int
+		Node     func(childComplexity int) int
 	}
 
 	LoginUserAuthenticationError struct {
@@ -181,24 +182,25 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AppliedRecruitments        func(childComplexity int) int
-		CheckAppliedForRecruitment func(childComplexity int, recruitmentID string) int
-		CheckFollowed              func(childComplexity int, userID string) int
-		CheckStocked               func(childComplexity int, recruitmentID string) int
-		Competitions               func(childComplexity int) int
-		GetEntrieUser              func(childComplexity int, roomID string) int
-		GetRoomMessages            func(childComplexity int, roomID string) int
-		GetStockedCount            func(childComplexity int, recruitmentID string) int
-		GetViewerRooms             func(childComplexity int) int
-		Node                       func(childComplexity int, id string) int
-		Prefectures                func(childComplexity int) int
-		Recruitment                func(childComplexity int, id string) int
-		Recruitments               func(childComplexity int, first *int, after *string) int
-		StockedRecruitments        func(childComplexity int, first *int, after *string) int
-		Tags                       func(childComplexity int, first int) int
-		User                       func(childComplexity int, id string) int
-		Viewer                     func(childComplexity int) int
-		ViewerRecruitments         func(childComplexity int, first *int, after *string) int
+		AppliedRecruitments          func(childComplexity int) int
+		CheckAppliedForRecruitment   func(childComplexity int, recruitmentID string) int
+		CheckFollowed                func(childComplexity int, userID string) int
+		CheckFollowedByRecruitmentID func(childComplexity int, recruitmentID string) int
+		CheckStocked                 func(childComplexity int, recruitmentID string) int
+		Competitions                 func(childComplexity int) int
+		GetEntrieUser                func(childComplexity int, roomID string) int
+		GetRoomMessages              func(childComplexity int, roomID string) int
+		GetStockedCount              func(childComplexity int, recruitmentID string) int
+		GetViewerRooms               func(childComplexity int) int
+		Node                         func(childComplexity int, id string) int
+		Prefectures                  func(childComplexity int) int
+		Recruitment                  func(childComplexity int, id string) int
+		Recruitments                 func(childComplexity int, first *int, after *string) int
+		StockedRecruitments          func(childComplexity int, first *int, after *string) int
+		Tags                         func(childComplexity int, first int) int
+		User                         func(childComplexity int, id string) int
+		Viewer                       func(childComplexity int) int
+		ViewerRecruitments           func(childComplexity int, first *int, after *string) int
 	}
 
 	Recruitment struct {
@@ -273,7 +275,6 @@ type ComplexityRoot struct {
 		DatabaseID              func(childComplexity int) int
 		Email                   func(childComplexity int) int
 		EmailVerificationStatus func(childComplexity int) int
-		Followers               func(childComplexity int, first *int, after *string) int
 		Followings              func(childComplexity int, first *int, after *string) int
 		ID                      func(childComplexity int) int
 		Introduction            func(childComplexity int) int
@@ -322,6 +323,7 @@ type QueryResolver interface {
 	StockedRecruitments(ctx context.Context, first *int, after *string) (*model.RecruitmentConnection, error)
 	AppliedRecruitments(ctx context.Context) ([]*model.Recruitment, error)
 	CheckFollowed(ctx context.Context, userID string) (*model.FeedbackFollow, error)
+	CheckFollowedByRecruitmentID(ctx context.Context, recruitmentID string) (*model.FeedbackFollow, error)
 	CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	GetStockedCount(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error)
 	Tags(ctx context.Context, first int) (*model.TagConnection, error)
@@ -349,7 +351,6 @@ type UserResolver interface {
 
 	Recruitments(ctx context.Context, obj *model.User, first *int, after *string) (*model.RecruitmentConnection, error)
 	Followings(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error)
-	Followers(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error)
 }
 
 type executableSchema struct {
@@ -576,6 +577,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FollowEdge.Cursor(childComplexity), true
+
+	case "FollowEdge.feedback":
+		if e.complexity.FollowEdge.Feedback == nil {
+			break
+		}
+
+		return e.complexity.FollowEdge.Feedback(childComplexity), true
 
 	case "FollowEdge.node":
 		if e.complexity.FollowEdge.Node == nil {
@@ -889,6 +897,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CheckFollowed(childComplexity, args["userId"].(string)), true
+
+	case "Query.checkFollowedByRecruitmentId":
+		if e.complexity.Query.CheckFollowedByRecruitmentID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkFollowedByRecruitmentId_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CheckFollowedByRecruitmentID(childComplexity, args["recruitmentId"].(string)), true
 
 	case "Query.checkStocked":
 		if e.complexity.Query.CheckStocked == nil {
@@ -1337,18 +1357,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.EmailVerificationStatus(childComplexity), true
 
-	case "User.followers":
-		if e.complexity.User.Followers == nil {
-			break
-		}
-
-		args, err := ec.field_User_followers_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.User.Followers(childComplexity, args["first"].(*int), args["after"].(*string)), true
-
 	case "User.followings":
 		if e.complexity.User.Followings == nil {
 			break
@@ -1647,6 +1655,7 @@ input RecruitmentInput {
 `, BuiltIn: false},
 	{Name: "../schema/relationships.graphqls", Input: `extend type Query {
   checkFollowed(userId: ID!): FeedbackFollow!
+  checkFollowedByRecruitmentId(recruitmentId: ID!): FeedbackFollow!
 }
 
 type FollowConnection implements Connection {
@@ -1658,6 +1667,7 @@ type FollowConnection implements Connection {
 type FollowEdge implements Edge {
   cursor: String!
   node: User!
+  feedback: FeedbackFollow!
 }
 
 extend type Mutation {
@@ -1830,7 +1840,6 @@ type User implements Node {
   emailVerificationStatus: EmailVerificationStatus!
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
-  followers(first: Int, after: String): FollowConnection
 }
 
 # *** Mutation ***
@@ -2173,6 +2182,21 @@ func (ec *executionContext) field_Query_checkAppliedForRecruitment_args(ctx cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_checkFollowedByRecruitmentId_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["recruitmentId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recruitmentId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["recruitmentId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_checkFollowed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2357,30 +2381,6 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 }
 
 func (ec *executionContext) field_Query_viewerRecruitments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_User_followers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -3350,8 +3350,6 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3808,6 +3806,8 @@ func (ec *executionContext) fieldContext_FollowConnection_edges(ctx context.Cont
 				return ec.fieldContext_FollowEdge_cursor(ctx, field)
 			case "node":
 				return ec.fieldContext_FollowEdge_node(ctx, field)
+			case "feedback":
+				return ec.fieldContext_FollowEdge_feedback(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type FollowEdge", field.Name)
 		},
@@ -3962,10 +3962,58 @@ func (ec *executionContext) fieldContext_FollowEdge_node(ctx context.Context, fi
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FollowEdge_feedback(ctx context.Context, field graphql.CollectedField, obj *model.FollowEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FollowEdge_feedback(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Feedback, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackFollow)
+	fc.Result = res
+	return ec.marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FollowEdge_feedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FollowEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackFollow_id(ctx, field)
+			case "viewerDoesFollow":
+				return ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackFollow", field.Name)
 		},
 	}
 	return fc, nil
@@ -4159,8 +4207,6 @@ func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Con
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -4365,8 +4411,6 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -5848,8 +5892,6 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -6517,6 +6559,67 @@ func (ec *executionContext) fieldContext_Query_checkFollowed(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_checkFollowedByRecruitmentId(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_checkFollowedByRecruitmentId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckFollowedByRecruitmentID(rctx, fc.Args["recruitmentId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FeedbackFollow)
+	fc.Result = res
+	return ec.marshalNFeedbackFollow2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFeedbackFollow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_checkFollowedByRecruitmentId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FeedbackFollow_id(ctx, field)
+			case "viewerDoesFollow":
+				return ec.fieldContext_FeedbackFollow_viewerDoesFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FeedbackFollow", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_checkFollowedByRecruitmentId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_checkStocked(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_checkStocked(ctx, field)
 	if err != nil {
@@ -6764,8 +6867,6 @@ func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -6832,8 +6933,6 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7695,8 +7794,6 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -8183,8 +8280,6 @@ func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.
 				return ec.fieldContext_User_recruitments(ctx, field)
 			case "followings":
 				return ec.fieldContext_User_followings(ctx, field)
-			case "followers":
-				return ec.fieldContext_User_followers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9218,66 +9313,6 @@ func (ec *executionContext) fieldContext_User_followings(ctx context.Context, fi
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_User_followings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _User_followers(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_followers(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().Followers(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.FollowConnection)
-	fc.Result = res
-	return ec.marshalOFollowConnection2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐFollowConnection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_User_followers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "pageInfo":
-				return ec.fieldContext_FollowConnection_pageInfo(ctx, field)
-			case "edges":
-				return ec.fieldContext_FollowConnection_edges(ctx, field)
-			case "followCount":
-				return ec.fieldContext_FollowConnection_followCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FollowConnection", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_User_followers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -12147,6 +12182,13 @@ func (ec *executionContext) _FollowEdge(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "feedback":
+
+			out.Values[i] = ec._FollowEdge_feedback(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12852,6 +12894,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_checkFollowed(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "checkFollowedByRecruitmentId":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkFollowedByRecruitmentId(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -13659,23 +13724,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_followings(ctx, field, obj)
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "followers":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._User_followers(ctx, field, obj)
 				return res
 			}
 
