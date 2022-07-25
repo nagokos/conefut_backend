@@ -24,7 +24,6 @@ type User implements Node {
   emailVerificationStatus: EmailVerificationStatus!
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
-  followers(first: Int, after: String): FollowConnection
 }
 
 # *** Mutation ***

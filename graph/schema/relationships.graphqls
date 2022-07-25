@@ -1,5 +1,6 @@
 extend type Query {
   checkFollowed(userId: ID!): FeedbackFollow!
+  checkFollowedByRecruitmentId(recruitmentId: ID!): FeedbackFollow!
 }
 
 type FollowConnection implements Connection {
@@ -11,6 +12,7 @@ type FollowConnection implements Connection {
 type FollowEdge implements Edge {
   cursor: String!
   node: User!
+  feedback: FeedbackFollow!
 }
 
 extend type Mutation {
