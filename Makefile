@@ -44,6 +44,12 @@ generate:
 init_recruitments_data:
 	${DC_WEB} go run db/test_data/recruitment/recruitment.go
 
+init_users_data:
+	${DC_WEB} go run db/test_data/user/user.go
+
+init_follow_data:
+	${DC_WEB} go run db/test_data/relationship/relationship.go
+
 # ** DB関係 **
 install_migrate:
 	${DC_WEB} go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
