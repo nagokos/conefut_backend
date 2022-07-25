@@ -13,6 +13,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/entrie"
 	"github.com/nagokos/connefut_backend/graph/models/message"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -50,7 +51,17 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, inp
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
-	panic(fmt.Errorf("not implemented"))
+	tableName := utils.DecodeTableName(id)
+	switch tableName {
+	case "User":
+		user, err := user.GetUser(ctx, r.dbPool, id)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		return user, nil
+	}
+	return nil, nil
 }
 
 // GetViewerRooms is the resolver for the getViewerRooms field.

@@ -1,5 +1,5 @@
 extend type Query {
-  tags(first: Int!): TagConnection
+  tags(first: Int!): TagConnection!
 }
 
 type TagConnection implements Connection {

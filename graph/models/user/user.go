@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
@@ -163,11 +164,11 @@ func SendVerifyEmail(emailToken string) error {
 	return err
 }
 
-func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, error) {
+func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User, error) {
 	cmd := "SELECT id, name, avatar FROM users WHERE id = $1"
 
 	var user model.User
-	row := dbPool.QueryRow(ctx, cmd, id)
+	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(id))
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Avatar)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())

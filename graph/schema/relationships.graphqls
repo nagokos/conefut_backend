@@ -1,0 +1,26 @@
+extend type Query {
+  checkFollowed(userId: ID!): FeedbackFollow!
+  checkFollowedByRecruitmentId(recruitmentId: ID!): FeedbackFollow!
+}
+
+type FollowConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [FollowEdge!]!
+  followCount: Int!
+}
+
+type FollowEdge implements Edge {
+  cursor: String!
+  node: User!
+  feedback: FeedbackFollow!
+}
+
+extend type Mutation {
+  follow(userId: ID!): FeedbackFollow!
+  unFollow(userId: ID!): FeedbackFollow!
+}
+
+type FeedbackFollow implements Node {
+  id: ID!
+  viewerDoesFollow: Boolean!
+}
