@@ -598,7 +598,7 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 		`
 		row := dbPool.QueryRow(
 			ctx, cmd,
-			userID, params.After,
+			userID, utils.DecodeUniqueID(endCursor),
 		)
 
 		var count int
