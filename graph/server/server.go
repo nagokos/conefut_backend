@@ -10,10 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/joho/godotenv"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/loader"
+	"github.com/nagokos/connefut_backend/graph/models/oauth"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
@@ -21,6 +23,10 @@ import (
 
 func init() {
 	os.Setenv("TZ", "Asia/Tokyo")
+	err := godotenv.Load(fmt.Sprintf("./env/%s.env", os.Getenv("GO_ENV")))
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+	}
 }
 
 func main() {
