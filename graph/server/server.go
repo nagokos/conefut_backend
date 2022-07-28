@@ -54,6 +54,16 @@ func main() {
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", loader.Middleware(loaders, srv))
+	r.Route("/oauth", func(r chi.Router) {
+		r.Route("/google", func(r chi.Router) {
+			r.Get("/", oauth.AuthGoogleRedirect)
+			r.Get("/callback", oauth.AuthGoogleCallback)
+		})
+		r.Route("/line", func(r chi.Router) {
+			r.Get("/", oauth.AuthLineRedirect)
+			r.Get("/callback", oauth.AuthLineCallback)
+		})
+	})
 	r.Route("/accounts", func(r chi.Router) {
 		r.Route("/email_verification", func(r chi.Router) {
 			r.Route("/{token}", func(r chi.Router) {
