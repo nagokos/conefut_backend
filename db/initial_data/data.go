@@ -63,23 +63,13 @@ func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
 		{"沖縄県"},
 	}
 
-	tx, err := dbPool.Begin(ctx)
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	_ = tx.Rollback(ctx)
-
 	cmd := "INSERT INTO prefectures (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
 	for _, prefecture := range prefectures {
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, prefecture.name, timeNow, timeNow); err != nil {
+		if _, err := dbPool.Exec(ctx, cmd, prefecture.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		logger.NewLogger().Fatal(err.Error())
 	}
 
 	logger.NewLogger().Info("create prefectures data!")
@@ -94,26 +84,13 @@ func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
 		{"ソサイチ"},
 	}
 
-	tx, err := dbPool.Begin(ctx)
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	_ = tx.Rollback(ctx)
-
 	cmd := "INSERT INTO competitions (name, created_at, updated_at) VALUES ($1, $2, $3)"
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
 
 	for _, competition := range competitions {
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, competition.name, timeNow, timeNow); err != nil {
+		if _, err := dbPool.Exec(ctx, cmd, competition.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		logger.NewLogger().Fatal(err.Error())
 	}
 
 	logger.NewLogger().Info("create competitions data!")
@@ -135,23 +112,13 @@ func InsertTags(ctx context.Context, dbPool *pgxpool.Pool) {
 		{"人工芝"},
 	}
 
-	tx, err := dbPool.Begin(ctx)
-	if err != nil {
-		logger.NewLogger().Fatal(err.Error())
-	}
-	_ = tx.Rollback(ctx)
-
 	cmd := "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
 	for _, tag := range tags {
 		timeNow := time.Now().Local()
-		if _, err := tx.Exec(ctx, cmd, tag.name, timeNow, timeNow); err != nil {
+		if _, err := dbPool.Exec(ctx, cmd, tag.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		logger.NewLogger().Fatal(err.Error())
 	}
 
 	logger.NewLogger().Info("create tags data!")
