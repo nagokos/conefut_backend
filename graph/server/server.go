@@ -30,6 +30,8 @@ func init() {
 }
 
 func main() {
+	var err error
+
 	port := config.Config.Port
 
 	dbPool := db.DatabaseConnection()
@@ -40,7 +42,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(
 		cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"http://localhost:3000"},
+			AllowedOrigins:   []string{"http://localhost:5173"},
 			AllowCredentials: true,
 		}),
 	)
