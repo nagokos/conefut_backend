@@ -128,6 +128,7 @@ func RemoveAuthCookie(ctx context.Context) {
 	http.SetCookie(w, &http.Cookie{
 		HttpOnly: true,
 		Expires:  time.Now().AddDate(0, 0, -1),
+		Path:     "/",
 		Name:     "jwt",
 	})
 }

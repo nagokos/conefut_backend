@@ -1,7 +1,22 @@
+include ./env/develop.env
+
 DC = docker compose
 DC_WEB = $(DC) exec web
 DC_DB = $(DC) exec db
-POSTGRESQL_URL = postgres://root:password@db:5432/connefut_db?sslmode=disable
+POSTGRESQL_URL = ${DB_URL}
+
+# ** docker command **
+dc_build:
+	${DC} build
+
+dc_up:
+	${DC} up -d
+
+dc_down:
+	${DC} down
+
+dc_ps:
+	${DC} ps
 
 package_add:
 	@$(eval PACKAGE_NAME := $(shell read -p "add packages: " NAME; echo $$NAME))

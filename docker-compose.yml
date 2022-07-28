@@ -28,17 +28,12 @@ services:
       - .:/go/src/app
     environment:
       TZ: 'Asia/Tokyo'
+      GO_ENV: 'develop'
     tty: true
     links:
       - mailhog
     depends_on:
       - db
-  nginx:
-    build: ./nginx
-    ports:
-      - 80:80
-    depends_on:
-      - web
   mailhog:
     image: mailhog/mailhog
     ports:

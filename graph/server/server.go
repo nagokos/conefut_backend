@@ -10,10 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/joho/godotenv"
 	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/loader"
+	"github.com/nagokos/connefut_backend/graph/models/oauth"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
@@ -21,9 +23,15 @@ import (
 
 func init() {
 	os.Setenv("TZ", "Asia/Tokyo")
+	err := godotenv.Load(fmt.Sprintf("./env/%s.env", os.Getenv("GO_ENV")))
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+	}
 }
 
 func main() {
+	var err error
+
 	port := config.Config.Port
 
 	dbPool := db.DatabaseConnection()
@@ -34,7 +42,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(
 		cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"http://localhost:3000"},
+			AllowedOrigins:   []string{"http://localhost:5173"},
 			AllowCredentials: true,
 		}),
 	)
@@ -46,6 +54,16 @@ func main() {
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", loader.Middleware(loaders, srv))
+	r.Route("/oauth", func(r chi.Router) {
+		r.Route("/google", func(r chi.Router) {
+			r.Get("/", oauth.AuthGoogleRedirect)
+			r.Get("/callback", oauth.AuthGoogleCallback)
+		})
+		r.Route("/line", func(r chi.Router) {
+			r.Get("/", oauth.AuthLineRedirect)
+			r.Get("/callback", oauth.AuthLineCallback)
+		})
+	})
 	r.Route("/accounts", func(r chi.Router) {
 		r.Route("/email_verification", func(r chi.Router) {
 			r.Route("/{token}", func(r chi.Router) {
@@ -55,7 +73,7 @@ func main() {
 	})
 
 	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 	}

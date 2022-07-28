@@ -178,6 +178,32 @@ func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User,
 	return &user, nil
 }
 
+func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provider, uid string) (int, error) {
+	cmd := `
+	  SELECT u.id, u.name, u.avatar, u.introduction
+		FROM users as u
+		INNER JOIN authentications as o
+		  ON u.id = o.user_id
+		WHERE u.id = (
+			SELECT user_id
+			FROM authentications
+			WHERE provider = $1
+		  AND uid = $2
+		)
+	`
+	row := dbPool.QueryRow(
+		ctx, cmd,
+		provider, uid,
+	)
+
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Avatar, &user.Introduction); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return 0, err
+	}
+	return user.DatabaseID, nil
+}
+
 // ** データベース伴う処理 **
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
 	pwdHash := HashGenerate(u.Password)
@@ -191,7 +217,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 			) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 		RETURNING id, name, email, avatar, email_verification_status
-		`
+	`
 
 	row := dbPool.QueryRow(
 		ctx, cmd,

@@ -2,16 +2,23 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 func DatabaseConnection() *pgxpool.Pool {
-	uri := "postgres://root:password@db:5432/connefut_db?sslmode=disable"
+	err := godotenv.Load(fmt.Sprintf("./env/%s.env", os.Getenv("GO_ENV")))
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+	}
 
+	uri := os.Getenv("DB_URL")
 	cfg, err := pgxpool.ParseConfig(uri)
 	if err != nil {
 		logger.NewLogger().Sugar().Fatalf("failed opening connection to postgres: %v", err)
