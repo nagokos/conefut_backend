@@ -1,10 +1,14 @@
 package utils
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -36,4 +40,24 @@ func DecodeUniqueID(id string) int {
 		logger.NewLogger().Error(err.Error())
 	}
 	return i
+}
+
+func RandString(nByte int) (string, error) {
+	b := make([]byte, nByte)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+func SetCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
+	c := &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Secure:   r.TLS != nil,
+		MaxAge:   int(time.Hour.Seconds()),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, c)
 }
