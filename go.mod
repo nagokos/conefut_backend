@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/99designs/gqlgen v0.17.13
-	github.com/brianvoe/gofakeit/v6 v6.17.0
+	github.com/brianvoe/gofakeit/v6 v6.18.0
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
