@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -36,7 +36,7 @@ func CreateRoom(ctx context.Context, tx pgx.Tx) (string, error) {
 }
 
 func GetviewerRooms(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Room, error) {
-	currenUser := auth.ForContext(ctx)
+	currenUser := user.GetViewer(ctx)
 	if currenUser == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")

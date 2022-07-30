@@ -22,6 +22,7 @@ type User implements Node {
   introduction: String
   role: Role!
   emailVerificationStatus: EmailVerificationStatus!
+    @goField(forceResolver: true)
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
 }
@@ -31,6 +32,10 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserPayload!
   loginUser(input: LoginUserInput!): LoginUserPayload!
   logoutUser: Boolean!
+  resendVerifyEmail: Boolean!
+  sendVerifyNewEmail(
+    input: SendVerifyNewEmailInput!
+  ): SendVerifyNewEmailPayload!
 }
 
 # Register
@@ -81,4 +86,23 @@ enum LoginUserInvalidInputField {
 input LoginUserInput {
   email: String!
   password: String!
+}
+
+# newEmail
+type SendVerifyNewEmailPayload {
+  isSendVerifyEmail: Boolean!
+  userErrors: [SendVerifyNewEmailInvalidInputError!]!
+}
+
+type SendVerifyNewEmailInvalidInputError implements Error {
+  message: String!
+  field: SendVerifyNewEmailInvalidInputField!
+}
+
+enum SendVerifyNewEmailInvalidInputField {
+  EMAIL
+}
+
+input SendVerifyNewEmailInput {
+  email: String!
 }

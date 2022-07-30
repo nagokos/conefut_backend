@@ -65,11 +65,8 @@ func main() {
 		})
 	})
 	r.Route("/accounts", func(r chi.Router) {
-		r.Route("/email_verification", func(r chi.Router) {
-			r.Route("/{token}", func(r chi.Router) {
-				r.Get("/", user.EmailVerification)
-			})
-		})
+		r.Get("/verify_email", user.VerifyEmail)
+		r.Get("/verify_new_email", user.VerifyNewEmail)
 	})
 
 	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -17,7 +17,7 @@ func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*m
 		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		return &feedback, nil
 	}
@@ -72,7 +72,7 @@ func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, rec
 	feedback := model.FeedbackFollow{
 		ID: utils.GenerateUniqueID("Relationship", userID),
 	}
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		return &feedback, nil
 	}
@@ -112,7 +112,7 @@ func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.Fe
 		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	timeNow := time.Now().Local()
 
 	cmd := "INSERT INTO relationships (followed_id, follower_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
@@ -135,7 +135,7 @@ func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.
 		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	cmd := `
 	  DELETE FROM relationships
 		WHERE followed_id = $1

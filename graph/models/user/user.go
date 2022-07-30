@@ -2,18 +2,18 @@ package user
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/smtp"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -30,6 +30,12 @@ var (
 	host      = "mailhog:1025"
 	SecretKey = []byte("secretKey")
 )
+
+var UserCtxKey = &contextKey{name: "secret"}
+
+type contextKey struct {
+	name string
+}
 
 type User struct {
 	ID                              string
@@ -118,8 +124,21 @@ func (u User) AuthenticateUserValidate() error {
 	)
 }
 
+func (u User) SendVerifyNewEmailValidate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(
+			&u.Email,
+			validation.Required.Error("メールアドレスを入力してください"),
+			validation.RuneLength(1, 100).Error("メールアドレスは100文字以内で入力してください"),
+			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
+				Error("メールアドレスを正しく入力してください"),
+			validation.By(checkExistsEmail()),
+		),
+	)
+}
+
 // ** utils **
-func HashGenerate(password string) string {
+func GenerateHash(password string) string {
 	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
@@ -133,10 +152,13 @@ func CheckPasswordHash(passwordDigest, password string) error {
 	return err
 }
 
-func (u *User) GenerateEmailVerificationToken() string {
-	h := md5.New()
-	h.Write([]byte(strings.ToLower(u.Email)))
-	return hex.EncodeToString(h.Sum(nil))
+func GenerateEmailVerificationToken() (string, error) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 func CreateToken(userID int) (string, error) {
@@ -156,7 +178,7 @@ func CreateToken(userID int) (string, error) {
 }
 
 func SendVerifyEmail(emailToken string) error {
-	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/email_verification/%s", emailToken)
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_email?token=%s", emailToken)
 	message := strings.NewReader(verifyURL)
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
@@ -165,17 +187,87 @@ func SendVerifyEmail(emailToken string) error {
 }
 
 func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User, error) {
-	cmd := "SELECT id, name, avatar FROM users WHERE id = $1"
+	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 
 	var user model.User
 	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(id))
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Avatar)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.Introduction, &user.EmailVerificationStatus)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func GetViewer(ctx context.Context) *model.User {
+	raw, _ := ctx.Value(UserCtxKey).(*model.User)
+	return raw
+}
+
+func ReSendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
+	viewer := GetViewer(ctx)
+	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
+	}
+
+	cmd := `
+	  UPDATE users
+		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
+		WHERE id = $3
+	`
+	if _, err := dbPool.Exec(
+		ctx, cmd,
+		emailToken, tokenExpiresAt, viewer.DatabaseID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, nil
+	}
+
+	if err := SendVerifyEmail(emailToken); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, nil
+	}
+	return true, err
+}
+
+func SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool, email string) (*model.SendVerifyNewEmailPayload, error) {
+	var payload model.SendVerifyNewEmailPayload
+
+	viewer := GetViewer(ctx)
+	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	cmd := `
+	  UPDATE users
+		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
+		WHERE id = $3
+	`
+	if _, err := dbPool.Exec(
+		ctx, cmd,
+		emailToken, tokenExpiresAt, viewer.DatabaseID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_new_email?token=%s&email=%s", emailToken, base64.URLEncoding.EncodeToString([]byte(email)))
+	message := strings.NewReader(verifyURL)
+	transformer := japanese.ISO2022JP.NewEncoder()
+	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
+	if err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage); err != nil {
+		return nil, err
+	}
+	payload.IsSendVerifyEmail = true
+
+	return &payload, nil
 }
 
 func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provider, uid string) (int, error) {
@@ -206,9 +298,13 @@ func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provid
 
 // ** データベース伴う処理 **
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
-	pwdHash := HashGenerate(u.Password)
-	emailToken := u.GenerateEmailVerificationToken()
+	pwdHash := GenerateHash(u.Password)
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
 
 	cmd := `
 		INSERT INTO users
@@ -227,7 +323,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 	var payload model.RegisterUserPayload
 	var viewer model.User
 
-	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
+	err = row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -271,11 +367,11 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 }
 
 // ** メール認証 **
-func EmailVerification(w http.ResponseWriter, r *http.Request) {
+func VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	dbPool := db.DatabaseConnection()
 	defer dbPool.Close()
 
-	token := chi.URLParam(r, "token")
+	token := r.URL.Query().Get("token")
 	if token == "" {
 		_, err := w.Write([]byte("無効なURLです"))
 		if err != nil {
@@ -314,10 +410,10 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 
 	cmd = `
 	  UPDATE users AS u
-		SET email_verification_status = $1, email_verification_token = $2, updated_at = $3
-		WHERE u.id = $4
+		SET (email_verification_status, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
+		WHERE u.id = $5
 	`
-	_, err = dbPool.Exec(ctx, cmd, "verified", nil, time.Now().Local(), ID)
+	_, err = dbPool.Exec(ctx, cmd, "verified", nil, nil, time.Now().Local(), ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		_, err = w.Write([]byte("メールアドレスの認証に失敗しました"))
@@ -338,5 +434,105 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
+	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
+}
+
+func VerifyNewEmail(w http.ResponseWriter, r *http.Request) {
+	dbPool := db.DatabaseConnection()
+
+	encodedEmail := r.URL.Query().Get("email")
+	if encodedEmail == "" {
+		logger.NewLogger().Error("email not found")
+		http.Error(w, "email not found", http.StatusBadRequest)
+		return
+	}
+	email, err := base64.URLEncoding.DecodeString(encodedEmail)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cmd := `
+	  SELECT COUNT(DISTINCT id)
+		FROM users
+		WHERE email = $1
+	`
+	row := dbPool.QueryRow(
+		r.Context(), cmd,
+		string(email),
+	)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count > 0 {
+		logger.NewLogger().Error("This email address is already exists")
+		http.Error(w, "This email address is already exists", http.StatusBadRequest)
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		logger.NewLogger().Error("token not found")
+		http.Error(w, "token not found", http.StatusBadRequest)
+		return
+	}
+
+	cmd = `
+	  SELECT id, email_verification_token_expires_at
+		FROM users
+		WHERE email_verification_token = $1
+	`
+	row = dbPool.QueryRow(
+		r.Context(), cmd,
+		token,
+	)
+
+	var userID int
+	var tokenExpiresAt time.Time
+	if err := row.Scan(&userID, &tokenExpiresAt); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if time.Now().After(tokenExpiresAt) {
+		logger.NewLogger().Error("token expires at expired")
+		http.Error(w, "token expires at expired", http.StatusBadRequest)
+		return
+	}
+
+	cmd = `
+	  UPDATE users
+		SET (email, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
+		WHERE id = $5
+	`
+	if _, err := dbPool.Exec(
+		r.Context(), cmd,
+		string(email), nil, nil, time.Now().Local(), userID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jwt, err := CreateToken(userID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour * 24),
+	})
+	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
 }

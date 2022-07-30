@@ -6,9 +6,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
@@ -26,7 +26,7 @@ func NewSchema(dbPool *pgxpool.Pool) graphql.ExecutableSchema {
 		Resolvers: &Resolver{dbPool: dbPool},
 		Directives: generated.DirectiveRoot{
 			HasLoggedIn: func(ctx context.Context, _ interface{}, next graphql.Resolver) (res interface{}, err error) {
-				viewer := auth.ForContext(ctx)
+				viewer := user.GetViewer(ctx)
 				if viewer == nil {
 					logger.NewLogger().Error("user not loggedIn")
 					return nil, nil
@@ -34,7 +34,7 @@ func NewSchema(dbPool *pgxpool.Pool) graphql.ExecutableSchema {
 				return next(ctx)
 			},
 			EmailVerified: func(ctx context.Context, _ interface{}, next graphql.Resolver, status model.EmailVerificationStatus) (res interface{}, err error) {
-				viewer := auth.ForContext(ctx)
+				viewer := user.GetViewer(ctx)
 				if viewer.EmailVerificationStatus != status {
 					logger.NewLogger().Error("access denined")
 					return nil, fmt.Errorf("access denined")

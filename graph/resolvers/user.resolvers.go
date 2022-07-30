@@ -98,9 +98,48 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// ResendVerifyEmail is the resolver for the resendVerifyEmail field.
+func (r *mutationResolver) ResendVerifyEmail(ctx context.Context) (bool, error) {
+	isSendEmail, err := user.ReSendVerifyEmail(ctx, r.dbPool)
+	if err != nil {
+		return false, err
+	}
+	return isSendEmail, nil
+}
+
+// SendVerifyNewEmail is the resolver for the sendVerifyNewEmail field.
+func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (*model.SendVerifyNewEmailPayload, error) {
+	u := user.User{
+		Email: input.Email,
+	}
+
+	err := u.SendVerifyNewEmailValidate()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+
+		var payload model.SendVerifyNewEmailPayload
+
+		for k, errMessage := range errs {
+			payload.UserErrors = append(payload.UserErrors, &model.SendVerifyNewEmailInvalidInputError{
+				Message: errMessage.Error(),
+				Field:   model.SendVerifyNewEmailInvalidInputField(strings.ToLower(k)),
+			})
+		}
+
+		return &payload, nil
+	}
+
+	payload, err := user.SendVerifyNewEmail(ctx, r.dbPool, input.Email)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
 // Viewer is the resolver for the viewer field.
 func (r *queryResolver) Viewer(ctx context.Context) (*model.User, error) {
-	user := auth.ForContext(ctx)
+	user := user.GetViewer(ctx)
 	return user, nil
 }
 
@@ -117,6 +156,11 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 // ID is the resolver for the id field.
 func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) {
 	return utils.GenerateUniqueID("User", obj.DatabaseID), nil
+}
+
+// EmailVerificationStatus is the resolver for the emailVerificationStatus field.
+func (r *userResolver) EmailVerificationStatus(ctx context.Context, obj *model.User) (model.EmailVerificationStatus, error) {
+	return model.EmailVerificationStatus(strings.ToUpper(obj.EmailVerificationStatus.String())), nil
 }
 
 // Recruitments is the resolver for the recruitments field.

@@ -4,17 +4,15 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/user"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-var userCtxKey = &contextKey{name: "secret"}
 var httpWriterKey = &contextKey{name: "httpWriter"}
 
 type contextKey struct {
@@ -30,31 +28,26 @@ func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 				return
 			}
 
-			viewerID, err := validateAndGetUserID(c)
+			userID, err := validateAndGetUserID(c)
 			if err != nil {
 				http.Error(w, "Invalid cookie", http.StatusForbidden)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			viewer, err := getUserByID(dbPool, viewerID)
+			viewer, err := user.GetUser(r.Context(), dbPool, utils.GenerateUniqueID("User", int(userID)))
 			if err != nil {
 				http.Error(w, "user not found", http.StatusForbidden)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userCtxKey, viewer)
+			ctx := context.WithValue(r.Context(), user.UserCtxKey, viewer)
 
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-func ForContext(ctx context.Context) *model.User {
-	raw, _ := ctx.Value(userCtxKey).(*model.User)
-	return raw
 }
 
 func validateAndGetUserID(c *http.Cookie) (float64, error) {
@@ -82,21 +75,6 @@ func validateAndGetUserID(c *http.Cookie) (float64, error) {
 	viewerID := claims["user_id"].(float64)
 
 	return viewerID, nil
-}
-
-func getUserByID(dbPool *pgxpool.Pool, ID float64) (*model.User, error) {
-	var viewer model.User
-
-	cmd := "SELECT id, name, email, role, avatar, introduction, email_verification_status FROM users WHERE id = $1"
-	row := dbPool.QueryRow(context.Background(), cmd, ID)
-	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Role, &viewer.Avatar, &viewer.Introduction, &viewer.EmailVerificationStatus)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	viewer.EmailVerificationStatus = model.EmailVerificationStatus(strings.ToUpper(string(viewer.EmailVerificationStatus)))
-	return &viewer, nil
 }
 
 func CookieMiddleWare() func(http.Handler) http.Handler {

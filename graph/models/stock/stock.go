@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -17,7 +17,7 @@ func AddStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (
 		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := `
 	  SELECT COUNT(DISTINCT id) 
@@ -80,7 +80,7 @@ func RemoveStock(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string
 		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := `
 	  DELETE FROM stocks 
@@ -103,7 +103,7 @@ func CheckStocked(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID strin
 		ID: utils.GenerateUniqueID("Stock", utils.DecodeUniqueID(recruitmentID)),
 	}
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		return &feedback, nil
 	}
