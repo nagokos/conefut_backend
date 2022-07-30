@@ -138,7 +138,7 @@ func (u User) SendVerifyNewEmailValidate() error {
 }
 
 // ** utils **
-func HashGenerate(password string) string {
+func GenerateHash(password string) string {
 	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
