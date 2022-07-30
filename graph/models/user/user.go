@@ -152,10 +152,13 @@ func CheckPasswordHash(passwordDigest, password string) error {
 	return err
 }
 
-func (u *User) GenerateEmailVerificationToken() string {
-	h := md5.New()
-	h.Write([]byte(strings.ToLower(u.Email)))
-	return hex.EncodeToString(h.Sum(nil))
+func GenerateEmailVerificationToken() (string, error) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 func CreateToken(userID int) (string, error) {
