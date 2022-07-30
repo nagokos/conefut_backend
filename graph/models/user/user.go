@@ -2,18 +2,18 @@ package user
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/smtp"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -30,6 +30,12 @@ var (
 	host      = "mailhog:1025"
 	SecretKey = []byte("secretKey")
 )
+
+var UserCtxKey = &contextKey{name: "secret"}
+
+type contextKey struct {
+	name string
+}
 
 type User struct {
 	ID                              string
