@@ -200,6 +200,76 @@ func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User,
 	return &user, nil
 }
 
+func GetViewer(ctx context.Context) *model.User {
+	raw, _ := ctx.Value(UserCtxKey).(*model.User)
+	return raw
+}
+
+func ReSendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
+	viewer := GetViewer(ctx)
+	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
+	}
+
+	cmd := `
+	  UPDATE users
+		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
+		WHERE id = $3
+	`
+	if _, err := dbPool.Exec(
+		ctx, cmd,
+		emailToken, tokenExpiresAt, viewer.DatabaseID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, nil
+	}
+
+	if err := SendVerifyEmail(emailToken); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, nil
+	}
+	return true, err
+}
+
+func SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool, email string) (*model.SendVerifyNewEmailPayload, error) {
+	var payload model.SendVerifyNewEmailPayload
+
+	viewer := GetViewer(ctx)
+	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	cmd := `
+	  UPDATE users
+		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
+		WHERE id = $3
+	`
+	if _, err := dbPool.Exec(
+		ctx, cmd,
+		emailToken, tokenExpiresAt, viewer.DatabaseID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_new_email?token=%s&email=%s", emailToken, base64.URLEncoding.EncodeToString([]byte(email)))
+	message := strings.NewReader(verifyURL)
+	transformer := japanese.ISO2022JP.NewEncoder()
+	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
+	if err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage); err != nil {
+		return nil, err
+	}
+	payload.IsSendVerifyEmail = true
+
+	return &payload, nil
+}
+
 func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provider, uid string) (int, error) {
 	cmd := `
 	  SELECT u.id, u.name, u.avatar, u.introduction
