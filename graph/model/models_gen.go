@@ -240,6 +240,22 @@ type Room struct {
 	Entrie *Entrie `json:"entrie"`
 }
 
+type SendVerifyNewEmailInput struct {
+	Email string `json:"email"`
+}
+
+type SendVerifyNewEmailInvalidInputError struct {
+	Message string                              `json:"message"`
+	Field   SendVerifyNewEmailInvalidInputField `json:"field"`
+}
+
+func (SendVerifyNewEmailInvalidInputError) IsError() {}
+
+type SendVerifyNewEmailPayload struct {
+	IsSendVerifyEmail bool                                   `json:"isSendVerifyEmail"`
+	UserErrors        []*SendVerifyNewEmailInvalidInputError `json:"userErrors"`
+}
+
 type Tag struct {
 	ID         string `json:"id"`
 	DatabaseID int    `json:"databaseId"`
@@ -477,6 +493,45 @@ func (e *Role) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Role) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SendVerifyNewEmailInvalidInputField string
+
+const (
+	SendVerifyNewEmailInvalidInputFieldEmail SendVerifyNewEmailInvalidInputField = "EMAIL"
+)
+
+var AllSendVerifyNewEmailInvalidInputField = []SendVerifyNewEmailInvalidInputField{
+	SendVerifyNewEmailInvalidInputFieldEmail,
+}
+
+func (e SendVerifyNewEmailInvalidInputField) IsValid() bool {
+	switch e {
+	case SendVerifyNewEmailInvalidInputFieldEmail:
+		return true
+	}
+	return false
+}
+
+func (e SendVerifyNewEmailInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *SendVerifyNewEmailInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SendVerifyNewEmailInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SendVerifyNewEmailInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e SendVerifyNewEmailInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
