@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 func GetEntrieUser(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (*model.User, error) {
-	currenUser := auth.ForContext(ctx)
+	currenUser := user.GetViewer(ctx)
 	if currenUser == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")

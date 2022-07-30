@@ -7,9 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/room"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -29,7 +29,7 @@ func GetApplicant(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.App
 }
 
 func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID string) (bool, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		return false, nil
 	}
@@ -59,7 +59,7 @@ func CheckAppliedForRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recID
 }
 
 func CreateApplicant(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID, message string) (bool, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		return false, errors.New("ログインしてください")
 	}

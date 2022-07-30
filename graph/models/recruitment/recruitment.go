@@ -9,9 +9,9 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -155,7 +155,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		RETURNING id, title, status, created_at, published_at, competition_id, user_id, closing_at, type, prefecture_id
 		`
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		r.Title, utils.DecodeUniqueID(r.CompetitionID), strings.ToLower(string(r.Type)), r.Detail, utils.DecodeUniqueID(r.PrefectureID), r.Venue, r.StartAt,
@@ -193,7 +193,7 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 }
 
 func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := `
 		SELECT id, title, type, status, closing_at, created_at, 
@@ -309,7 +309,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.R
 }
 
 func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := `
 	  SELECT r.id, r.title, r.type
@@ -446,7 +446,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 }
 
 func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := `
 		SELECT r.id, r.title, r.closing_at, r.user_id
@@ -639,7 +639,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 							venue, detail, start_at
 	`
 
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	timeNow := time.Now().Local()
 
 	var publishedAt *time.Time
@@ -790,7 +790,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 }
 
 func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.DeleteRecruitmentPayload, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 
 	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
 	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID)

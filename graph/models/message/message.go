@@ -7,8 +7,8 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/logger"
 	"github.com/rs/xid"
 )
@@ -27,7 +27,7 @@ func (m Message) MessageValidate() error {
 }
 
 func (m *Message) CreateMessage(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (*model.Message, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")
@@ -58,7 +58,7 @@ func (m *Message) CreateMessage(ctx context.Context, dbPool *pgxpool.Pool, roomI
 }
 
 func GetRoomMessages(ctx context.Context, dbPool *pgxpool.Pool, roomID string) ([]*model.Message, error) {
-	viewer := auth.ForContext(ctx)
+	viewer := user.GetViewer(ctx)
 	if viewer == nil {
 		logger.NewLogger().Error("user not loggedIn")
 		return nil, errors.New("ログインしてください")
