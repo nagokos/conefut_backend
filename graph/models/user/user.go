@@ -367,11 +367,11 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 }
 
 // ** メール認証 **
-func EmailVerification(w http.ResponseWriter, r *http.Request) {
+func VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	dbPool := db.DatabaseConnection()
 	defer dbPool.Close()
 
-	token := chi.URLParam(r, "token")
+	token := r.URL.Query().Get("token")
 	if token == "" {
 		_, err := w.Write([]byte("無効なURLです"))
 		if err != nil {
@@ -410,10 +410,10 @@ func EmailVerification(w http.ResponseWriter, r *http.Request) {
 
 	cmd = `
 	  UPDATE users AS u
-		SET email_verification_status = $1, email_verification_token = $2, updated_at = $3
-		WHERE u.id = $4
+		SET (email_verification_status, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
+		WHERE u.id = $5
 	`
-	_, err = dbPool.Exec(ctx, cmd, "verified", nil, time.Now().Local(), ID)
+	_, err = dbPool.Exec(ctx, cmd, "verified", nil, nil, time.Now().Local(), ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		_, err = w.Write([]byte("メールアドレスの認証に失敗しました"))
