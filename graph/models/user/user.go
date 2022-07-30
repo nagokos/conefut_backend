@@ -298,9 +298,13 @@ func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provid
 
 // ** データベース伴う処理 **
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
-	pwdHash := HashGenerate(u.Password)
-	emailToken := u.GenerateEmailVerificationToken()
+	pwdHash := GenerateHash(u.Password)
 	tokenExpiresAt := time.Now().Add(24 * time.Hour)
+	emailToken, err := GenerateEmailVerificationToken()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
 
 	cmd := `
 		INSERT INTO users
@@ -319,7 +323,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 	var payload model.RegisterUserPayload
 	var viewer model.User
 
-	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
+	err = row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
 	if err != nil {
 		return nil, err
 	}
