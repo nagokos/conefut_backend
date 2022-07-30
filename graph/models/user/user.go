@@ -178,7 +178,7 @@ func CreateToken(userID int) (string, error) {
 }
 
 func SendVerifyEmail(emailToken string) error {
-	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/email_verification/%s", emailToken)
+	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_email?token=%s", emailToken)
 	message := strings.NewReader(verifyURL)
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
