@@ -47,10 +47,10 @@ type User struct {
 	EmailVerificationTokenExpiresAt time.Time
 }
 
-type NullableUser struct {
-	ID     *string
-	Name   *string
-	Avatar *string
+type ChangePasswordInput struct {
+	CurrentPassword         string
+	NewPassword             string
+	NewPasswordConfirmation string
 }
 
 func checkExistsEmail() validation.RuleFunc {
