@@ -434,5 +434,105 @@ func VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	http.Redirect(w, r, "http://localhost:3000/", http.StatusMovedPermanently)
+	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
+}
+
+func VerifyNewEmail(w http.ResponseWriter, r *http.Request) {
+	dbPool := db.DatabaseConnection()
+
+	encodedEmail := r.URL.Query().Get("email")
+	if encodedEmail == "" {
+		logger.NewLogger().Error("email not found")
+		http.Error(w, "email not found", http.StatusBadRequest)
+		return
+	}
+	email, err := base64.URLEncoding.DecodeString(encodedEmail)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cmd := `
+	  SELECT COUNT(DISTINCT id)
+		FROM users
+		WHERE email = $1
+	`
+	row := dbPool.QueryRow(
+		r.Context(), cmd,
+		string(email),
+	)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count > 0 {
+		logger.NewLogger().Error("This email address is already exists")
+		http.Error(w, "This email address is already exists", http.StatusBadRequest)
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		logger.NewLogger().Error("token not found")
+		http.Error(w, "token not found", http.StatusBadRequest)
+		return
+	}
+
+	cmd = `
+	  SELECT id, email_verification_token_expires_at
+		FROM users
+		WHERE email_verification_token = $1
+	`
+	row = dbPool.QueryRow(
+		r.Context(), cmd,
+		token,
+	)
+
+	var userID int
+	var tokenExpiresAt time.Time
+	if err := row.Scan(&userID, &tokenExpiresAt); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if time.Now().After(tokenExpiresAt) {
+		logger.NewLogger().Error("token expires at expired")
+		http.Error(w, "token expires at expired", http.StatusBadRequest)
+		return
+	}
+
+	cmd = `
+	  UPDATE users
+		SET (email, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
+		WHERE id = $5
+	`
+	if _, err := dbPool.Exec(
+		r.Context(), cmd,
+		string(email), nil, nil, time.Now().Local(), userID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jwt, err := CreateToken(userID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour * 24),
+	})
+	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
 }
