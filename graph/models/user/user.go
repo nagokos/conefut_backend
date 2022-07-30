@@ -124,6 +124,19 @@ func (u User) AuthenticateUserValidate() error {
 	)
 }
 
+func (u User) SendVerifyNewEmailValidate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(
+			&u.Email,
+			validation.Required.Error("メールアドレスを入力してください"),
+			validation.RuneLength(1, 100).Error("メールアドレスは100文字以内で入力してください"),
+			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
+				Error("メールアドレスを正しく入力してください"),
+			validation.By(checkExistsEmail()),
+		),
+	)
+}
+
 // ** utils **
 func HashGenerate(password string) string {
 	b := []byte(password)
