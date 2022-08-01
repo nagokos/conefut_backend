@@ -50,6 +50,11 @@ type ChangePasswordInput struct {
 	NewPasswordConfirmation string
 }
 
+type VerifyEmailInput struct {
+	Code string
+}
+
+//* アドレスが重複しないかチェック
 func checkExistsEmail() validation.RuleFunc {
 	return func(v interface{}) error {
 		var err error
@@ -74,6 +79,17 @@ func checkExistsEmail() validation.RuleFunc {
 		}
 
 		return err
+	}
+}
+
+//* 新規パスワードと新規パスワード確認が等しいか
+func passwordEqualToThePasswordConfirmation(new string) validation.RuleFunc {
+	return func(value interface{}) error {
+		confirmation, _ := value.(string)
+		if new != confirmation {
+			return errors.New("新規パスワードと新規パスワード確認が一致しません")
+		}
+		return nil
 	}
 }
 
