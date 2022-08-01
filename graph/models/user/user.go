@@ -217,6 +217,7 @@ func GenerateEmailVerification() (string, error) {
 	return pin, nil
 }
 
+//* Cookieにセットする認証トークンを生成(JWT)
 func CreateToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
