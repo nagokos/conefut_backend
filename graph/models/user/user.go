@@ -468,9 +468,10 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 		RETURNING id, name, email, avatar, email_verification_status
 	`
 
+	now := time.Now().Local()
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		u.Name, u.Email, u.Email, pwdHash, pin, pinExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
+		u.Name, u.Email, u.Email, pwdHash, pin, pinExpiresAt, now, now, now,
 	)
 
 	var payload model.RegisterUserPayload
