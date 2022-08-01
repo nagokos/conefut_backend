@@ -286,8 +286,8 @@ type SendVerifyNewEmailInvalidInputError struct {
 func (SendVerifyNewEmailInvalidInputError) IsError() {}
 
 type SendVerifyNewEmailPayload struct {
-	IsSentVerifyEmail bool                                   `json:"isSentVerifyEmail"`
-	UserErrors        []*SendVerifyNewEmailInvalidInputError `json:"userErrors"`
+	Viewer     *User                                  `json:"viewer"`
+	UserErrors []*SendVerifyNewEmailInvalidInputError `json:"userErrors"`
 }
 
 type Tag struct {
