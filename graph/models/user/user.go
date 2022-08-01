@@ -306,20 +306,22 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*mo
 	  UPDATE users
 		SET (email_verification_pin, email_verification_pin_expires_at, unverified_email) = ($1, $2, $3)
 		WHERE id = $4
+		RETURNING id, unverified_email
 	`
-	if _, err := dbPool.Exec(
+	row := dbPool.QueryRow(
 		ctx, cmd,
 		pin, pinExpiresAt, u.Email, viewer.DatabaseID,
-	); err != nil {
+	)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-
-	if err := SendingVerifyEmail(pin, u.Email); err != nil {
+	if err := SendingVerifyEmail(pin, *user.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	payload.IsSentVerifyEmail = true
+	payload.Viewer = &user
 	return &payload, err
 }
 
@@ -362,14 +364,14 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 	  UPDATE users
 		SET (email, unverified_email, email_verification_status, email_verification_pin_expires_at, email_verification_pin, updated_at) = ($1, $2, $3, $4, $5, $6)
 		WHERE id = $7
-		RETURNING id, name, email, avatar, email_verification_status
+		RETURNING id, email, unverified_email, email_verification_status
 	`
 	row = dbPool.QueryRow(
 		ctx, cmd,
 		viewer.UnverifiedEmail, nil, "verified", nil, nil, time.Now().Local(), viewer.DatabaseID,
 	)
 	var user model.User
-	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus); err != nil {
+	if err := row.Scan(&user.DatabaseID, &user.Email, &user.UnverifiedEmail, &user.EmailVerificationStatus); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
@@ -465,7 +467,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 			(name, email, unverified_email, password_digest, email_verification_pin,
 				email_verification_pin_expires_at, last_sign_in_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, name, email, avatar, email_verification_status
+		RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
 	`
 
 	now := time.Now().Local()
@@ -476,8 +478,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 
 	var payload model.RegisterUserPayload
 	var user model.User
-
-	err = row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
+	err = row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &user.Introduction, &user.UnverifiedEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -497,10 +498,12 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 	var user model.User
 	var passwordDigest string
 
-	cmd := "SELECT id, name, email, avatar, email_verification_status, password_digest FROM users WHERE email = $1"
+	cmd := "SELECT id, name, email, avatar, email_verification_status, introduction, unverified_email, password_digest FROM users WHERE email = $1"
 	row := dbPool.QueryRow(ctx, cmd, u.Email)
 
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus,
+		&user.Introduction, &user.UnverifiedEmail, &passwordDigest,
+	)
 	if err != nil {
 		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
