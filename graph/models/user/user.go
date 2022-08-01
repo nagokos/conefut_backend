@@ -339,8 +339,41 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	payload.IsSendVerifyEmail = true
 
+	//* pinの有効期限チェック
+	if time.Now().Local().After(pinExpiresAt) {
+		logger.NewLogger().Error("pin code expired")
+		payload.UserErrors = append(payload.UserErrors, model.VerifyEmailPinExpiredError{
+			Message: "認証コードの有効期限が切れています。認証コードを再取得してください。",
+		})
+		return &payload, nil
+	}
+
+	//* 送られてきたpinとユーザーのpinを比較
+	if i.Code != pin {
+		logger.NewLogger().Error("Pin code does not match")
+		payload.UserErrors = append(payload.UserErrors, model.VerifyEmailPinExpiredError{
+			Message: "認証コードに誤りがあります",
+		})
+		return &payload, nil
+	}
+
+	cmd = `
+	  UPDATE users
+		SET (email, unverified_email, email_verification_status, email_verification_pin_expires_at, email_verification_pin, updated_at) = ($1, $2, $3, $4, $5, $6)
+		WHERE id = $7
+		RETURNING id, name, email, avatar, email_verification_status
+	`
+	row = dbPool.QueryRow(
+		ctx, cmd,
+		viewer.UnverifiedEmail, nil, "verified", nil, nil, time.Now().Local(), viewer.DatabaseID,
+	)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	payload.Viewer = &user
 	return &payload, nil
 }
 
