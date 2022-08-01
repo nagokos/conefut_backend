@@ -18,6 +18,7 @@ type User implements Node {
   databaseId: Int!
   name: String!
   email: String!
+  unverifiedEmail: String
   avatar: String!
   introduction: String
   role: Role!
@@ -92,7 +93,7 @@ input LoginUserInput {
 
 #* NewEmail
 type SendVerifyNewEmailPayload {
-  isSentVerifyEmail: Boolean!
+  viewer: User
   userErrors: [SendVerifyNewEmailInvalidInputError!]!
 }
 
