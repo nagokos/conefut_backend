@@ -79,6 +79,20 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	ChangePasswordAuthenticationError struct {
+		Message func(childComplexity int) int
+	}
+
+	ChangePasswordInvalidInputError struct {
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
+	ChangePasswordPayload struct {
+		IsChangedPassword func(childComplexity int) int
+		UserErrors        func(childComplexity int) int
+	}
+
 	Competition struct {
 		DatabaseID func(childComplexity int) int
 		ID         func(childComplexity int) int
@@ -155,6 +169,7 @@ type ComplexityRoot struct {
 		AddRecruitmentTag   func(childComplexity int, tagID string, recruitmentID string) int
 		AddStock            func(childComplexity int, recruitmentID string) int
 		ApplyForRecruitment func(childComplexity int, recruitmentID string, input *model.ApplicantInput) int
+		ChangePassword      func(childComplexity int, input model.ChangePasswordInput) int
 		CreateMessage       func(childComplexity int, roomID string, input model.CreateMessageInput) int
 		CreateRecruitment   func(childComplexity int, input model.RecruitmentInput) int
 		CreateTag           func(childComplexity int, input model.CreateTagInput) int
@@ -164,10 +179,11 @@ type ComplexityRoot struct {
 		LogoutUser          func(childComplexity int) int
 		RegisterUser        func(childComplexity int, input model.RegisterUserInput) int
 		RemoveStock         func(childComplexity int, recruitmentID string) int
-		ResendVerifyEmail   func(childComplexity int) int
+		SendVerifyEmail     func(childComplexity int) int
 		SendVerifyNewEmail  func(childComplexity int, input model.SendVerifyNewEmailInput) int
 		UnFollow            func(childComplexity int, userID string) int
 		UpdateRecruitment   func(childComplexity int, id string, input model.RecruitmentInput) int
+		VerifyEmail         func(childComplexity int, input model.VerifyEmailInput) int
 	}
 
 	PageInfo struct {
@@ -257,7 +273,7 @@ type ComplexityRoot struct {
 	}
 
 	SendVerifyNewEmailPayload struct {
-		IsSendVerifyEmail func(childComplexity int) int
+		IsSentVerifyEmail func(childComplexity int) int
 		UserErrors        func(childComplexity int) int
 	}
 
@@ -294,6 +310,24 @@ type ComplexityRoot struct {
 		Recruitments            func(childComplexity int, first *int, after *string) int
 		Role                    func(childComplexity int) int
 	}
+
+	VerifyEmailAuthenticationError struct {
+		Message func(childComplexity int) int
+	}
+
+	VerifyEmailInvalidInputError struct {
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
+	VerifyEmailPayload struct {
+		UserErrors func(childComplexity int) int
+		Viewer     func(childComplexity int) int
+	}
+
+	VerifyEmailPinExpiredError struct {
+		Message func(childComplexity int) int
+	}
 }
 
 type ApplicantResolver interface {
@@ -317,8 +351,10 @@ type MutationResolver interface {
 	RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error)
 	LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error)
 	LogoutUser(ctx context.Context) (bool, error)
-	ResendVerifyEmail(ctx context.Context) (bool, error)
+	SendVerifyEmail(ctx context.Context) (bool, error)
 	SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (*model.SendVerifyNewEmailPayload, error)
+	ChangePassword(ctx context.Context, input model.ChangePasswordInput) (*model.ChangePasswordPayload, error)
+	VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (*model.VerifyEmailPayload, error)
 }
 type PrefectureResolver interface {
 	ID(ctx context.Context, obj *model.Prefecture) (string, error)
@@ -459,6 +495,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ApplyForRecruitmentSelfGeneratedError.Message(childComplexity), true
+
+	case "ChangePasswordAuthenticationError.message":
+		if e.complexity.ChangePasswordAuthenticationError.Message == nil {
+			break
+		}
+
+		return e.complexity.ChangePasswordAuthenticationError.Message(childComplexity), true
+
+	case "ChangePasswordInvalidInputError.field":
+		if e.complexity.ChangePasswordInvalidInputError.Field == nil {
+			break
+		}
+
+		return e.complexity.ChangePasswordInvalidInputError.Field(childComplexity), true
+
+	case "ChangePasswordInvalidInputError.message":
+		if e.complexity.ChangePasswordInvalidInputError.Message == nil {
+			break
+		}
+
+		return e.complexity.ChangePasswordInvalidInputError.Message(childComplexity), true
+
+	case "ChangePasswordPayload.isChangedPassword":
+		if e.complexity.ChangePasswordPayload.IsChangedPassword == nil {
+			break
+		}
+
+		return e.complexity.ChangePasswordPayload.IsChangedPassword(childComplexity), true
+
+	case "ChangePasswordPayload.userErrors":
+		if e.complexity.ChangePasswordPayload.UserErrors == nil {
+			break
+		}
+
+		return e.complexity.ChangePasswordPayload.UserErrors(childComplexity), true
 
 	case "Competition.databaseId":
 		if e.complexity.Competition.DatabaseID == nil {
@@ -706,6 +777,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ApplyForRecruitment(childComplexity, args["recruitmentId"].(string), args["input"].(*model.ApplicantInput)), true
 
+	case "Mutation.changePassword":
+		if e.complexity.Mutation.ChangePassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_changePassword_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ChangePassword(childComplexity, args["input"].(model.ChangePasswordInput)), true
+
 	case "Mutation.createMessage":
 		if e.complexity.Mutation.CreateMessage == nil {
 			break
@@ -809,12 +892,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.RemoveStock(childComplexity, args["recruitmentId"].(string)), true
 
-	case "Mutation.resendVerifyEmail":
-		if e.complexity.Mutation.ResendVerifyEmail == nil {
+	case "Mutation.sendVerifyEmail":
+		if e.complexity.Mutation.SendVerifyEmail == nil {
 			break
 		}
 
-		return e.complexity.Mutation.ResendVerifyEmail(childComplexity), true
+		return e.complexity.Mutation.SendVerifyEmail(childComplexity), true
 
 	case "Mutation.sendVerifyNewEmail":
 		if e.complexity.Mutation.SendVerifyNewEmail == nil {
@@ -851,6 +934,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateRecruitment(childComplexity, args["id"].(string), args["input"].(model.RecruitmentInput)), true
+
+	case "Mutation.verifyEmail":
+		if e.complexity.Mutation.VerifyEmail == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_verifyEmail_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.VerifyEmail(childComplexity, args["input"].(model.VerifyEmailInput)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -1314,12 +1409,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SendVerifyNewEmailInvalidInputError.Message(childComplexity), true
 
-	case "SendVerifyNewEmailPayload.isSendVerifyEmail":
-		if e.complexity.SendVerifyNewEmailPayload.IsSendVerifyEmail == nil {
+	case "SendVerifyNewEmailPayload.isSentVerifyEmail":
+		if e.complexity.SendVerifyNewEmailPayload.IsSentVerifyEmail == nil {
 			break
 		}
 
-		return e.complexity.SendVerifyNewEmailPayload.IsSendVerifyEmail(childComplexity), true
+		return e.complexity.SendVerifyNewEmailPayload.IsSentVerifyEmail(childComplexity), true
 
 	case "SendVerifyNewEmailPayload.userErrors":
 		if e.complexity.SendVerifyNewEmailPayload.UserErrors == nil {
@@ -1471,6 +1566,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Role(childComplexity), true
 
+	case "VerifyEmailAuthenticationError.message":
+		if e.complexity.VerifyEmailAuthenticationError.Message == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailAuthenticationError.Message(childComplexity), true
+
+	case "VerifyEmailInvalidInputError.field":
+		if e.complexity.VerifyEmailInvalidInputError.Field == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailInvalidInputError.Field(childComplexity), true
+
+	case "VerifyEmailInvalidInputError.message":
+		if e.complexity.VerifyEmailInvalidInputError.Message == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailInvalidInputError.Message(childComplexity), true
+
+	case "VerifyEmailPayload.userErrors":
+		if e.complexity.VerifyEmailPayload.UserErrors == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailPayload.UserErrors(childComplexity), true
+
+	case "VerifyEmailPayload.viewer":
+		if e.complexity.VerifyEmailPayload.Viewer == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailPayload.Viewer(childComplexity), true
+
+	case "VerifyEmailPinExpiredError.message":
+		if e.complexity.VerifyEmailPinExpiredError.Message == nil {
+			break
+		}
+
+		return e.complexity.VerifyEmailPinExpiredError.Message(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -1480,11 +1617,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{rc, e}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputApplyForRecruitmentInput,
+		ec.unmarshalInputChangePasswordInput,
 		ec.unmarshalInputCreateTagInput,
 		ec.unmarshalInputLoginUserInput,
 		ec.unmarshalInputRecruitmentInput,
 		ec.unmarshalInputRegisterUserInput,
 		ec.unmarshalInputSendVerifyNewEmailInput,
+		ec.unmarshalInputVerifyEmailInput,
 		ec.unmarshalInputapplicantInput,
 		ec.unmarshalInputcreateMessageInput,
 	)
@@ -1911,13 +2050,15 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserPayload!
   loginUser(input: LoginUserInput!): LoginUserPayload!
   logoutUser: Boolean!
-  resendVerifyEmail: Boolean!
+  sendVerifyEmail: Boolean!
   sendVerifyNewEmail(
     input: SendVerifyNewEmailInput!
   ): SendVerifyNewEmailPayload!
+  changePassword(input: ChangePasswordInput!): ChangePasswordPayload!
+  verifyEmail(input: VerifyEmailInput!): VerifyEmailPayload
 }
 
-# Register
+#* Register
 type RegisterUserPayload {
   viewer: User
   userErrors: [RegisterUserInvalidInputError!]!
@@ -1940,7 +2081,7 @@ input RegisterUserInput {
   password: String!
 }
 
-# Login
+#* Login
 type LoginUserPayload {
   viewer: User
   userErrors: [LoginUserError!]!
@@ -1967,9 +2108,9 @@ input LoginUserInput {
   password: String!
 }
 
-# newEmail
+#* NewEmail
 type SendVerifyNewEmailPayload {
-  isSendVerifyEmail: Boolean!
+  isSentVerifyEmail: Boolean!
   userErrors: [SendVerifyNewEmailInvalidInputError!]!
 }
 
@@ -1984,6 +2125,69 @@ enum SendVerifyNewEmailInvalidInputField {
 
 input SendVerifyNewEmailInput {
   email: String!
+}
+
+#* ChangePassword
+type ChangePasswordPayload {
+  isChangedPassword: Boolean!
+  userErrors: [ChangePasswordErorr!]!
+}
+
+union ChangePasswordErorr =
+    ChangePasswordInvalidInputError
+  | ChangePasswordAuthenticationError
+
+type ChangePasswordAuthenticationError implements Error {
+  message: String!
+}
+
+type ChangePasswordInvalidInputError implements Error {
+  message: String!
+  field: ChangePasswordInvalidInputField!
+}
+
+enum ChangePasswordInvalidInputField {
+  CURRENT_PASSWORD
+  NEW_PASSWORD
+  NEW_PASSWORD_CONFIRMATION
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+  newPasswordConfirmation: String!
+}
+
+#* VerifyEmail
+type VerifyEmailPayload {
+  viewer: User
+  userErrors: [VerifyEmailErorr!]!
+}
+
+union VerifyEmailErorr =
+    VerifyEmailInvalidInputError
+  | VerifyEmailAuthenticationError
+  | VerifyEmailPinExpiredError
+
+type VerifyEmailAuthenticationError implements Error {
+  message: String!
+}
+
+type VerifyEmailPinExpiredError implements Error {
+  message: String!
+}
+
+type VerifyEmailInvalidInputError implements Error {
+  message: String!
+  field: VerifyEmailInvalidInputField!
+}
+
+enum VerifyEmailInvalidInputField {
+  CODE
+}
+
+input VerifyEmailInput {
+  code: String!
 }
 `, BuiltIn: false},
 }
@@ -2068,6 +2272,21 @@ func (ec *executionContext) field_Mutation_applyForRecruitment_args(ctx context.
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_changePassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ChangePasswordInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNChangePasswordInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -2251,6 +2470,21 @@ func (ec *executionContext) field_Mutation_updateRecruitment_args(ctx context.Co
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_verifyEmail_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.VerifyEmailInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -3112,6 +3346,226 @@ func (ec *executionContext) fieldContext_ApplyForRecruitmentSelfGeneratedError_m
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordAuthenticationError_message(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordAuthenticationError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChangePasswordAuthenticationError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChangePasswordAuthenticationError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordAuthenticationError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordInvalidInputError_message(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChangePasswordInvalidInputError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChangePasswordInvalidInputError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordInvalidInputError_field(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChangePasswordInvalidInputError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChangePasswordInvalidInputField)
+	fc.Result = res
+	return ec.marshalNChangePasswordInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordInvalidInputField(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChangePasswordInvalidInputError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChangePasswordInvalidInputField does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordPayload_isChangedPassword(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChangePasswordPayload_isChangedPassword(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsChangedPassword, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChangePasswordPayload_isChangedPassword(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordPayload_userErrors(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChangePasswordPayload_userErrors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.ChangePasswordErorr)
+	fc.Result = res
+	return ec.marshalNChangePasswordErorr2ᚕgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordErorrᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChangePasswordPayload_userErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChangePasswordErorr does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5531,8 +5985,8 @@ func (ec *executionContext) fieldContext_Mutation_logoutUser(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_resendVerifyEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_resendVerifyEmail(ctx, field)
+func (ec *executionContext) _Mutation_sendVerifyEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_sendVerifyEmail(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -5545,7 +5999,7 @@ func (ec *executionContext) _Mutation_resendVerifyEmail(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ResendVerifyEmail(rctx)
+		return ec.resolvers.Mutation().SendVerifyEmail(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5562,7 +6016,7 @@ func (ec *executionContext) _Mutation_resendVerifyEmail(ctx context.Context, fie
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_resendVerifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_sendVerifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5614,8 +6068,8 @@ func (ec *executionContext) fieldContext_Mutation_sendVerifyNewEmail(ctx context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "isSendVerifyEmail":
-				return ec.fieldContext_SendVerifyNewEmailPayload_isSendVerifyEmail(ctx, field)
+			case "isSentVerifyEmail":
+				return ec.fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field)
 			case "userErrors":
 				return ec.fieldContext_SendVerifyNewEmailPayload_userErrors(ctx, field)
 			}
@@ -5630,6 +6084,125 @@ func (ec *executionContext) fieldContext_Mutation_sendVerifyNewEmail(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_sendVerifyNewEmail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_changePassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_changePassword(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ChangePassword(rctx, fc.Args["input"].(model.ChangePasswordInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChangePasswordPayload)
+	fc.Result = res
+	return ec.marshalNChangePasswordPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_changePassword(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "isChangedPassword":
+				return ec.fieldContext_ChangePasswordPayload_isChangedPassword(ctx, field)
+			case "userErrors":
+				return ec.fieldContext_ChangePasswordPayload_userErrors(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChangePasswordPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_changePassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_verifyEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_verifyEmail(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().VerifyEmail(rctx, fc.Args["input"].(model.VerifyEmailInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.VerifyEmailPayload)
+	fc.Result = res
+	return ec.marshalOVerifyEmailPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_verifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "viewer":
+				return ec.fieldContext_VerifyEmailPayload_viewer(ctx, field)
+			case "userErrors":
+				return ec.fieldContext_VerifyEmailPayload_userErrors(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VerifyEmailPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_verifyEmail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -8724,8 +9297,8 @@ func (ec *executionContext) fieldContext_SendVerifyNewEmailInvalidInputError_fie
 	return fc, nil
 }
 
-func (ec *executionContext) _SendVerifyNewEmailPayload_isSendVerifyEmail(ctx context.Context, field graphql.CollectedField, obj *model.SendVerifyNewEmailPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendVerifyNewEmailPayload_isSendVerifyEmail(ctx, field)
+func (ec *executionContext) _SendVerifyNewEmailPayload_isSentVerifyEmail(ctx context.Context, field graphql.CollectedField, obj *model.SendVerifyNewEmailPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -8738,7 +9311,7 @@ func (ec *executionContext) _SendVerifyNewEmailPayload_isSendVerifyEmail(ctx con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IsSendVerifyEmail, nil
+		return obj.IsSentVerifyEmail, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8755,7 +9328,7 @@ func (ec *executionContext) _SendVerifyNewEmailPayload_isSendVerifyEmail(ctx con
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_SendVerifyNewEmailPayload_isSendVerifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "SendVerifyNewEmailPayload",
 		Field:      field,
@@ -9704,6 +10277,289 @@ func (ec *executionContext) fieldContext_User_followings(ctx context.Context, fi
 	if fc.Args, err = ec.field_User_followings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailAuthenticationError_message(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailAuthenticationError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailAuthenticationError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailAuthenticationError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailAuthenticationError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailInvalidInputError_message(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailInvalidInputError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailInvalidInputError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailInvalidInputError_field(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailInvalidInputError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.VerifyEmailInvalidInputField)
+	fc.Result = res
+	return ec.marshalNVerifyEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailInvalidInputField(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailInvalidInputError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type VerifyEmailInvalidInputField does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailPayload_viewer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Viewer, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_User_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "avatar":
+				return ec.fieldContext_User_avatar(ctx, field)
+			case "introduction":
+				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "emailVerificationStatus":
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailPayload_userErrors(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailPayload_userErrors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.VerifyEmailErorr)
+	fc.Result = res
+	return ec.marshalNVerifyEmailErorr2ᚕgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailErorrᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailPayload_userErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type VerifyEmailErorr does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerifyEmailPinExpiredError_message(ctx context.Context, field graphql.CollectedField, obj *model.VerifyEmailPinExpiredError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VerifyEmailPinExpiredError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VerifyEmailPinExpiredError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerifyEmailPinExpiredError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -11509,6 +12365,50 @@ func (ec *executionContext) unmarshalInputApplyForRecruitmentInput(ctx context.C
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputChangePasswordInput(ctx context.Context, obj interface{}) (model.ChangePasswordInput, error) {
+	var it model.ChangePasswordInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"currentPassword", "newPassword", "newPasswordConfirmation"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "currentPassword":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentPassword"))
+			it.CurrentPassword, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "newPassword":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPassword"))
+			it.NewPassword, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "newPasswordConfirmation":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPasswordConfirmation"))
+			it.NewPasswordConfirmation, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateTagInput(ctx context.Context, obj interface{}) (model.CreateTagInput, error) {
 	var it model.CreateTagInput
 	asMap := map[string]interface{}{}
@@ -11761,6 +12661,34 @@ func (ec *executionContext) unmarshalInputSendVerifyNewEmailInput(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, obj interface{}) (model.VerifyEmailInput, error) {
+	var it model.VerifyEmailInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"code"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "code":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			it.Code, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputapplicantInput(ctx context.Context, obj interface{}) (model.ApplicantInput, error) {
 	var it model.ApplicantInput
 	asMap := map[string]interface{}{}
@@ -11846,6 +12774,29 @@ func (ec *executionContext) _ApplyForRecruitmentError(ctx context.Context, sel a
 			return graphql.Null
 		}
 		return ec._ApplyForRecruitmentInvalidInputError(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _ChangePasswordErorr(ctx context.Context, sel ast.SelectionSet, obj model.ChangePasswordErorr) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.ChangePasswordInvalidInputError:
+		return ec._ChangePasswordInvalidInputError(ctx, sel, &obj)
+	case *model.ChangePasswordInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ChangePasswordInvalidInputError(ctx, sel, obj)
+	case model.ChangePasswordAuthenticationError:
+		return ec._ChangePasswordAuthenticationError(ctx, sel, &obj)
+	case *model.ChangePasswordAuthenticationError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ChangePasswordAuthenticationError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -11964,6 +12915,41 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._SendVerifyNewEmailInvalidInputError(ctx, sel, obj)
+	case model.ChangePasswordAuthenticationError:
+		return ec._ChangePasswordAuthenticationError(ctx, sel, &obj)
+	case *model.ChangePasswordAuthenticationError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ChangePasswordAuthenticationError(ctx, sel, obj)
+	case model.ChangePasswordInvalidInputError:
+		return ec._ChangePasswordInvalidInputError(ctx, sel, &obj)
+	case *model.ChangePasswordInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ChangePasswordInvalidInputError(ctx, sel, obj)
+	case model.VerifyEmailAuthenticationError:
+		return ec._VerifyEmailAuthenticationError(ctx, sel, &obj)
+	case *model.VerifyEmailAuthenticationError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailAuthenticationError(ctx, sel, obj)
+	case model.VerifyEmailPinExpiredError:
+		return ec._VerifyEmailPinExpiredError(ctx, sel, &obj)
+	case *model.VerifyEmailPinExpiredError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailPinExpiredError(ctx, sel, obj)
+	case model.VerifyEmailInvalidInputError:
+		return ec._VerifyEmailInvalidInputError(ctx, sel, &obj)
+	case *model.VerifyEmailInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailInvalidInputError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -12059,6 +13045,36 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _VerifyEmailErorr(ctx context.Context, sel ast.SelectionSet, obj model.VerifyEmailErorr) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.VerifyEmailInvalidInputError:
+		return ec._VerifyEmailInvalidInputError(ctx, sel, &obj)
+	case *model.VerifyEmailInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailInvalidInputError(ctx, sel, obj)
+	case model.VerifyEmailAuthenticationError:
+		return ec._VerifyEmailAuthenticationError(ctx, sel, &obj)
+	case *model.VerifyEmailAuthenticationError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailAuthenticationError(ctx, sel, obj)
+	case model.VerifyEmailPinExpiredError:
+		return ec._VerifyEmailPinExpiredError(ctx, sel, &obj)
+	case *model.VerifyEmailPinExpiredError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._VerifyEmailPinExpiredError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -12245,6 +13261,104 @@ func (ec *executionContext) _ApplyForRecruitmentSelfGeneratedError(ctx context.C
 		case "message":
 
 			out.Values[i] = ec._ApplyForRecruitmentSelfGeneratedError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var changePasswordAuthenticationErrorImplementors = []string{"ChangePasswordAuthenticationError", "ChangePasswordErorr", "Error"}
+
+func (ec *executionContext) _ChangePasswordAuthenticationError(ctx context.Context, sel ast.SelectionSet, obj *model.ChangePasswordAuthenticationError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, changePasswordAuthenticationErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChangePasswordAuthenticationError")
+		case "message":
+
+			out.Values[i] = ec._ChangePasswordAuthenticationError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var changePasswordInvalidInputErrorImplementors = []string{"ChangePasswordInvalidInputError", "ChangePasswordErorr", "Error"}
+
+func (ec *executionContext) _ChangePasswordInvalidInputError(ctx context.Context, sel ast.SelectionSet, obj *model.ChangePasswordInvalidInputError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, changePasswordInvalidInputErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChangePasswordInvalidInputError")
+		case "message":
+
+			out.Values[i] = ec._ChangePasswordInvalidInputError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "field":
+
+			out.Values[i] = ec._ChangePasswordInvalidInputError_field(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var changePasswordPayloadImplementors = []string{"ChangePasswordPayload"}
+
+func (ec *executionContext) _ChangePasswordPayload(ctx context.Context, sel ast.SelectionSet, obj *model.ChangePasswordPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, changePasswordPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChangePasswordPayload")
+		case "isChangedPassword":
+
+			out.Values[i] = ec._ChangePasswordPayload_isChangedPassword(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "userErrors":
+
+			out.Values[i] = ec._ChangePasswordPayload_userErrors(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -12907,10 +14021,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "resendVerifyEmail":
+		case "sendVerifyEmail":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_resendVerifyEmail(ctx, field)
+				return ec._Mutation_sendVerifyEmail(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -12925,6 +14039,21 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "changePassword":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_changePassword(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "verifyEmail":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_verifyEmail(ctx, field)
+			})
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13951,9 +15080,9 @@ func (ec *executionContext) _SendVerifyNewEmailPayload(ctx context.Context, sel 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SendVerifyNewEmailPayload")
-		case "isSendVerifyEmail":
+		case "isSentVerifyEmail":
 
-			out.Values[i] = ec._SendVerifyNewEmailPayload_isSendVerifyEmail(ctx, field, obj)
+			out.Values[i] = ec._SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -14256,6 +15385,129 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				return innerFunc(ctx)
 
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var verifyEmailAuthenticationErrorImplementors = []string{"VerifyEmailAuthenticationError", "VerifyEmailErorr", "Error"}
+
+func (ec *executionContext) _VerifyEmailAuthenticationError(ctx context.Context, sel ast.SelectionSet, obj *model.VerifyEmailAuthenticationError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, verifyEmailAuthenticationErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VerifyEmailAuthenticationError")
+		case "message":
+
+			out.Values[i] = ec._VerifyEmailAuthenticationError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var verifyEmailInvalidInputErrorImplementors = []string{"VerifyEmailInvalidInputError", "VerifyEmailErorr", "Error"}
+
+func (ec *executionContext) _VerifyEmailInvalidInputError(ctx context.Context, sel ast.SelectionSet, obj *model.VerifyEmailInvalidInputError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, verifyEmailInvalidInputErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VerifyEmailInvalidInputError")
+		case "message":
+
+			out.Values[i] = ec._VerifyEmailInvalidInputError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "field":
+
+			out.Values[i] = ec._VerifyEmailInvalidInputError_field(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var verifyEmailPayloadImplementors = []string{"VerifyEmailPayload"}
+
+func (ec *executionContext) _VerifyEmailPayload(ctx context.Context, sel ast.SelectionSet, obj *model.VerifyEmailPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, verifyEmailPayloadImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VerifyEmailPayload")
+		case "viewer":
+
+			out.Values[i] = ec._VerifyEmailPayload_viewer(ctx, field, obj)
+
+		case "userErrors":
+
+			out.Values[i] = ec._VerifyEmailPayload_userErrors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var verifyEmailPinExpiredErrorImplementors = []string{"VerifyEmailPinExpiredError", "VerifyEmailErorr", "Error"}
+
+func (ec *executionContext) _VerifyEmailPinExpiredError(ctx context.Context, sel ast.SelectionSet, obj *model.VerifyEmailPinExpiredError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, verifyEmailPinExpiredErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VerifyEmailPinExpiredError")
+		case "message":
+
+			out.Values[i] = ec._VerifyEmailPinExpiredError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14676,6 +15928,89 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNChangePasswordErorr2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordErorr(ctx context.Context, sel ast.SelectionSet, v model.ChangePasswordErorr) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChangePasswordErorr(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNChangePasswordErorr2ᚕgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordErorrᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ChangePasswordErorr) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNChangePasswordErorr2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordErorr(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNChangePasswordInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordInput(ctx context.Context, v interface{}) (model.ChangePasswordInput, error) {
+	res, err := ec.unmarshalInputChangePasswordInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNChangePasswordInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordInvalidInputField(ctx context.Context, v interface{}) (model.ChangePasswordInvalidInputField, error) {
+	var res model.ChangePasswordInvalidInputField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNChangePasswordInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordInvalidInputField(ctx context.Context, sel ast.SelectionSet, v model.ChangePasswordInvalidInputField) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNChangePasswordPayload2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordPayload(ctx context.Context, sel ast.SelectionSet, v model.ChangePasswordPayload) graphql.Marshaler {
+	return ec._ChangePasswordPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNChangePasswordPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐChangePasswordPayload(ctx context.Context, sel ast.SelectionSet, v *model.ChangePasswordPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChangePasswordPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCompetition2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐCompetition(ctx context.Context, sel ast.SelectionSet, v model.Competition) graphql.Marshaler {
@@ -15725,6 +17060,75 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_ba
 	return ec._User(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNVerifyEmailErorr2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailErorr(ctx context.Context, sel ast.SelectionSet, v model.VerifyEmailErorr) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VerifyEmailErorr(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVerifyEmailErorr2ᚕgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailErorrᚄ(ctx context.Context, sel ast.SelectionSet, v []model.VerifyEmailErorr) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNVerifyEmailErorr2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailErorr(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
+	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVerifyEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailInvalidInputField(ctx context.Context, v interface{}) (model.VerifyEmailInvalidInputField, error) {
+	var res model.VerifyEmailInvalidInputField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVerifyEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailInvalidInputField(ctx context.Context, sel ast.SelectionSet, v model.VerifyEmailInvalidInputField) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -16143,6 +17547,13 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_ba
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOVerifyEmailPayload2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐVerifyEmailPayload(ctx context.Context, sel ast.SelectionSet, v *model.VerifyEmailPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._VerifyEmailPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

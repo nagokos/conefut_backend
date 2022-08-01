@@ -13,6 +13,10 @@ type ApplyForRecruitmentError interface {
 	IsApplyForRecruitmentError()
 }
 
+type ChangePasswordErorr interface {
+	IsChangePasswordErorr()
+}
+
 type Connection interface {
 	IsConnection()
 }
@@ -31,6 +35,10 @@ type LoginUserError interface {
 
 type Node interface {
 	IsNode()
+}
+
+type VerifyEmailErorr interface {
+	IsVerifyEmailErorr()
 }
 
 type Applicant struct {
@@ -73,6 +81,32 @@ type ApplyForRecruitmentSelfGeneratedError struct {
 
 func (ApplyForRecruitmentSelfGeneratedError) IsApplyForRecruitmentError() {}
 func (ApplyForRecruitmentSelfGeneratedError) IsError()                    {}
+
+type ChangePasswordAuthenticationError struct {
+	Message string `json:"message"`
+}
+
+func (ChangePasswordAuthenticationError) IsChangePasswordErorr() {}
+func (ChangePasswordAuthenticationError) IsError()               {}
+
+type ChangePasswordInput struct {
+	CurrentPassword         string `json:"currentPassword"`
+	NewPassword             string `json:"newPassword"`
+	NewPasswordConfirmation string `json:"newPasswordConfirmation"`
+}
+
+type ChangePasswordInvalidInputError struct {
+	Message string                          `json:"message"`
+	Field   ChangePasswordInvalidInputField `json:"field"`
+}
+
+func (ChangePasswordInvalidInputError) IsChangePasswordErorr() {}
+func (ChangePasswordInvalidInputError) IsError()               {}
+
+type ChangePasswordPayload struct {
+	IsChangedPassword bool                  `json:"isChangedPassword"`
+	UserErrors        []ChangePasswordErorr `json:"userErrors"`
+}
 
 type Competition struct {
 	ID         string `json:"id"`
@@ -252,7 +286,7 @@ type SendVerifyNewEmailInvalidInputError struct {
 func (SendVerifyNewEmailInvalidInputError) IsError() {}
 
 type SendVerifyNewEmailPayload struct {
-	IsSendVerifyEmail bool                                   `json:"isSendVerifyEmail"`
+	IsSentVerifyEmail bool                                   `json:"isSentVerifyEmail"`
 	UserErrors        []*SendVerifyNewEmailInvalidInputError `json:"userErrors"`
 }
 
@@ -282,6 +316,37 @@ type UpdateRecruitmentPayload struct {
 	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
 	DeletedRecruitmentID    *string          `json:"deletedRecruitmentId"`
 }
+
+type VerifyEmailAuthenticationError struct {
+	Message string `json:"message"`
+}
+
+func (VerifyEmailAuthenticationError) IsVerifyEmailErorr() {}
+func (VerifyEmailAuthenticationError) IsError()            {}
+
+type VerifyEmailInput struct {
+	Code string `json:"code"`
+}
+
+type VerifyEmailInvalidInputError struct {
+	Message string                       `json:"message"`
+	Field   VerifyEmailInvalidInputField `json:"field"`
+}
+
+func (VerifyEmailInvalidInputError) IsVerifyEmailErorr() {}
+func (VerifyEmailInvalidInputError) IsError()            {}
+
+type VerifyEmailPayload struct {
+	Viewer     *User              `json:"viewer"`
+	UserErrors []VerifyEmailErorr `json:"userErrors"`
+}
+
+type VerifyEmailPinExpiredError struct {
+	Message string `json:"message"`
+}
+
+func (VerifyEmailPinExpiredError) IsVerifyEmailErorr() {}
+func (VerifyEmailPinExpiredError) IsError()            {}
 
 type ApplicantInput struct {
 	Message string `json:"message"`
@@ -327,6 +392,49 @@ func (e *ApplyForRecruitmentInvalidInputField) UnmarshalGQL(v interface{}) error
 }
 
 func (e ApplyForRecruitmentInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ChangePasswordInvalidInputField string
+
+const (
+	ChangePasswordInvalidInputFieldCurrentPassword         ChangePasswordInvalidInputField = "CURRENT_PASSWORD"
+	ChangePasswordInvalidInputFieldNewPassword             ChangePasswordInvalidInputField = "NEW_PASSWORD"
+	ChangePasswordInvalidInputFieldNewPasswordConfirmation ChangePasswordInvalidInputField = "NEW_PASSWORD_CONFIRMATION"
+)
+
+var AllChangePasswordInvalidInputField = []ChangePasswordInvalidInputField{
+	ChangePasswordInvalidInputFieldCurrentPassword,
+	ChangePasswordInvalidInputFieldNewPassword,
+	ChangePasswordInvalidInputFieldNewPasswordConfirmation,
+}
+
+func (e ChangePasswordInvalidInputField) IsValid() bool {
+	switch e {
+	case ChangePasswordInvalidInputFieldCurrentPassword, ChangePasswordInvalidInputFieldNewPassword, ChangePasswordInvalidInputFieldNewPasswordConfirmation:
+		return true
+	}
+	return false
+}
+
+func (e ChangePasswordInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *ChangePasswordInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ChangePasswordInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ChangePasswordInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e ChangePasswordInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -622,5 +730,44 @@ func (e *Type) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Type) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type VerifyEmailInvalidInputField string
+
+const (
+	VerifyEmailInvalidInputFieldCode VerifyEmailInvalidInputField = "CODE"
+)
+
+var AllVerifyEmailInvalidInputField = []VerifyEmailInvalidInputField{
+	VerifyEmailInvalidInputFieldCode,
+}
+
+func (e VerifyEmailInvalidInputField) IsValid() bool {
+	switch e {
+	case VerifyEmailInvalidInputFieldCode:
+		return true
+	}
+	return false
+}
+
+func (e VerifyEmailInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *VerifyEmailInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = VerifyEmailInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid VerifyEmailInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e VerifyEmailInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

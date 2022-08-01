@@ -98,13 +98,13 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// ResendVerifyEmail is the resolver for the resendVerifyEmail field.
-func (r *mutationResolver) ResendVerifyEmail(ctx context.Context) (bool, error) {
-	isSendEmail, err := user.ReSendVerifyEmail(ctx, r.dbPool)
+// SendVerifyEmail is the resolver for the sendVerifyEmail field.
+func (r *mutationResolver) SendVerifyEmail(ctx context.Context) (bool, error) {
+	isSentEmail, err := user.SendVerifyEmail(ctx, r.dbPool)
 	if err != nil {
 		return false, err
 	}
-	return isSendEmail, nil
+	return isSentEmail, nil
 }
 
 // SendVerifyNewEmail is the resolver for the sendVerifyNewEmail field.
@@ -130,7 +130,65 @@ func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.S
 		return &payload, nil
 	}
 
-	payload, err := user.SendVerifyNewEmail(ctx, r.dbPool, input.Email)
+	payload, err := u.SendVerifyNewEmail(ctx, r.dbPool)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+// ChangePassword is the resolver for the changePassword field.
+func (r *mutationResolver) ChangePassword(ctx context.Context, input model.ChangePasswordInput) (*model.ChangePasswordPayload, error) {
+	i := user.ChangePasswordInput{
+		CurrentPassword:         input.CurrentPassword,
+		NewPassword:             input.NewPassword,
+		NewPasswordConfirmation: input.NewPasswordConfirmation,
+	}
+
+	err := i.ChangePasswordValidate()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+
+		var payload model.ChangePasswordPayload
+
+		for k, errMessage := range errs {
+			payload.UserErrors = append(payload.UserErrors, &model.ChangePasswordInvalidInputError{
+				Message: errMessage.Error(),
+				Field:   model.ChangePasswordInvalidInputField(strings.ToLower(k)),
+			})
+		}
+
+		return &payload, nil
+	}
+
+	payload, err := i.ChangePassword(ctx, r.dbPool)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+// VerifyEmail is the resolver for the verifyEmail field.
+func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (*model.VerifyEmailPayload, error) {
+	i := user.VerifyEmailInput{
+		Code: input.Code,
+	}
+	if err := i.VerifyEmailValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+		var payload model.VerifyEmailPayload
+		for k, errMessage := range errs {
+			payload.UserErrors = append(payload.UserErrors, &model.VerifyEmailInvalidInputError{
+				Message: errMessage.Error(),
+				Field:   model.VerifyEmailInvalidInputField(strings.ToLower(k)),
+			})
+		}
+		return &payload, nil
+	}
+
+	payload, err := i.VerifyEmail(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,7 @@ type contextKey struct {
 func Middleware(dbPool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c, err := r.Cookie("jwt")
+			c, err := r.Cookie("token")
 			if err != nil || c == nil {
 				next.ServeHTTP(w, r)
 				return
@@ -64,16 +64,12 @@ func validateAndGetUserID(c *http.Cookie) (float64, error) {
 	token, err := jwt.Parse(c.Value, func(t *jwt.Token) (interface{}, error) {
 		return user.SecretKey, nil
 	})
-
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return 0, err
 	}
-
 	claims := token.Claims.(jwt.MapClaims)
-
-	viewerID := claims["user_id"].(float64)
-
+	viewerID := claims["sub"].(float64)
 	return viewerID, nil
 }
 
@@ -91,7 +87,7 @@ func SetAuthCookie(ctx context.Context, token string) {
 	w, _ := ctx.Value(httpWriterKey).(http.ResponseWriter)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
+		Name:     "token",
 		Value:    token,
 		HttpOnly: true,
 		Path:     "/",
@@ -107,6 +103,6 @@ func RemoveAuthCookie(ctx context.Context) {
 		HttpOnly: true,
 		Expires:  time.Now().AddDate(0, 0, -1),
 		Path:     "/",
-		Name:     "jwt",
+		Name:     "token",
 	})
 }
