@@ -236,9 +236,9 @@ func CreateToken(userID int) (string, error) {
 	return tokenString, nil
 }
 
-func SendVerifyEmail(emailToken string) error {
-	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_email?token=%s", emailToken)
-	message := strings.NewReader(verifyURL)
+//* 実際にメールを送信する処理
+func SendingVerifyEmail(pin string, to string) error {
+	message := strings.NewReader(fmt.Sprint(pin))
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
 	err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage)
