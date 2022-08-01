@@ -241,7 +241,7 @@ func SendingVerifyEmail(pin string, to string) error {
 	message := strings.NewReader(fmt.Sprint(pin))
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
-	err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage)
+	err := smtp.SendMail(host, nil, "connefut@example.com", []string{to}, newMessage)
 	return err
 }
 
