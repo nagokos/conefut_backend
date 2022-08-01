@@ -200,6 +200,7 @@ func GenerateHash(password string) string {
 	return string(hash)
 }
 
+//* ユーザーのハッシュ化したパスワードと送られてきたパスワードを比較
 func CheckPasswordHash(passwordDigest, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
 	return err
