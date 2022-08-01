@@ -2,14 +2,14 @@ package user
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
+	"math"
+	"math/big"
+	"math/rand"
 	"net/smtp"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -37,14 +37,11 @@ type contextKey struct {
 	name string
 }
 
+// todo 各inputに対応したstructに
 type User struct {
-	ID                              string
-	Name                            string
-	Email                           string
-	Password                        string
-	EmailVerificationStatus         bool
-	EmailVerificationToken          string
-	EmailVerificationTokenExpiresAt time.Time
+	Name     string
+	Email    string
+	Password string
 }
 
 type ChangePasswordInput struct {
