@@ -206,13 +206,15 @@ func CheckPasswordHash(passwordDigest, password string) error {
 	return err
 }
 
-func GenerateEmailVerificationToken() (string, error) {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
+//* メール認証のPINを生成
+func GenerateEmailVerification() (string, error) {
+	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+	rand.Seed(seed.Int64())
+	var pin string
+	for i := 0; i < 6; i++ {
+		pin = fmt.Sprintf(pin+"%v", rand.Intn(9))
 	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
+	return pin, nil
 }
 
 func CreateToken(userID int) (string, error) {
