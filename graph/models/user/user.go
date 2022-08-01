@@ -450,11 +450,11 @@ func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provid
 	return user.DatabaseID, nil
 }
 
-// ** データベース伴う処理 **
+//* ユーザー新規登録
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
 	pwdHash := GenerateHash(u.Password)
-	tokenExpiresAt := time.Now().Add(24 * time.Hour)
-	emailToken, err := GenerateEmailVerificationToken()
+	pinExpiresAt := time.Now().Add(10 * time.Minute)
+	pin, err := GenerateEmailVerification()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
