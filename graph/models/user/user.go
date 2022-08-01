@@ -315,11 +315,28 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*mo
 		return nil, err
 	}
 
-	verifyURL := fmt.Sprintf("http://localhost:8080/accounts/verify_new_email?token=%s&email=%s", emailToken, base64.URLEncoding.EncodeToString([]byte(email)))
-	message := strings.NewReader(verifyURL)
-	transformer := japanese.ISO2022JP.NewEncoder()
-	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
-	if err := smtp.SendMail(host, nil, "connefut@example.com", []string{"connefut@example.com"}, newMessage); err != nil {
+	if err := SendingVerifyEmail(pin, u.Email); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	payload.IsSentVerifyEmail = true
+	return &payload, err
+}
+
+//* メールアドレス認証
+func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (*model.VerifyEmailPayload, error) {
+	var payload model.VerifyEmailPayload
+	viewer := GetViewer(ctx)
+	cmd := `
+	  SELECT email_verification_pin, email_verification_pin_expires_at
+		FROM users
+		WHERE id = $1
+	`
+	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID)
+	var pin string
+	var pinExpiresAt time.Time
+	if err := row.Scan(&pin, &pinExpiresAt); err != nil {
+		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 	payload.IsSendVerifyEmail = true
