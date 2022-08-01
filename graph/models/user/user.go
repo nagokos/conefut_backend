@@ -377,6 +377,53 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 	return &payload, nil
 }
 
+//* パスワードを変更
+func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool.Pool) (*model.ChangePasswordPayload, error) {
+	viewer := GetViewer(ctx)
+	var payload model.ChangePasswordPayload
+
+	cmd := `
+	  SELECT password_digest
+		FROM users
+		WHERE id = $1
+	`
+	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID)
+	var passwordDigest string
+	if err := row.Scan(&passwordDigest); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	if err := CheckPasswordHash(passwordDigest, i.CurrentPassword); err != nil {
+		logger.NewLogger().Error(err.Error())
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			payload.UserErrors = append(payload.UserErrors, model.ChangePasswordAuthenticationError{
+				Message: "現在のパスワードが有効ではありません",
+			})
+			return &payload, nil
+		}
+		return nil, err
+	}
+
+	hash := GenerateHash(i.NewPassword)
+	cmd = `
+	  UPDATE users
+		SET (password_digest, created_at) = ($1, $2)
+		WHERE id = $3
+	`
+	if _, err := dbPool.Exec(
+		ctx, cmd,
+		hash, time.Now().Local(), viewer.DatabaseID,
+	); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	payload.IsChangedPassword = true
+	return &payload, nil
+}
+
+//* 外部認証用のユーザー取得
 func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provider, uid string) (int, error) {
 	cmd := `
 	  SELECT u.id, u.name, u.avatar, u.introduction
