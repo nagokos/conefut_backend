@@ -32,13 +32,15 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserPayload!
   loginUser(input: LoginUserInput!): LoginUserPayload!
   logoutUser: Boolean!
-  resendVerifyEmail: Boolean!
+  sendVerifyEmail: Boolean!
   sendVerifyNewEmail(
     input: SendVerifyNewEmailInput!
   ): SendVerifyNewEmailPayload!
+  changePassword(input: ChangePasswordInput!): ChangePasswordPayload!
+  verifyEmail(input: VerifyEmailInput!): VerifyEmailPayload
 }
 
-# Register
+#* Register
 type RegisterUserPayload {
   viewer: User
   userErrors: [RegisterUserInvalidInputError!]!
@@ -61,7 +63,7 @@ input RegisterUserInput {
   password: String!
 }
 
-# Login
+#* Login
 type LoginUserPayload {
   viewer: User
   userErrors: [LoginUserError!]!
@@ -88,9 +90,9 @@ input LoginUserInput {
   password: String!
 }
 
-# newEmail
+#* NewEmail
 type SendVerifyNewEmailPayload {
-  isSendVerifyEmail: Boolean!
+  isSentVerifyEmail: Boolean!
   userErrors: [SendVerifyNewEmailInvalidInputError!]!
 }
 
@@ -105,4 +107,67 @@ enum SendVerifyNewEmailInvalidInputField {
 
 input SendVerifyNewEmailInput {
   email: String!
+}
+
+#* ChangePassword
+type ChangePasswordPayload {
+  isChangedPassword: Boolean!
+  userErrors: [ChangePasswordErorr!]!
+}
+
+union ChangePasswordErorr =
+    ChangePasswordInvalidInputError
+  | ChangePasswordAuthenticationError
+
+type ChangePasswordAuthenticationError implements Error {
+  message: String!
+}
+
+type ChangePasswordInvalidInputError implements Error {
+  message: String!
+  field: ChangePasswordInvalidInputField!
+}
+
+enum ChangePasswordInvalidInputField {
+  CURRENT_PASSWORD
+  NEW_PASSWORD
+  NEW_PASSWORD_CONFIRMATION
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+  newPasswordConfirmation: String!
+}
+
+#* VerifyEmail
+type VerifyEmailPayload {
+  viewer: User
+  userErrors: [VerifyEmailErorr!]!
+}
+
+union VerifyEmailErorr =
+    VerifyEmailInvalidInputError
+  | VerifyEmailAuthenticationError
+  | VerifyEmailPinExpiredError
+
+type VerifyEmailAuthenticationError implements Error {
+  message: String!
+}
+
+type VerifyEmailPinExpiredError implements Error {
+  message: String!
+}
+
+type VerifyEmailInvalidInputError implements Error {
+  message: String!
+  field: VerifyEmailInvalidInputField!
+}
+
+enum VerifyEmailInvalidInputField {
+  CODE
+}
+
+input VerifyEmailInput {
+  code: String!
 }
