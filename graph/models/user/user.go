@@ -261,15 +261,11 @@ func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User,
 	return &user, nil
 }
 
-func GetViewer(ctx context.Context) *model.User {
-	raw, _ := ctx.Value(UserCtxKey).(*model.User)
-	return raw
-}
-
-func ReSendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
+//* メールアドレスに認証メール送信
+func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 	viewer := GetViewer(ctx)
-	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
-	emailToken, err := GenerateEmailVerificationToken()
+	pinExpiresAt := time.Now().Add(10 * time.Minute)
+	pin, err := GenerateEmailVerification()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
@@ -277,30 +273,30 @@ func ReSendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) 
 
 	cmd := `
 	  UPDATE users
-		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
+		SET (email_verification_pin, email_verification_pin_expires_at) = ($1, $2)
 		WHERE id = $3
 	`
 	if _, err := dbPool.Exec(
 		ctx, cmd,
-		emailToken, tokenExpiresAt, viewer.DatabaseID,
+		pin, pinExpiresAt, viewer.DatabaseID,
 	); err != nil {
 		logger.NewLogger().Error(err.Error())
-		return false, nil
+		return false, err
 	}
 
-	if err := SendVerifyEmail(emailToken); err != nil {
+	if err := SendingVerifyEmail(pin, *viewer.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
-		return false, nil
+		return false, err
 	}
 	return true, err
 }
 
-func SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool, email string) (*model.SendVerifyNewEmailPayload, error) {
+//* 新しいメールアドレスに認証メール送信
+func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*model.SendVerifyNewEmailPayload, error) {
 	var payload model.SendVerifyNewEmailPayload
-
 	viewer := GetViewer(ctx)
-	tokenExpiresAt := time.Now().Local().Add(24 * time.Hour)
-	emailToken, err := GenerateEmailVerificationToken()
+	pinExpiresAt := time.Now().Add(10 * time.Minute)
+	pin, err := GenerateEmailVerification()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
