@@ -16,7 +16,6 @@ import (
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/models/oauth"
-	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -63,10 +62,6 @@ func main() {
 			r.Get("/", oauth.AuthLineRedirect)
 			r.Get("/callback", oauth.AuthLineCallback)
 		})
-	})
-	r.Route("/accounts", func(r chi.Router) {
-		r.Get("/verify_email", user.VerifyEmail)
-		r.Get("/verify_new_email", user.VerifyNewEmail)
 	})
 
 	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)
