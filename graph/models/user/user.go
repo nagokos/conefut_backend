@@ -245,6 +245,7 @@ func SendingVerifyEmail(pin string, to string) error {
 	return err
 }
 
+//* idからユーザーを取得
 func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User, error) {
 	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status FROM users WHERE id = $1"
 
