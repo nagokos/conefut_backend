@@ -462,45 +462,44 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 
 	cmd := `
 		INSERT INTO users
-			(name, email, password_digest, email_verification_token, 
-				email_verification_token_expires_at, last_sign_in_at, created_at, updated_at
-			) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+			(name, email, unverified_email, password_digest, email_verification_pin,
+				email_verification_pin_expires_at, last_sign_in_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, name, email, avatar, email_verification_status
 	`
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		u.Name, u.Email, pwdHash, emailToken, tokenExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
+		u.Name, u.Email, u.Email, pwdHash, pin, pinExpiresAt, time.Now().Local(), time.Now().Local(), time.Now().Local(),
 	)
 
 	var payload model.RegisterUserPayload
-	var viewer model.User
+	var user model.User
 
-	err = row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus)
+	err = row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus)
 	if err != nil {
 		return nil, err
 	}
 
-	// 本番環境と開発環境では違う
-	err = SendVerifyEmail(emailToken)
+	//todo 本番環境と開発環境では処理が違ってくる
+	err = SendingVerifyEmail(pin, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	payload.Viewer = &viewer
+	payload.Viewer = &user
 	return &payload, nil
 }
 
 func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
 	var payload model.LoginUserPayload
-	var viewer model.User
+	var user model.User
 	var passwordDigest string
 
 	cmd := "SELECT id, name, email, avatar, email_verification_status, password_digest FROM users WHERE email = $1"
 	row := dbPool.QueryRow(ctx, cmd, u.Email)
 
-	err := row.Scan(&viewer.DatabaseID, &viewer.Name, &viewer.Email, &viewer.Avatar, &viewer.EmailVerificationStatus, &passwordDigest)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &passwordDigest)
 	if err != nil {
 		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
@@ -516,177 +515,6 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.Logi
 		return &payload, err
 	}
 
-	payload.Viewer = &viewer
+	payload.Viewer = &user
 	return &payload, nil
-}
-
-// ** メール認証 **
-func VerifyEmail(w http.ResponseWriter, r *http.Request) {
-	dbPool := db.DatabaseConnection()
-	defer dbPool.Close()
-
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		_, err := w.Write([]byte("無効なURLです"))
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		logger.NewLogger().Error("Invalid URL")
-		return
-	}
-
-	ctx := context.Background()
-
-	cmd := "SELECT id, email_verification_token_expires_at FROM users WHERE email_verification_token = $1"
-	row := dbPool.QueryRow(ctx, cmd, token)
-
-	var ID int
-	var tokenExpiresAt time.Time
-	err := row.Scan(&ID, &tokenExpiresAt)
-
-	if err != nil {
-		_, err = w.Write([]byte("ユーザーが見つかりませんでした"))
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		logger.NewLogger().Sugar().Errorf("user not found: %s", err)
-		return
-	}
-
-	if time.Now().After(tokenExpiresAt) {
-		_, err = w.Write([]byte("有効期限が切れています"))
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		logger.NewLogger().Error("token expires at expired")
-		return
-	}
-
-	cmd = `
-	  UPDATE users AS u
-		SET (email_verification_status, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
-		WHERE u.id = $5
-	`
-	_, err = dbPool.Exec(ctx, cmd, "verified", nil, nil, time.Now().Local(), ID)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		_, err = w.Write([]byte("メールアドレスの認証に失敗しました"))
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		return
-	}
-
-	jwt, _ := CreateToken(ID)
-	cookie := &http.Cookie{
-		Name:     "jwt",
-		Value:    jwt,
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(time.Hour * 1),
-	}
-
-	http.SetCookie(w, cookie)
-	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
-}
-
-func VerifyNewEmail(w http.ResponseWriter, r *http.Request) {
-	dbPool := db.DatabaseConnection()
-
-	encodedEmail := r.URL.Query().Get("email")
-	if encodedEmail == "" {
-		logger.NewLogger().Error("email not found")
-		http.Error(w, "email not found", http.StatusBadRequest)
-		return
-	}
-	email, err := base64.URLEncoding.DecodeString(encodedEmail)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	cmd := `
-	  SELECT COUNT(DISTINCT id)
-		FROM users
-		WHERE email = $1
-	`
-	row := dbPool.QueryRow(
-		r.Context(), cmd,
-		string(email),
-	)
-	var count int
-	if err := row.Scan(&count); err != nil {
-		logger.NewLogger().Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if count > 0 {
-		logger.NewLogger().Error("This email address is already exists")
-		http.Error(w, "This email address is already exists", http.StatusBadRequest)
-		return
-	}
-
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		logger.NewLogger().Error("token not found")
-		http.Error(w, "token not found", http.StatusBadRequest)
-		return
-	}
-
-	cmd = `
-	  SELECT id, email_verification_token_expires_at
-		FROM users
-		WHERE email_verification_token = $1
-	`
-	row = dbPool.QueryRow(
-		r.Context(), cmd,
-		token,
-	)
-
-	var userID int
-	var tokenExpiresAt time.Time
-	if err := row.Scan(&userID, &tokenExpiresAt); err != nil {
-		logger.NewLogger().Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if time.Now().After(tokenExpiresAt) {
-		logger.NewLogger().Error("token expires at expired")
-		http.Error(w, "token expires at expired", http.StatusBadRequest)
-		return
-	}
-
-	cmd = `
-	  UPDATE users
-		SET (email, email_verification_token, email_verification_token_expires_at, updated_at) = ($1, $2, $3, $4)
-		WHERE id = $5
-	`
-	if _, err := dbPool.Exec(
-		r.Context(), cmd,
-		string(email), nil, nil, time.Now().Local(), userID,
-	); err != nil {
-		logger.NewLogger().Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	jwt, err := CreateToken(userID)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwt,
-		HttpOnly: true,
-		Path:     "/",
-		Secure:   r.TLS != nil,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(time.Hour * 24),
-	})
-	http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusMovedPermanently)
 }
