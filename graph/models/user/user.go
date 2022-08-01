@@ -219,11 +219,13 @@ func GenerateEmailVerification() (string, error) {
 
 //* Cookieにセットする認証トークンを生成(JWT)
 func CreateToken(userID int) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	now := time.Now().Local()
+	payload := jwt.MapClaims{
+		"sub": userID,
+		"exp": now.Add(time.Hour * 24).Unix(),
+		"iat": now.Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
 	tokenString, err := token.SignedString([]byte("secretKey"))
 	if err != nil {
