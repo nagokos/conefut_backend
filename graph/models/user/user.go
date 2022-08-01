@@ -304,12 +304,12 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*mo
 
 	cmd := `
 	  UPDATE users
-		SET (email_verification_token, email_verification_token_expires_at) = ($1, $2)
-		WHERE id = $3
+		SET (email_verification_pin, email_verification_pin_expires_at, unverified_email) = ($1, $2, $3)
+		WHERE id = $4
 	`
 	if _, err := dbPool.Exec(
 		ctx, cmd,
-		emailToken, tokenExpiresAt, viewer.DatabaseID,
+		pin, pinExpiresAt, u.Email, viewer.DatabaseID,
 	); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
