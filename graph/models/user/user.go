@@ -247,11 +247,12 @@ func SendingVerifyEmail(pin string, to string) error {
 
 //* idからユーザーを取得
 func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User, error) {
-	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status FROM users WHERE id = $1"
+	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email FROM users WHERE id = $1"
 
 	var user model.User
 	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(id))
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.Introduction, &user.EmailVerificationStatus)
+	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar,
+		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
