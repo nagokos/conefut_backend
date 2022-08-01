@@ -150,7 +150,47 @@ func (u User) SendVerifyNewEmailValidate() error {
 	)
 }
 
-// ** utils **
+func (i VerifyEmailInput) VerifyEmailValidate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(
+			&i.Code,
+			validation.Required.Error("認証コードを入力してください"),
+			validation.Match(regexp.MustCompile(`^[0-9]{6}$`)).Error("認証コードに誤りがあります"),
+		),
+	)
+}
+
+func (i ChangePasswordInput) ChangePasswordValidate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(
+			&i.CurrentPassword,
+			validation.Required.Error("現在のパスワードを入力してください"),
+			validation.RuneLength(8, 100).Error("現在のパスワードは8文字以上で入力してください"),
+			validation.Match(regexp.MustCompile("[a-z]")).Error("現在のパスワードを正しく入力してください"),
+			validation.Match(regexp.MustCompile(`\d`)).Error("現在のパスワードを正しく入力してください"),
+		),
+		validation.Field(
+			&i.NewPassword,
+			validation.Required.Error("新規パスワードを入力してください"),
+			validation.RuneLength(8, 100).Error("新規パスワードは8文字以上で入力してください"),
+			validation.Match(regexp.MustCompile("[a-z]")).Error("新規パスワードを正しく入力してください"),
+			validation.Match(regexp.MustCompile(`\d`)).Error("新規パスワードを正しく入力してください"),
+		),
+		validation.Field(
+			&i.NewPasswordConfirmation,
+			validation.Required.Error("新規パスワード確認を入力してください"),
+			validation.By(passwordEqualToThePasswordConfirmation(i.NewPassword)),
+		),
+	)
+}
+
+//* ログインユーザー取得
+func GetViewer(ctx context.Context) *model.User {
+	raw, _ := ctx.Value(UserCtxKey).(*model.User)
+	return raw
+}
+
+//* パスワードのハッシュを生成
 func GenerateHash(password string) string {
 	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
