@@ -93,7 +93,7 @@ func passwordEqualToThePasswordConfirmation(new string) validation.RuleFunc {
 	}
 }
 
-// ** validation **
+//* 新規登録
 func (u User) CreateUserValidate() error {
 	return validation.ValidateStruct(&u,
 		validation.Field(
@@ -119,6 +119,7 @@ func (u User) CreateUserValidate() error {
 	)
 }
 
+//* ログイン
 func (u User) AuthenticateUserValidate() error {
 	return validation.ValidateStruct(&u,
 		validation.Field(
@@ -137,6 +138,7 @@ func (u User) AuthenticateUserValidate() error {
 	)
 }
 
+//* 新規メールアドレス
 func (u User) SendVerifyNewEmailValidate() error {
 	return validation.ValidateStruct(&u,
 		validation.Field(
@@ -150,6 +152,7 @@ func (u User) SendVerifyNewEmailValidate() error {
 	)
 }
 
+//* 認証コード
 func (i VerifyEmailInput) VerifyEmailValidate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(
@@ -160,6 +163,7 @@ func (i VerifyEmailInput) VerifyEmailValidate() error {
 	)
 }
 
+//* パスワード変更
 func (i ChangePasswordInput) ChangePasswordValidate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(
