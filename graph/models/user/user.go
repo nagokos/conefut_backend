@@ -206,8 +206,7 @@ func GenerateHash(password string) string {
 
 //* ユーザーのハッシュ化したパスワードと送られてきたパスワードを比較
 func CheckPasswordHash(passwordDigest, password string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
-	return err
+	return bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
 }
 
 //* メール認証のPINを生成
