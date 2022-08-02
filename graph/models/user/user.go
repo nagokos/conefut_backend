@@ -393,24 +393,23 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 		WHERE id = $1
 	`
 	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID)
-	var passwordDigest string
-	if err := row.Scan(&passwordDigest); err != nil {
+	var passwordDigest *string
+	if err := row.Scan(passwordDigest); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	if err := CheckPasswordHash(passwordDigest, i.CurrentPassword); err != nil {
+	//* 送られてきた現在のパスワードとハッシュ化したパスワードを比較
+	if err := CheckPasswordHash(*passwordDigest, i.CurrentPassword); err != nil {
 		logger.NewLogger().Error(err.Error())
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			payload.UserErrors = append(payload.UserErrors, model.ChangePasswordAuthenticationError{
-				Message: "現在のパスワードが有効ではありません",
-			})
-			return &payload, nil
-		}
-		return nil, err
+		payload.UserErrors = append(payload.UserErrors, model.ChangePasswordAuthenticationError{
+			Message: "現在のパスワードが有効ではありません",
+		})
+		return &payload, nil
 	}
 
-	hash := GenerateHash(i.NewPassword)
+	//* ハッシュを生成
+	hash := GenerateHash(i.NewPasswordConfirmation)
 	cmd = `
 	  UPDATE users
 		SET (password_digest, created_at) = ($1, $2)
