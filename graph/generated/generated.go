@@ -273,8 +273,8 @@ type ComplexityRoot struct {
 	}
 
 	SendVerifyNewEmailPayload struct {
-		IsSentVerifyEmail func(childComplexity int) int
-		UserErrors        func(childComplexity int) int
+		UserErrors func(childComplexity int) int
+		Viewer     func(childComplexity int) int
 	}
 
 	Tag struct {
@@ -309,6 +309,7 @@ type ComplexityRoot struct {
 		Name                    func(childComplexity int) int
 		Recruitments            func(childComplexity int, first *int, after *string) int
 		Role                    func(childComplexity int) int
+		UnverifiedEmail         func(childComplexity int) int
 	}
 
 	VerifyEmailAuthenticationError struct {
@@ -1409,19 +1410,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SendVerifyNewEmailInvalidInputError.Message(childComplexity), true
 
-	case "SendVerifyNewEmailPayload.isSentVerifyEmail":
-		if e.complexity.SendVerifyNewEmailPayload.IsSentVerifyEmail == nil {
-			break
-		}
-
-		return e.complexity.SendVerifyNewEmailPayload.IsSentVerifyEmail(childComplexity), true
-
 	case "SendVerifyNewEmailPayload.userErrors":
 		if e.complexity.SendVerifyNewEmailPayload.UserErrors == nil {
 			break
 		}
 
 		return e.complexity.SendVerifyNewEmailPayload.UserErrors(childComplexity), true
+
+	case "SendVerifyNewEmailPayload.viewer":
+		if e.complexity.SendVerifyNewEmailPayload.Viewer == nil {
+			break
+		}
+
+		return e.complexity.SendVerifyNewEmailPayload.Viewer(childComplexity), true
 
 	case "Tag.databaseId":
 		if e.complexity.Tag.DatabaseID == nil {
@@ -1565,6 +1566,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Role(childComplexity), true
+
+	case "User.unverifiedEmail":
+		if e.complexity.User.UnverifiedEmail == nil {
+			break
+		}
+
+		return e.complexity.User.UnverifiedEmail(childComplexity), true
 
 	case "VerifyEmailAuthenticationError.message":
 		if e.complexity.VerifyEmailAuthenticationError.Message == nil {
@@ -2036,6 +2044,7 @@ type User implements Node {
   databaseId: Int!
   name: String!
   email: String!
+  unverifiedEmail: String
   avatar: String!
   introduction: String
   role: Role!
@@ -2110,7 +2119,7 @@ input LoginUserInput {
 
 #* NewEmail
 type SendVerifyNewEmailPayload {
-  isSentVerifyEmail: Boolean!
+  viewer: User
   userErrors: [SendVerifyNewEmailInvalidInputError!]!
 }
 
@@ -3894,6 +3903,8 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -4506,6 +4517,8 @@ func (ec *executionContext) fieldContext_FollowEdge_node(ctx context.Context, fi
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -4751,6 +4764,8 @@ func (ec *executionContext) fieldContext_LoginUserPayload_viewer(ctx context.Con
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -4955,6 +4970,8 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -6068,8 +6085,8 @@ func (ec *executionContext) fieldContext_Mutation_sendVerifyNewEmail(ctx context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "isSentVerifyEmail":
-				return ec.fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field)
+			case "viewer":
+				return ec.fieldContext_SendVerifyNewEmailPayload_viewer(ctx, field)
 			case "userErrors":
 				return ec.fieldContext_SendVerifyNewEmailPayload_userErrors(ctx, field)
 			}
@@ -6660,6 +6677,8 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -7635,6 +7654,8 @@ func (ec *executionContext) fieldContext_Query_viewer(ctx context.Context, field
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -7701,6 +7722,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -8562,6 +8585,8 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -9048,6 +9073,8 @@ func (ec *executionContext) fieldContext_RegisterUserPayload_viewer(ctx context.
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -9297,8 +9324,8 @@ func (ec *executionContext) fieldContext_SendVerifyNewEmailInvalidInputError_fie
 	return fc, nil
 }
 
-func (ec *executionContext) _SendVerifyNewEmailPayload_isSentVerifyEmail(ctx context.Context, field graphql.CollectedField, obj *model.SendVerifyNewEmailPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field)
+func (ec *executionContext) _SendVerifyNewEmailPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.SendVerifyNewEmailPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SendVerifyNewEmailPayload_viewer(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9311,31 +9338,52 @@ func (ec *executionContext) _SendVerifyNewEmailPayload_isSentVerifyEmail(ctx con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IsSentVerifyEmail, nil
+		return obj.Viewer, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_SendVerifyNewEmailPayload_isSentVerifyEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_SendVerifyNewEmailPayload_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "SendVerifyNewEmailPayload",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_User_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
+			case "avatar":
+				return ec.fieldContext_User_avatar(ctx, field)
+			case "introduction":
+				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "emailVerificationStatus":
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -9990,6 +10038,47 @@ func (ec *executionContext) fieldContext_User_email(ctx context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _User_unverifiedEmail(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_unverifiedEmail(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UnverifiedEmail, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_unverifiedEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_avatar(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_avatar(ctx, field)
 	if err != nil {
@@ -10457,6 +10546,8 @@ func (ec *executionContext) fieldContext_VerifyEmailPayload_viewer(ctx context.C
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
 			case "avatar":
 				return ec.fieldContext_User_avatar(ctx, field)
 			case "introduction":
@@ -15080,13 +15171,10 @@ func (ec *executionContext) _SendVerifyNewEmailPayload(ctx context.Context, sel 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SendVerifyNewEmailPayload")
-		case "isSentVerifyEmail":
+		case "viewer":
 
-			out.Values[i] = ec._SendVerifyNewEmailPayload_isSentVerifyEmail(ctx, field, obj)
+			out.Values[i] = ec._SendVerifyNewEmailPayload_viewer(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "userErrors":
 
 			out.Values[i] = ec._SendVerifyNewEmailPayload_userErrors(ctx, field, obj)
@@ -15313,6 +15401,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "unverifiedEmail":
+
+			out.Values[i] = ec._User_unverifiedEmail(ctx, field, obj)
+
 		case "avatar":
 
 			out.Values[i] = ec._User_avatar(ctx, field, obj)

@@ -52,8 +52,8 @@
 <text text-anchor="start" x="252" y="-443.9" font-family="Arial" font-size="14.00" fill="#000000">type </text>
 <text text-anchor="start" x="282.3464" y="-443.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
 <polygon fill="none" stroke="#000000" points="245,-402.5 245,-432.5 507,-432.5 507,-402.5 245,-402.5"/>
-<text text-anchor="start" x="252" y="-413.9" font-family="Arial" font-size="14.00" fill="#000000">place </text>
-<text text-anchor="start" x="289.345" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="252" y="-413.9" font-family="Arial" font-size="14.00" fill="#000000">venue </text>
+<text text-anchor="start" x="294.021" y="-413.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
 <polygon fill="none" stroke="#000000" points="245,-372.5 245,-402.5 507,-402.5 507,-372.5 245,-372.5"/>
 <text text-anchor="start" x="252" y="-383.9" font-family="Arial" font-size="14.00" fill="#000000">start_at </text>
 <text text-anchor="start" x="302.5708" y="-383.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
@@ -86,7 +86,7 @@
 <text text-anchor="start" x="330.5792" y="-113.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
 <polygon fill="none" stroke="#000000" points="245,-72.5 245,-102.5 507,-102.5 507,-72.5 245,-72.5"/>
 <text text-anchor="start" x="252" y="-83.9" font-family="Arial" font-size="14.00" fill="#000000">status </text>
-<text text-anchor="start" x="293.237" y="-83.9" font-family="Arial" font-size="14.00" fill="#666666">[varchar]</text>
+<text text-anchor="start" x="293.237" y="-83.9" font-family="Arial" font-size="14.00" fill="#666666">[recruitment_status]</text>
 <polygon fill="none" stroke="#000000" points="245,-42.5 245,-72.5 507,-72.5 507,-42.5 245,-42.5"/>
 <text text-anchor="start" x="251.5302" y="-53.9" font-family="Arial" font-size="14.00" fill="#000000">published_at </text>
 <text text-anchor="start" x="334.7854" y="-53.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>

@@ -5,7 +5,7 @@
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
 | [public.schema_migrations](public.schema_migrations.md) | 2 |  | BASE TABLE |
-| [public.users](public.users.md) | 13 |  | BASE TABLE |
+| [public.users](public.users.md) | 14 |  | BASE TABLE |
 | [public.prefectures](public.prefectures.md) | 4 |  | BASE TABLE |
 | [public.competitions](public.competitions.md) | 4 |  | BASE TABLE |
 | [public.recruitments](public.recruitments.md) | 16 |  | BASE TABLE |
@@ -17,6 +17,8 @@
 | [public.messages](public.messages.md) | 7 |  | BASE TABLE |
 | [public.entries](public.entries.md) | 5 |  | BASE TABLE |
 | [public.room_read_managements](public.room_read_managements.md) | 6 |  | BASE TABLE |
+| [public.relationships](public.relationships.md) | 5 |  | BASE TABLE |
+| [public.authentications](public.authentications.md) | 6 |  | BASE TABLE |
 
 ## Stored procedures and functions
 

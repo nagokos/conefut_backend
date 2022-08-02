@@ -9,18 +9,18 @@
 | id | bigint | nextval('recruitments_id_seq'::regclass) | false | [public.stocks](public.stocks.md) [public.applicants](public.applicants.md) [public.recruitment_tags](public.recruitment_tags.md) |  |  |
 | title | varchar(60) |  | false |  |  |  |
 | type | varchar |  | false |  |  |  |
-| place | varchar |  | true |  |  |  |
+| venue | varchar |  | true |  |  |  |
 | start_at | timestamp with time zone |  | true |  |  |  |
 | detail | varchar(10000) |  | true |  |  |  |
 | closing_at | timestamp with time zone |  | true |  |  |  |
 | competition_id | bigint |  | false |  | [public.competitions](public.competitions.md) |  |
-| prefecture_id | bigint |  | true |  | [public.prefectures](public.prefectures.md) |  |
+| prefecture_id | bigint |  | false |  | [public.prefectures](public.prefectures.md) |  |
 | user_id | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
 | location_lat | double precision |  | true |  |  |  |
 | location_lng | double precision |  | true |  |  |  |
-| status | varchar | 'draft'::character varying | false |  |  |  |
+| status | recruitment_status | 'draft'::recruitment_status | false |  |  |  |
 | published_at | timestamp with time zone |  | true |  |  |  |
 
 ## Constraints
