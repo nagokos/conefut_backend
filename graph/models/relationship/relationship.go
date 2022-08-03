@@ -12,9 +12,9 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.FeedbackFollow, error) {
+func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
 	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
+		ID: utils.GenerateUniqueID("Relationship", userID),
 	}
 
 	viewer := user.GetViewer(ctx)
@@ -30,7 +30,7 @@ func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*m
 	`
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		viewer.DatabaseID, utils.DecodeUniqueID(userID),
+		viewer.DatabaseID, userID,
 	)
 
 	var count int
@@ -47,7 +47,7 @@ func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*m
 	return &feedback, nil
 }
 
-func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.FeedbackFollow, error) {
+func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.FeedbackFollow, error) {
 	cmd := `
 	  SELECT id
 		FROM users 
@@ -59,7 +59,7 @@ func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, rec
 	`
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		utils.DecodeUniqueID(recruitmentID),
+		recruitmentID,
 	)
 
 	var userID int
@@ -89,7 +89,7 @@ func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, rec
 	`
 	row = dbPool.QueryRow(
 		ctx, cmd,
-		viewer.DatabaseID, utils.DecodeUniqueID(recruitmentID),
+		viewer.DatabaseID, recruitmentID,
 	)
 
 	var count int
@@ -107,9 +107,9 @@ func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, rec
 	return &feedback, nil
 }
 
-func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.FeedbackFollow, error) {
+func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
 	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
+		ID: utils.GenerateUniqueID("Relationship", userID),
 	}
 
 	viewer := user.GetViewer(ctx)
@@ -118,7 +118,7 @@ func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.Fe
 	cmd := "INSERT INTO relationships (followed_id, follower_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
 	_, err := dbPool.Exec(
 		ctx, cmd,
-		viewer.DatabaseID, utils.DecodeUniqueID(userID), timeNow, timeNow,
+		viewer.DatabaseID, userID, timeNow, timeNow,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -130,9 +130,9 @@ func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.Fe
 	return &feedback, nil
 }
 
-func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.FeedbackFollow, error) {
+func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
 	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", utils.DecodeUniqueID(userID)),
+		ID: utils.GenerateUniqueID("Relationship", userID),
 	}
 
 	viewer := user.GetViewer(ctx)
@@ -143,7 +143,7 @@ func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID string) (*model.
 	`
 	_, err := dbPool.Exec(
 		ctx, cmd,
-		viewer.DatabaseID, utils.DecodeUniqueID(userID),
+		viewer.DatabaseID, userID,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -187,7 +187,7 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 			logger.NewLogger().Error(err.Error())
 		}
 
-		feedback, err := CheckFollowed(ctx, dbPool, utils.GenerateUniqueID("User", following.DatabaseID))
+		feedback, err := CheckFollowed(ctx, dbPool, following.DatabaseID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 			return nil, err
@@ -223,8 +223,8 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 	connection.FollowCount = totalCount
 
 	if len(connection.Edges) > 0 {
-		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
-		connection.PageInfo.EndCursor = &endCursor
+		// todo endCursor
+		lastEdge := connection.Edges[len(connection.Edges)-1]
 
 		cmd = `
 			SELECT COUNT(DISTINCT r.follower_id)
@@ -238,7 +238,7 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 		`
 		row := dbPool.QueryRow(
 			ctx, cmd,
-			userID, utils.DecodeUniqueID(endCursor),
+			userID, lastEdge.Node.DatabaseID,
 		)
 
 		var count int
@@ -246,7 +246,6 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 			logger.NewLogger().Error(err.Error())
 			return nil, err
 		}
-
 		if count > 0 {
 			connection.PageInfo.HasNextPage = true
 		}

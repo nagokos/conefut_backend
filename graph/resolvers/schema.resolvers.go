@@ -51,10 +51,10 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, roomID string, inp
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
-	tableName := utils.DecodeTableName(id)
+	tableName, ID := utils.DecodeUniqueID(id)
 	switch tableName {
 	case "User":
-		user, err := user.GetUser(ctx, r.dbPool, id)
+		user, err := user.GetUser(ctx, r.dbPool, ID)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 			return nil, err

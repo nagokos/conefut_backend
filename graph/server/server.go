@@ -11,9 +11,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/config"
 	"github.com/nagokos/connefut_backend/db"
+	"github.com/nagokos/connefut_backend/graph/auth"
+	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/models/oauth"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
@@ -46,7 +47,7 @@ func main() {
 		}),
 	)
 	r.Use(auth.Middleware(dbPool))
-	r.Use(auth.CookieMiddleWare())
+	r.Use(cookie.MiddleWare())
 
 	loaders := loader.NewLoaders(dbPool)
 	srv := handler.NewDefaultServer(resolvers.NewSchema(dbPool))

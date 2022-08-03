@@ -19,18 +19,24 @@ func GenerateUniqueID(tableName string, id int) string {
 	return encodeString
 }
 
-func DecodeTableName(id string) string {
+//* ユニークIDをデコードする。テーブルの名前とIDを返す。
+func DecodeUniqueID(id string) (string, int) {
 	dec, err := base64.URLEncoding.DecodeString(id)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 	}
 	split := strings.Split(string(dec), ":")
 	tableName := split[0]
-	return tableName
+	ID, err := strconv.Atoi(split[1])
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+	}
+	return tableName, ID
 }
 
-func DecodeUniqueID(id string) int {
-	dec, err := base64.URLEncoding.DecodeString(id)
+//* IDだけ返す
+func DecodeUniqueIDIdentifierOnly(ID string) int {
+	dec, err := base64.URLEncoding.DecodeString(ID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 	}
@@ -40,6 +46,23 @@ func DecodeUniqueID(id string) int {
 		logger.NewLogger().Error(err.Error())
 	}
 	return i
+}
+
+func DecodeUniqueIDs(IDs []string) []int {
+	var decodedIDs []int
+	for _, ID := range IDs {
+		dec, err := base64.URLEncoding.DecodeString(ID)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		split := strings.Split(string(dec), ":")
+		i, err := strconv.Atoi(split[1])
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		decodedIDs = append(decodedIDs, i)
+	}
+	return decodedIDs
 }
 
 func RandString(nByte int) (string, error) {

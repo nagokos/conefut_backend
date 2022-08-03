@@ -15,11 +15,12 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	jwt "github.com/golang-jwt/jwt"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
+	"github.com/nagokos/connefut_backend/graph/cookie"
+	"github.com/nagokos/connefut_backend/graph/jwt"
 	"github.com/nagokos/connefut_backend/graph/model"
-	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
@@ -27,8 +28,7 @@ import (
 )
 
 var (
-	host      = "mailhog:1025"
-	SecretKey = []byte("secretKey")
+	host = "mailhog:1025"
 )
 
 var UserCtxKey = &contextKey{name: "secret"}
@@ -87,7 +87,7 @@ func passwordEqualToThePasswordConfirmation(new string) validation.RuleFunc {
 	return func(value interface{}) error {
 		confirmation, _ := value.(string)
 		if new != confirmation {
-			return errors.New("新規パスワードと新規パスワード確認が一致しません")
+			return errors.New("新規パスワード確認が一致しません")
 		}
 		return nil
 	}
@@ -195,7 +195,7 @@ func GetViewer(ctx context.Context) *model.User {
 }
 
 //* パスワードのハッシュを生成
-func GenerateHash(password string) string {
+func GeneratePasswordHash(password string) string {
 	b := []byte(password)
 	hash, err := bcrypt.GenerateFromPassword(b, 12)
 	if err != nil {
@@ -220,25 +220,6 @@ func GenerateEmailVerification() (string, error) {
 	return pin, nil
 }
 
-//* Cookieにセットする認証トークンを生成(JWT)
-func CreateToken(userID int) (string, error) {
-	now := time.Now().Local()
-	payload := jwt.MapClaims{
-		"sub": userID,
-		"exp": now.Add(time.Hour * 24).Unix(),
-		"iat": now.Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-
-	tokenString, err := token.SignedString([]byte("secretKey"))
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
 //* 実際にメールを送信する処理
 func SendingVerifyEmail(pin string, to string) error {
 	message := strings.NewReader(fmt.Sprint(pin))
@@ -249,11 +230,11 @@ func SendingVerifyEmail(pin string, to string) error {
 }
 
 //* idからユーザーを取得
-func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id string) (*model.User, error) {
+func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, error) {
 	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email FROM users WHERE id = $1"
 
 	var user model.User
-	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(id))
+	row := dbPool.QueryRow(ctx, cmd, id)
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar,
 		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail)
 	if err != nil {
@@ -295,8 +276,13 @@ func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 }
 
 //* 新しいメールアドレスに認証メール送信
-func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*model.SendVerifyNewEmailPayload, error) {
-	var payload model.SendVerifyNewEmailPayload
+func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.SendVerifyNewEmailResult, error) {
+	cmd := `
+	  UPDATE users
+		SET (email_verification_pin, email_verification_pin_expires_at, unverified_email) = ($1, $2, $3)
+		WHERE id = $4
+		RETURNING id, unverified_email
+	`
 	viewer := GetViewer(ctx)
 	pinExpiresAt := time.Now().Add(10 * time.Minute)
 	pin, err := GenerateEmailVerification()
@@ -305,12 +291,6 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*mo
 		return nil, err
 	}
 
-	cmd := `
-	  UPDATE users
-		SET (email_verification_pin, email_verification_pin_expires_at, unverified_email) = ($1, $2, $3)
-		WHERE id = $4
-		RETURNING id, unverified_email
-	`
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		pin, pinExpiresAt, u.Email, viewer.DatabaseID,
@@ -320,17 +300,17 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (*mo
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
+
 	if err := SendingVerifyEmail(pin, *user.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	payload.Viewer = &user
-	return &payload, err
+	result := model.SendVerifyNewEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	return result, nil
 }
 
 //* メールアドレス認証
-func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (*model.VerifyEmailPayload, error) {
-	var payload model.VerifyEmailPayload
+func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.VerifyEmailResult, error) {
 	viewer := GetViewer(ctx)
 	cmd := `
 	  SELECT email_verification_pin, email_verification_pin_expires_at
@@ -348,19 +328,19 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 	//* pinの有効期限チェック
 	if time.Now().Local().After(pinExpiresAt) {
 		logger.NewLogger().Error("pin code expired")
-		payload.UserErrors = append(payload.UserErrors, model.VerifyEmailPinExpiredError{
+		result := model.VerifyEmailPinExpiredError{
 			Message: "認証コードの有効期限が切れています。認証コードを再取得してください。",
-		})
-		return &payload, nil
+		}
+		return result, nil
 	}
 
 	//* 送られてきたpinとユーザーのpinを比較
 	if i.Code != pin {
 		logger.NewLogger().Error("Pin code does not match")
-		payload.UserErrors = append(payload.UserErrors, model.VerifyEmailPinExpiredError{
+		result := model.VerifyEmailAuthenticationError{
 			Message: "認証コードに誤りがあります",
-		})
-		return &payload, nil
+		}
+		return result, nil
 	}
 
 	cmd = `
@@ -378,15 +358,13 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	payload.Viewer = &user
-	return &payload, nil
+	result := model.VerifyEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	return result, nil
 }
 
 //* パスワードを変更
-func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool.Pool) (*model.ChangePasswordPayload, error) {
+func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool.Pool) (model.ChangePasswordResult, error) {
 	viewer := GetViewer(ctx)
-	var payload model.ChangePasswordPayload
-
 	cmd := `
 	  SELECT password_digest
 		FROM users
@@ -394,7 +372,7 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 	`
 	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID)
 	var passwordDigest *string
-	if err := row.Scan(passwordDigest); err != nil {
+	if err := row.Scan(&passwordDigest); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
@@ -402,14 +380,14 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 	//* 送られてきた現在のパスワードとハッシュ化したパスワードを比較
 	if err := CheckPasswordHash(*passwordDigest, i.CurrentPassword); err != nil {
 		logger.NewLogger().Error(err.Error())
-		payload.UserErrors = append(payload.UserErrors, model.ChangePasswordAuthenticationError{
+		result := model.ChangePasswordAuthenticationError{
 			Message: "現在のパスワードが有効ではありません",
-		})
-		return &payload, nil
+		}
+		return result, nil
 	}
 
 	//* ハッシュを生成
-	hash := GenerateHash(i.NewPasswordConfirmation)
+	hash := GeneratePasswordHash(i.NewPassword)
 	cmd = `
 	  UPDATE users
 		SET (password_digest, created_at) = ($1, $2)
@@ -422,9 +400,7 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-
-	payload.IsChangedPassword = true
-	return &payload, nil
+	return model.ChangePasswordSuccess{IsChangedPassword: true}, nil
 }
 
 //* 外部認証用のユーザー取得
@@ -455,15 +431,7 @@ func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provid
 }
 
 //* ユーザー新規登録
-func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.RegisterUserPayload, error) {
-	pwdHash := GenerateHash(u.Password)
-	pinExpiresAt := time.Now().Add(10 * time.Minute)
-	pin, err := GenerateEmailVerification()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
+func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.RegisterUserResult, error) {
 	cmd := `
 		INSERT INTO users
 			(name, email, unverified_email, password_digest, email_verification_pin,
@@ -471,14 +439,19 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
 	`
-
 	now := time.Now().Local()
+	pwdHash := GeneratePasswordHash(u.Password)
+	pinExpiresAt := time.Now().Add(10 * time.Minute)
+	pin, err := GenerateEmailVerification()
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		u.Name, u.Email, u.Email, pwdHash, pin, pinExpiresAt, now, now, now,
 	)
 
-	var payload model.RegisterUserPayload
 	var user model.User
 	err = row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus, &user.Introduction, &user.UnverifiedEmail)
 	if err != nil {
@@ -491,36 +464,56 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.R
 		return nil, err
 	}
 
-	payload.Viewer = &user
-	return &payload, nil
+	result := model.RegisterUserSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	token, err := jwt.GenerateToken(user.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	cookie.SetAuthCookie(ctx, token)
+	return result, nil
 }
 
-func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (*model.LoginUserPayload, error) {
-	var payload model.LoginUserPayload
+func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (model.LoginUserResult, error) {
+	cmd := `
+	  SELECT id, name, email, avatar, email_verification_status, introduction, unverified_email, password_digest 
+		FROM users 
+		WHERE email = $1
+	`
 	var user model.User
-	var passwordDigest string
-
-	cmd := "SELECT id, name, email, avatar, email_verification_status, introduction, unverified_email, password_digest FROM users WHERE email = $1"
+	var passwordDigest *string
 	row := dbPool.QueryRow(ctx, cmd, u.Email)
-
-	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus,
+	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar, &user.EmailVerificationStatus,
 		&user.Introduction, &user.UnverifiedEmail, &passwordDigest,
-	)
-	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
-			Message: "メールアドレス、またはパスワードが正しくありません",
-		})
-		return &payload, err
+	); err != nil {
+		// todo レコードが見つからない場合はschemaで返すかgraphqlErrorで返すか とりあえずschemaで返す
+		if err == pgx.ErrNoRows {
+			logger.NewLogger().Error("user not found")
+			result := model.LoginUserNotFoundError{
+				Message: "メールアドレス、またはパスワードが正しくありません",
+			}
+			return result, nil
+		} else {
+			fmt.Println(err)
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
 	}
 
-	err = CheckPasswordHash(passwordDigest, u.Password)
-	if err != nil {
-		payload.UserErrors = append(payload.UserErrors, model.LoginUserAuthenticationError{
+	if err := CheckPasswordHash(*passwordDigest, u.Password); err != nil {
+		logger.NewLogger().Error(err.Error())
+		result := model.LoginUserAuthenticationError{
 			Message: "メールアドレス、またはパスワードが正しくありません",
-		})
-		return &payload, err
+		}
+		return result, nil
 	}
 
-	payload.Viewer = &user
-	return &payload, nil
+	result := model.LoginUserSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	token, err := jwt.GenerateToken(user.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	cookie.SetAuthCookie(ctx, token)
+	return result, nil
 }

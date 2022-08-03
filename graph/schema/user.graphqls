@@ -1,5 +1,5 @@
 extend type Query {
-  viewer: User
+  viewer: Viewer!
   user(id: ID!): User!
 }
 
@@ -11,6 +11,10 @@ enum Role {
 enum EmailVerificationStatus {
   PENDING
   VERIFIED
+}
+
+type Viewer {
+  accountUser: User
 }
 
 type User implements Node {
@@ -30,21 +34,24 @@ type User implements Node {
 
 # *** Mutation ***
 extend type Mutation {
-  registerUser(input: RegisterUserInput!): RegisterUserPayload!
-  loginUser(input: LoginUserInput!): LoginUserPayload!
+  registerUser(input: RegisterUserInput!): RegisterUserResult!
+  loginUser(input: LoginUserInput!): LoginUserResult!
   logoutUser: Boolean!
   sendVerifyEmail: Boolean!
-  sendVerifyNewEmail(
-    input: SendVerifyNewEmailInput!
-  ): SendVerifyNewEmailPayload!
-  changePassword(input: ChangePasswordInput!): ChangePasswordPayload!
-  verifyEmail(input: VerifyEmailInput!): VerifyEmailPayload
+  sendVerifyNewEmail(input: SendVerifyNewEmailInput!): SendVerifyNewEmailResult!
+  changePassword(input: ChangePasswordInput!): ChangePasswordResult!
+  verifyEmail(input: VerifyEmailInput!): VerifyEmailResult!
 }
 
 #* Register
-type RegisterUserPayload {
-  viewer: User
-  userErrors: [RegisterUserInvalidInputError!]!
+union RegisterUserResult = RegisterUserSuccess | RegisterUserInvalidInputErrors
+
+type RegisterUserSuccess {
+  viewer: Viewer!
+}
+
+type RegisterUserInvalidInputErrors {
+  invalidInputs: [RegisterUserInvalidInputError!]!
 }
 
 type RegisterUserInvalidInputError implements Error {
@@ -65,20 +72,31 @@ input RegisterUserInput {
 }
 
 #* Login
-type LoginUserPayload {
-  viewer: User
-  userErrors: [LoginUserError!]!
-}
+union LoginUserResult =
+    LoginUserSuccess
+  | LoginUserInvalidInputErrors
+  | LoginUserNotFoundError
+  | LoginUserAuthenticationError
 
-union LoginUserError = LoginUserAuthenticationError | LoginUserInvalidInputError
+type LoginUserSuccess {
+  viewer: Viewer!
+}
 
 type LoginUserAuthenticationError implements Error {
   message: String!
 }
 
+type LoginUserInvalidInputErrors {
+  invalidInputs: [LoginUserInvalidInputError!]!
+}
+
 type LoginUserInvalidInputError implements Error {
   message: String!
   field: LoginUserInvalidInputField!
+}
+
+type LoginUserNotFoundError implements Error {
+  message: String!
 }
 
 enum LoginUserInvalidInputField {
@@ -92,9 +110,16 @@ input LoginUserInput {
 }
 
 #* NewEmail
-type SendVerifyNewEmailPayload {
-  viewer: User
-  userErrors: [SendVerifyNewEmailInvalidInputError!]!
+union SendVerifyNewEmailResult =
+    SendVerifyNewEmailSuccess
+  | SendVerifyNewEmailInvalidInputErrors
+
+type SendVerifyNewEmailSuccess {
+  viewer: Viewer!
+}
+
+type SendVerifyNewEmailInvalidInputErrors {
+  invalidInputs: [SendVerifyNewEmailInvalidInputError!]!
 }
 
 type SendVerifyNewEmailInvalidInputError implements Error {
@@ -111,17 +136,21 @@ input SendVerifyNewEmailInput {
 }
 
 #* ChangePassword
-type ChangePasswordPayload {
-  isChangedPassword: Boolean!
-  userErrors: [ChangePasswordErorr!]!
-}
-
-union ChangePasswordErorr =
-    ChangePasswordInvalidInputError
+union ChangePasswordResult =
+    ChangePasswordSuccess
+  | ChangePasswordInvalidInputErrors
   | ChangePasswordAuthenticationError
+
+type ChangePasswordSuccess {
+  isChangedPassword: Boolean!
+}
 
 type ChangePasswordAuthenticationError implements Error {
   message: String!
+}
+
+type ChangePasswordInvalidInputErrors {
+  invalidInputs: [ChangePasswordInvalidInputError!]!
 }
 
 type ChangePasswordInvalidInputError implements Error {
@@ -142,15 +171,15 @@ input ChangePasswordInput {
 }
 
 #* VerifyEmail
-type VerifyEmailPayload {
-  viewer: User
-  userErrors: [VerifyEmailErorr!]!
-}
-
-union VerifyEmailErorr =
-    VerifyEmailInvalidInputError
+union VerifyEmailResult =
+    VerifyEmailSuccess
   | VerifyEmailAuthenticationError
   | VerifyEmailPinExpiredError
+  | VerifyEmailInvalidInputErrors
+
+type VerifyEmailSuccess {
+  viewer: Viewer!
+}
 
 type VerifyEmailAuthenticationError implements Error {
   message: String!
@@ -158,6 +187,10 @@ type VerifyEmailAuthenticationError implements Error {
 
 type VerifyEmailPinExpiredError implements Error {
   message: String!
+}
+
+type VerifyEmailInvalidInputErrors {
+  invalidInputs: [VerifyEmailInvalidInputError!]!
 }
 
 type VerifyEmailInvalidInputError implements Error {

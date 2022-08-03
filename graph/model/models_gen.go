@@ -13,8 +13,8 @@ type ApplyForRecruitmentError interface {
 	IsApplyForRecruitmentError()
 }
 
-type ChangePasswordErorr interface {
-	IsChangePasswordErorr()
+type ChangePasswordResult interface {
+	IsChangePasswordResult()
 }
 
 type Connection interface {
@@ -29,16 +29,24 @@ type Error interface {
 	IsError()
 }
 
-type LoginUserError interface {
-	IsLoginUserError()
+type LoginUserResult interface {
+	IsLoginUserResult()
 }
 
 type Node interface {
 	IsNode()
 }
 
-type VerifyEmailErorr interface {
-	IsVerifyEmailErorr()
+type RegisterUserResult interface {
+	IsRegisterUserResult()
+}
+
+type SendVerifyNewEmailResult interface {
+	IsSendVerifyNewEmailResult()
+}
+
+type VerifyEmailResult interface {
+	IsVerifyEmailResult()
 }
 
 type Applicant struct {
@@ -86,8 +94,8 @@ type ChangePasswordAuthenticationError struct {
 	Message string `json:"message"`
 }
 
-func (ChangePasswordAuthenticationError) IsChangePasswordErorr() {}
-func (ChangePasswordAuthenticationError) IsError()               {}
+func (ChangePasswordAuthenticationError) IsChangePasswordResult() {}
+func (ChangePasswordAuthenticationError) IsError()                {}
 
 type ChangePasswordInput struct {
 	CurrentPassword         string `json:"currentPassword"`
@@ -100,13 +108,19 @@ type ChangePasswordInvalidInputError struct {
 	Field   ChangePasswordInvalidInputField `json:"field"`
 }
 
-func (ChangePasswordInvalidInputError) IsChangePasswordErorr() {}
-func (ChangePasswordInvalidInputError) IsError()               {}
+func (ChangePasswordInvalidInputError) IsError() {}
 
-type ChangePasswordPayload struct {
-	IsChangedPassword bool                  `json:"isChangedPassword"`
-	UserErrors        []ChangePasswordErorr `json:"userErrors"`
+type ChangePasswordInvalidInputErrors struct {
+	InvalidInputs []*ChangePasswordInvalidInputError `json:"invalidInputs"`
 }
+
+func (ChangePasswordInvalidInputErrors) IsChangePasswordResult() {}
+
+type ChangePasswordSuccess struct {
+	IsChangedPassword bool `json:"isChangedPassword"`
+}
+
+func (ChangePasswordSuccess) IsChangePasswordResult() {}
 
 type Competition struct {
 	ID         string `json:"id"`
@@ -179,8 +193,8 @@ type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
 }
 
-func (LoginUserAuthenticationError) IsLoginUserError() {}
-func (LoginUserAuthenticationError) IsError()          {}
+func (LoginUserAuthenticationError) IsLoginUserResult() {}
+func (LoginUserAuthenticationError) IsError()           {}
 
 type LoginUserInput struct {
 	Email    string `json:"email"`
@@ -192,13 +206,26 @@ type LoginUserInvalidInputError struct {
 	Field   LoginUserInvalidInputField `json:"field"`
 }
 
-func (LoginUserInvalidInputError) IsLoginUserError() {}
-func (LoginUserInvalidInputError) IsError()          {}
+func (LoginUserInvalidInputError) IsError() {}
 
-type LoginUserPayload struct {
-	Viewer     *User            `json:"viewer"`
-	UserErrors []LoginUserError `json:"userErrors"`
+type LoginUserInvalidInputErrors struct {
+	InvalidInputs []*LoginUserInvalidInputError `json:"invalidInputs"`
 }
+
+func (LoginUserInvalidInputErrors) IsLoginUserResult() {}
+
+type LoginUserNotFoundError struct {
+	Message string `json:"message"`
+}
+
+func (LoginUserNotFoundError) IsLoginUserResult() {}
+func (LoginUserNotFoundError) IsError()           {}
+
+type LoginUserSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (LoginUserSuccess) IsLoginUserResult() {}
 
 type Message struct {
 	Content   *string    `json:"content"`
@@ -264,10 +291,17 @@ type RegisterUserInvalidInputError struct {
 
 func (RegisterUserInvalidInputError) IsError() {}
 
-type RegisterUserPayload struct {
-	Viewer     *User                            `json:"viewer"`
-	UserErrors []*RegisterUserInvalidInputError `json:"userErrors"`
+type RegisterUserInvalidInputErrors struct {
+	InvalidInputs []*RegisterUserInvalidInputError `json:"invalidInputs"`
 }
+
+func (RegisterUserInvalidInputErrors) IsRegisterUserResult() {}
+
+type RegisterUserSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (RegisterUserSuccess) IsRegisterUserResult() {}
 
 type Room struct {
 	ID     string  `json:"id"`
@@ -285,10 +319,17 @@ type SendVerifyNewEmailInvalidInputError struct {
 
 func (SendVerifyNewEmailInvalidInputError) IsError() {}
 
-type SendVerifyNewEmailPayload struct {
-	Viewer     *User                                  `json:"viewer"`
-	UserErrors []*SendVerifyNewEmailInvalidInputError `json:"userErrors"`
+type SendVerifyNewEmailInvalidInputErrors struct {
+	InvalidInputs []*SendVerifyNewEmailInvalidInputError `json:"invalidInputs"`
 }
+
+func (SendVerifyNewEmailInvalidInputErrors) IsSendVerifyNewEmailResult() {}
+
+type SendVerifyNewEmailSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (SendVerifyNewEmailSuccess) IsSendVerifyNewEmailResult() {}
 
 type Tag struct {
 	ID         string `json:"id"`
@@ -321,8 +362,8 @@ type VerifyEmailAuthenticationError struct {
 	Message string `json:"message"`
 }
 
-func (VerifyEmailAuthenticationError) IsVerifyEmailErorr() {}
-func (VerifyEmailAuthenticationError) IsError()            {}
+func (VerifyEmailAuthenticationError) IsVerifyEmailResult() {}
+func (VerifyEmailAuthenticationError) IsError()             {}
 
 type VerifyEmailInput struct {
 	Code string `json:"code"`
@@ -333,20 +374,30 @@ type VerifyEmailInvalidInputError struct {
 	Field   VerifyEmailInvalidInputField `json:"field"`
 }
 
-func (VerifyEmailInvalidInputError) IsVerifyEmailErorr() {}
-func (VerifyEmailInvalidInputError) IsError()            {}
+func (VerifyEmailInvalidInputError) IsError() {}
 
-type VerifyEmailPayload struct {
-	Viewer     *User              `json:"viewer"`
-	UserErrors []VerifyEmailErorr `json:"userErrors"`
+type VerifyEmailInvalidInputErrors struct {
+	InvalidInputs []*VerifyEmailInvalidInputError `json:"invalidInputs"`
 }
+
+func (VerifyEmailInvalidInputErrors) IsVerifyEmailResult() {}
 
 type VerifyEmailPinExpiredError struct {
 	Message string `json:"message"`
 }
 
-func (VerifyEmailPinExpiredError) IsVerifyEmailErorr() {}
-func (VerifyEmailPinExpiredError) IsError()            {}
+func (VerifyEmailPinExpiredError) IsVerifyEmailResult() {}
+func (VerifyEmailPinExpiredError) IsError()             {}
+
+type VerifyEmailSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (VerifyEmailSuccess) IsVerifyEmailResult() {}
+
+type Viewer struct {
+	AccountUser *User `json:"accountUser"`
+}
 
 type ApplicantInput struct {
 	Message string `json:"message"`

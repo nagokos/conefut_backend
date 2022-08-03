@@ -6,8 +6,9 @@ import (
 	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/nagokos/connefut_backend/auth"
 	"github.com/nagokos/connefut_backend/db"
+	"github.com/nagokos/connefut_backend/graph/cookie"
+	"github.com/nagokos/connefut_backend/graph/jwt"
 	"github.com/nagokos/connefut_backend/graph/models/authentication"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
@@ -150,8 +151,8 @@ func AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		jwt, _ := user.CreateToken(userID)
-		auth.SetAuthCookie(r.Context(), jwt)
+		jwt, _ := jwt.GenerateToken(userID)
+		cookie.SetAuthCookie(r.Context(), jwt)
 		http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusPermanentRedirect)
 	} else {
 		userID, err := claims.CreateFrom(r.Context(), dbPool)
@@ -160,8 +161,8 @@ func AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		jwt, _ := user.CreateToken(userID)
-		auth.SetAuthCookie(r.Context(), jwt)
+		jwt, _ := jwt.GenerateToken(userID)
+		cookie.SetAuthCookie(r.Context(), jwt)
 		http.Redirect(w, r, os.Getenv("CLIENT_BASE_URL"), http.StatusPermanentRedirect)
 	}
 }
