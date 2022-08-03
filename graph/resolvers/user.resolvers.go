@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/nagokos/connefut_backend/auth"
+	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
@@ -20,81 +20,67 @@ import (
 )
 
 // RegisterUser is the resolver for the registerUser field.
-func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterUserInput) (*model.RegisterUserPayload, error) {
+func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterUserInput) (model.RegisterUserResult, error) {
 	u := user.User{
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: input.Password,
 	}
 
-	err := u.CreateUserValidate()
-
-	if err != nil {
+	if err := u.CreateUserValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
-
-		var payload model.RegisterUserPayload
-
+		var result model.RegisterUserInvalidInputErrors
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, &model.RegisterUserInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.RegisterUserInvalidInputError{
 				Message: errMessage.Error(),
 				Field:   model.RegisterUserInvalidInputField(strings.ToLower(k)),
 			})
 		}
 
-		return &payload, nil
+		return result, nil
 	}
 
-	payload, err := u.RegisterUser(ctx, r.dbPool)
+	result, err := u.RegisterUser(ctx, r.dbPool)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return payload, nil
+		return nil, err
 	}
 
-	token, _ := user.CreateToken(payload.Viewer.DatabaseID)
-	auth.SetAuthCookie(ctx, token)
-
-	return payload, nil
+	return result, nil
 }
 
 // LoginUser is the resolver for the loginUser field.
-func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserPayload, error) {
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (model.LoginUserResult, error) {
 	u := user.User{
 		Email:    input.Email,
 		Password: input.Password,
 	}
 
-	err := u.AuthenticateUserValidate()
-	if err != nil {
+	if err := u.AuthenticateUserValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
-
-		var payload model.LoginUserPayload
-
+		var result model.LoginUserInvalidInputErrors
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, model.LoginUserInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.LoginUserInvalidInputError{
 				Message: errMessage.Error(),
 				Field:   model.LoginUserInvalidInputField(strings.ToLower(k)),
 			})
 		}
 
-		return &payload, nil
+		return result, nil
 	}
 
-	payload, err := u.LoginUser(ctx, r.dbPool)
+	result, err := u.LoginUser(ctx, r.dbPool)
 	if err != nil {
-		return payload, nil
+		return result, nil
 	}
-
-	token, _ := user.CreateToken(payload.Viewer.DatabaseID)
-	auth.SetAuthCookie(ctx, token)
-
-	return payload, nil
+	return result, nil
 }
 
 // LogoutUser is the resolver for the logoutUser field.
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
-	auth.RemoveAuthCookie(ctx)
+	cookie.RemoveAuthCookie(ctx)
 	return true, nil
 }
 
@@ -108,7 +94,7 @@ func (r *mutationResolver) SendVerifyEmail(ctx context.Context) (bool, error) {
 }
 
 // SendVerifyNewEmail is the resolver for the sendVerifyNewEmail field.
-func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (*model.SendVerifyNewEmailPayload, error) {
+func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (model.SendVerifyNewEmailResult, error) {
 	u := user.User{
 		Email: input.Email,
 	}
@@ -118,92 +104,88 @@ func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.S
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var payload model.SendVerifyNewEmailPayload
-
+		var result model.SendVerifyNewEmailInvalidInputErrors
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, &model.SendVerifyNewEmailInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.SendVerifyNewEmailInvalidInputError{
 				Message: errMessage.Error(),
 				Field:   model.SendVerifyNewEmailInvalidInputField(strings.ToLower(k)),
 			})
 		}
-
-		return &payload, nil
+		return result, nil
 	}
 
-	payload, err := u.SendVerifyNewEmail(ctx, r.dbPool)
+	result, err := u.SendVerifyNewEmail(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
-	return payload, nil
+	return result, nil
 }
 
 // ChangePassword is the resolver for the changePassword field.
-func (r *mutationResolver) ChangePassword(ctx context.Context, input model.ChangePasswordInput) (*model.ChangePasswordPayload, error) {
+func (r *mutationResolver) ChangePassword(ctx context.Context, input model.ChangePasswordInput) (model.ChangePasswordResult, error) {
 	i := user.ChangePasswordInput{
 		CurrentPassword:         input.CurrentPassword,
 		NewPassword:             input.NewPassword,
 		NewPasswordConfirmation: input.NewPasswordConfirmation,
 	}
 
-	err := i.ChangePasswordValidate()
-	if err != nil {
+	if err := i.ChangePasswordValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var payload model.ChangePasswordPayload
-
+		var result model.ChangePasswordInvalidInputErrors
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, &model.ChangePasswordInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.ChangePasswordInvalidInputError{
 				Message: errMessage.Error(),
-				Field:   model.ChangePasswordInvalidInputField(strings.ToLower(k)),
+				Field:   model.ChangePasswordInvalidInputField(strings.ToLower(k[:1]) + k[1:]),
 			})
 		}
-
-		return &payload, nil
+		return result, nil
 	}
 
-	payload, err := i.ChangePassword(ctx, r.dbPool)
+	result, err := i.ChangePassword(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
 
-	return payload, nil
+	return result, nil
 }
 
 // VerifyEmail is the resolver for the verifyEmail field.
-func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (*model.VerifyEmailPayload, error) {
+func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (model.VerifyEmailResult, error) {
 	i := user.VerifyEmailInput{
 		Code: input.Code,
 	}
 	if err := i.VerifyEmailValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
-		var payload model.VerifyEmailPayload
+
+		var result model.VerifyEmailInvalidInputErrors
 		for k, errMessage := range errs {
-			payload.UserErrors = append(payload.UserErrors, &model.VerifyEmailInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.VerifyEmailInvalidInputError{
 				Message: errMessage.Error(),
 				Field:   model.VerifyEmailInvalidInputField(strings.ToLower(k)),
 			})
 		}
-		return &payload, nil
+		return result, nil
 	}
 
-	payload, err := i.VerifyEmail(ctx, r.dbPool)
+	result, err := i.VerifyEmail(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
-	return payload, nil
+	return result, nil
 }
 
 // Viewer is the resolver for the viewer field.
-func (r *queryResolver) Viewer(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
 	user := user.GetViewer(ctx)
-	return user, nil
+	return &model.Viewer{AccountUser: user}, nil
 }
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	user, err := user.GetUser(ctx, r.dbPool, id)
+	user, err := user.GetUser(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
 		return nil, err
 	}

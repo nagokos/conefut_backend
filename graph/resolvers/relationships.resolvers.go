@@ -8,12 +8,13 @@ import (
 
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/relationship"
+	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 // Follow is the resolver for the follow field.
 func (r *mutationResolver) Follow(ctx context.Context, userID string) (*model.FeedbackFollow, error) {
-	feedback, err := relationship.Follow(ctx, r.dbPool, userID)
+	feedback, err := relationship.Follow(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(userID))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -23,7 +24,7 @@ func (r *mutationResolver) Follow(ctx context.Context, userID string) (*model.Fe
 
 // UnFollow is the resolver for the unFollow field.
 func (r *mutationResolver) UnFollow(ctx context.Context, userID string) (*model.FeedbackFollow, error) {
-	feedback, err := relationship.UnFollow(ctx, r.dbPool, userID)
+	feedback, err := relationship.UnFollow(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(userID))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -33,7 +34,7 @@ func (r *mutationResolver) UnFollow(ctx context.Context, userID string) (*model.
 
 // CheckFollowed is the resolver for the checkFollowed field.
 func (r *queryResolver) CheckFollowed(ctx context.Context, userID string) (*model.FeedbackFollow, error) {
-	feedback, err := relationship.CheckFollowed(ctx, r.dbPool, userID)
+	feedback, err := relationship.CheckFollowed(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(userID))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -43,7 +44,7 @@ func (r *queryResolver) CheckFollowed(ctx context.Context, userID string) (*mode
 
 // CheckFollowedByRecruitmentID is the resolver for the checkFollowedByRecruitmentId field.
 func (r *queryResolver) CheckFollowedByRecruitmentID(ctx context.Context, recruitmentID string) (*model.FeedbackFollow, error) {
-	feedback, err := relationship.CheckFollowedByRecruitmentID(ctx, r.dbPool, recruitmentID)
+	feedback, err := relationship.CheckFollowedByRecruitmentID(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(recruitmentID))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err

@@ -20,7 +20,7 @@ import (
 
 // CreateRecruitment is the resolver for the createRecruitment field.
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.CreateRecruitmentPayload, error) {
-	rm := recruitment.Recruitment{
+	rm := recruitment.RecruitmentInput{
 		Title:         input.Title,
 		Type:          input.Type,
 		Detail:        input.Detail,
@@ -30,9 +30,9 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		LocationLng:   input.LocationLng,
 		Status:        input.Status,
 		ClosingAt:     input.ClosingAt,
-		CompetitionID: input.CompetitionID,
-		PrefectureID:  input.PrefectureID,
-		TagIDs:        input.TagIds,
+		CompetitionID: utils.DecodeUniqueIDIdentifierOnly(input.CompetitionID),
+		PrefectureID:  utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
+		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
 	}
 
 	err := rm.RecruitmentValidate()
@@ -56,7 +56,7 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 
 // UpdateRecruitment is the resolver for the updateRecruitment field.
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.UpdateRecruitmentPayload, error) {
-	rm := recruitment.Recruitment{
+	rm := recruitment.RecruitmentInput{
 		Title:         input.Title,
 		Type:          input.Type,
 		Detail:        input.Detail,
@@ -66,9 +66,9 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		LocationLng:   input.LocationLng,
 		Status:        input.Status,
 		ClosingAt:     input.ClosingAt,
-		CompetitionID: input.CompetitionID,
-		PrefectureID:  input.PrefectureID,
-		TagIDs:        input.TagIds,
+		CompetitionID: utils.DecodeUniqueIDIdentifierOnly(input.CompetitionID),
+		PrefectureID:  utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
+		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
 	}
 
 	err := rm.RecruitmentValidate()
@@ -82,7 +82,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		return &model.UpdateRecruitmentPayload{}, err
 	}
 
-	res, err := rm.UpdateRecruitment(ctx, r.dbPool, id)
+	res, err := rm.UpdateRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return res, err
@@ -93,7 +93,7 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 
 // DeleteRecruitment is the resolver for the deleteRecruitment field.
 func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error) {
-	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, id)
+	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
 		return res, err
 	}
@@ -132,7 +132,7 @@ func (r *queryResolver) ViewerRecruitments(ctx context.Context, first *int, afte
 
 // Recruitment is the resolver for the recruitment field.
 func (r *queryResolver) Recruitment(ctx context.Context, id string) (*model.Recruitment, error) {
-	res, err := recruitment.GetRecruitment(ctx, r.dbPool, utils.DecodeUniqueID(id))
+	res, err := recruitment.GetRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
 		return res, err
 	}
