@@ -3,7 +3,6 @@ package recruitment
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-type Recruitment struct {
+type RecruitmentInput struct {
 	Title         string
 	Type          model.Type
 	Venue         *string
@@ -26,9 +25,9 @@ type Recruitment struct {
 	LocationLng   *float64
 	Status        model.Status
 	ClosingAt     *time.Time
-	CompetitionID string
-	PrefectureID  string
-	TagIDs        []string
+	CompetitionID int
+	PrefectureID  int
+	TagIDs        []int
 }
 
 func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
