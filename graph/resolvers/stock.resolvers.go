@@ -9,11 +9,12 @@ import (
 
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/stock"
+	"github.com/nagokos/connefut_backend/graph/utils"
 )
 
 // AddStock is the resolver for the AddStock field.
 func (r *mutationResolver) AddStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error) {
-	feedback, err := stock.AddStock(ctx, r.dbPool, recruitmentID)
+	feedback, err := stock.AddStock(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(recruitmentID))
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,7 @@ func (r *mutationResolver) AddStock(ctx context.Context, recruitmentID string) (
 
 // RemoveStock is the resolver for the RemoveStock field.
 func (r *mutationResolver) RemoveStock(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error) {
-	feedback, err := stock.RemoveStock(ctx, r.dbPool, recruitmentID)
+	feedback, err := stock.RemoveStock(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(recruitmentID))
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func (r *mutationResolver) RemoveStock(ctx context.Context, recruitmentID string
 
 // CheckStocked is the resolver for the checkStocked field.
 func (r *queryResolver) CheckStocked(ctx context.Context, recruitmentID string) (*model.FeedbackStock, error) {
-	feedback, err := stock.CheckStocked(ctx, r.dbPool, recruitmentID)
+	feedback, err := stock.CheckStocked(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(recruitmentID))
 	if err != nil {
 		return nil, err
 	}

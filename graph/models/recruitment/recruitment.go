@@ -72,21 +72,21 @@ func beforeNowClosing(v interface{}) error {
 	return err
 }
 
-func (r Recruitment) RecruitmentValidate() error {
-	return validation.ValidateStruct(&r,
+func (i RecruitmentInput) RecruitmentValidate() error {
+	return validation.ValidateStruct(&i,
 		validation.Field(
-			&r.Title,
+			&i.Title,
 			validation.Required.Error("タイトルを入力してください"),
 			validation.RuneLength(1, 60).Error("タイトルは1文字以上60文字以内で入力してください"),
 		),
 		validation.Field(
-			&r.CompetitionID,
-			validation.When(r.Status == model.StatusPublished,
+			&i.CompetitionID,
+			validation.When(i.Status == model.StatusPublished,
 				validation.Required.Error("募集競技を選択してください"),
 			),
 		),
 		validation.Field(
-			&r.Type,
+			&i.Type,
 			validation.In(
 				model.TypeOpponent,
 				model.TypePersonal,
@@ -96,56 +96,48 @@ func (r Recruitment) RecruitmentValidate() error {
 			),
 		),
 		validation.Field(
-			&r.Detail,
-			validation.When(r.Status == model.StatusPublished,
+			&i.Detail,
+			validation.When(i.Status == model.StatusPublished,
 				validation.Required.Error("募集の詳細を入力してください"),
 				validation.RuneLength(1, 10000).Error("募集の詳細は10000文字以内で入力してください"),
 			).Else(validation.RuneLength(0, 10000).Error("募集の詳細は10000文字以内で入力してください")),
 		),
 		validation.Field(
-			&r.PrefectureID,
+			&i.PrefectureID,
 			validation.Required.Error("募集エリアを選択してください"),
 		),
 		validation.Field(
-			&r.Venue,
-			validation.When(r.Status == model.StatusPublished,
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
+			&i.Venue,
+			validation.When(i.Status == model.StatusPublished,
+				validation.When(i.Type == model.TypeOpponent || i.Type == model.TypePersonal,
 					validation.Required.Error("会場名を入力してください"),
 				),
 			),
 		),
 		validation.Field(
-			&r.StartAt,
-			validation.When(r.Status == model.StatusPublished,
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
+			&i.StartAt,
+			validation.When(i.Status == model.StatusPublished,
+				validation.When(i.Type == model.TypeOpponent || i.Type == model.TypePersonal,
 					validation.By(beforeNowStart),
 					validation.Required.Error("開催日時を設定してください"),
 				),
 			),
 		),
 		validation.Field(
-			&r.ClosingAt,
-			validation.When(r.Status == model.StatusPublished,
+			&i.ClosingAt,
+			validation.When(i.Status == model.StatusPublished,
 				validation.Required.Error("募集期限を設定してください"),
-				validation.When(r.Type == model.TypeOpponent || r.Type == model.TypePersonal,
+				validation.When(i.Type == model.TypeOpponent || i.Type == model.TypePersonal,
 					validation.By(beforeNowClosing),
-					validation.By(checkWithinTheDeadline(*r.StartAt)),
+					validation.By(checkWithinTheDeadline(*i.StartAt)),
 				),
 			),
 		),
 	)
 }
 
-func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.CreateRecruitmentPayload, error) {
-	timeNow := time.Now().Local()
-
-	var publishedAt *time.Time
-	if r.Status == model.StatusPublished {
-		publishedAt = &timeNow
-	} else {
-		publishedAt = nil
-	}
-
+//* 募集の作成
+func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.CreateRecruitmentPayload, error) {
 	cmd := `
 	  INSERT INTO recruitments 
 		  (title, competition_id, type, detail, prefecture_id, venue, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
@@ -154,11 +146,18 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		RETURNING id, title, status, created_at, published_at, competition_id, user_id, closing_at, type, prefecture_id
 		`
 
+	timeNow := time.Now().Local()
+	var publishedAt *time.Time
+	if i.Status == model.StatusPublished {
+		publishedAt = &timeNow
+	} else {
+		publishedAt = nil
+	}
 	viewer := user.GetViewer(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		r.Title, utils.DecodeUniqueID(r.CompetitionID), strings.ToLower(string(r.Type)), r.Detail, utils.DecodeUniqueID(r.PrefectureID), r.Venue, r.StartAt,
-		r.ClosingAt, r.LocationLat, r.LocationLng, strings.ToLower(string(r.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
+		i.Title, i.CompetitionID, strings.ToLower(string(i.Type)), i.Detail, i.PrefectureID, i.Venue, i.StartAt,
+		i.ClosingAt, i.LocationLat, i.LocationLng, strings.ToLower(string(i.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
 	var payload model.CreateRecruitmentPayload
@@ -179,10 +178,10 @@ func (r *Recruitment) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
 	payload.FeedbackRecruitmentEdge = &recruitmentEdge
 
-	if len(r.TagIDs) > 0 {
+	if len(i.TagIDs) > 0 {
 		cmd = "INSERT INTO recruitment_tags (recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
-		for _, sentTagID := range r.TagIDs {
-			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, utils.DecodeUniqueID(sentTagID), timeNow, timeNow); err != nil {
+		for _, sentTagID := range i.TagIDs {
+			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, sentTagID, timeNow, timeNow); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
 		}
@@ -214,7 +213,9 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 	}
 	defer rows.Close()
 
-	var connection model.RecruitmentConnection
+	connection := model.RecruitmentConnection{
+		PageInfo: &model.PageInfo{},
+	}
 	for rows.Next() {
 		var recruitment model.Recruitment
 		err := rows.Scan(
@@ -239,7 +240,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 	}
 
 	if len(connection.Edges) > 0 {
-		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
+		lastEdge := connection.Edges[len(connection.Edges)-1]
 
 		cmd = `
 		  SELECT COUNT(DISTINCT r.id)
@@ -254,7 +255,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 		`
 		row := dbPool.QueryRow(
 			ctx, cmd,
-			utils.DecodeUniqueID(endCursor), viewer.DatabaseID,
+			lastEdge.Node.DatabaseID, viewer.DatabaseID,
 		)
 
 		var count int
@@ -270,17 +271,15 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 		}
 
 		var pageInfo model.PageInfo
-		pageInfo.EndCursor = &endCursor
+		pageInfo.EndCursor = &lastEdge.Cursor
 		pageInfo.HasNextPage = isNextPage
 
 		connection.PageInfo = &pageInfo
-	} else {
-		connection.PageInfo = &model.PageInfo{}
 	}
-
 	return &connection, nil
 }
 
+//* IDで募集を検索
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
 	cmd := `
 	  SELECT id, title, type, status, detail, start_at, closing_at, venue, location_lat, 
@@ -307,6 +306,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.R
 	return &recruitment, nil
 }
 
+//* 応募済みの募集を取得
 func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model.Recruitment, error) {
 	viewer := user.GetViewer(ctx)
 
@@ -347,15 +347,9 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 	return recruitments, nil
 }
 
+//* 全ての募集を取得
 func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
-	var sort string
-	if params.UseBefore {
-		sort = "ASC"
-	} else {
-		sort = "DESC"
-	}
-
-	cmd := fmt.Sprintf(`
+	cmd := `
 		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.start_at, r.published_at, r.prefecture_id, r.user_id, r.competition_id
 		FROM 
 			(
@@ -363,12 +357,11 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 				FROM recruitments 
 				WHERE status = 'published'
 				AND ($1 OR id < $2)
-				ORDER BY id %s
+				ORDER BY id DESC
 				LIMIT $3
 			) AS r
 		ORDER BY r.id DESC
-	`, sort)
-
+	`
 	rows, err := dbPool.Query(
 		ctx, cmd,
 		!params.UseAfter, params.After, params.NumRows,
@@ -379,34 +372,29 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	}
 	defer rows.Close()
 
-	var recConnection model.RecruitmentConnection
-
+	recConnection := model.RecruitmentConnection{
+		PageInfo: &model.PageInfo{},
+	}
 	for rows.Next() {
 		var recruitment model.Recruitment
-
-		err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
-			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.StartAt, &recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID)
-		if err != nil {
+		if err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
+			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.StartAt, &recruitment.PublishedAt,
+			&recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID,
+		); err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
-
-		recruitment.Type = model.Type(strings.ToUpper(string(recruitment.Type)))
-		recruitment.Status = model.Status(strings.ToUpper(string(recruitment.Status)))
 		recConnection.Edges = append(recConnection.Edges, &model.RecruitmentEdge{
 			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
 			Node:   &recruitment,
 		})
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		logger.NewLogger().Error(err.Error())
-		return &model.RecruitmentConnection{}, err
+		return nil, err
 	}
 
 	if len(recConnection.Edges) > 0 {
-		endCursor := recConnection.Edges[len(recConnection.Edges)-1].Cursor
-
 		cmd = `
 			SELECT COUNT(DISTINCT r.id)
 			FROM 
@@ -418,29 +406,19 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 				) AS r
 			LIMIT 1
 		`
-		row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(endCursor))
-
+		lastEdge := recConnection.Edges[len(recConnection.Edges)-1]
+		row := dbPool.QueryRow(ctx, cmd, lastEdge.Node.DatabaseID)
 		var count int
 		err = row.Scan(&count)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
 			return nil, err
 		}
-
-		var isNextPage bool
 		if count > 0 {
-			isNextPage = true
+			recConnection.PageInfo.HasNextPage = true
 		}
-		var pageInfo model.PageInfo
-
-		pageInfo.HasNextPage = isNextPage
-		pageInfo.EndCursor = &endCursor
-
-		recConnection.PageInfo = &pageInfo
-	} else {
-		recConnection.PageInfo = &model.PageInfo{}
+		recConnection.PageInfo.EndCursor = &lastEdge.Cursor
 	}
-
 	return &recConnection, nil
 }
 
@@ -492,9 +470,8 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 	}
 
 	if len(connection.Edges) > 0 {
-		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
-		connection.PageInfo.EndCursor = &endCursor
-
+		lastEdge := connection.Edges[len(connection.Edges)-1]
+		// todo endCursor
 		cmd = `
 			SELECT COUNT(DISTINCT r.id)
 			FROM 
@@ -516,7 +493,7 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 		`
 		row := dbPool.QueryRow(
 			ctx, cmd,
-			viewer.DatabaseID, utils.DecodeUniqueID(endCursor), viewer.DatabaseID,
+			viewer.DatabaseID, lastEdge.Node.DatabaseID, viewer.DatabaseID,
 		)
 
 		var count int
@@ -525,10 +502,10 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 			logger.NewLogger().Error(err.Error())
 			return nil, err
 		}
-
 		if count > 0 {
 			connection.PageInfo.HasNextPage = true
 		}
+		connection.PageInfo.EndCursor = &lastEdge.Cursor
 	}
 
 	err = rows.Err()
@@ -580,9 +557,8 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 	}
 
 	if len(connection.Edges) > 0 {
-		endCursor := connection.Edges[len(connection.Edges)-1].Cursor
-		connection.PageInfo.EndCursor = &endCursor
-
+		lastEdge := connection.Edges[len(connection.Edges)-1]
+		// todo endCursor
 		cmd = `
 			SELECT COUNT(DISTINCT r.id)
 			FROM (
@@ -597,7 +573,7 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 		`
 		row := dbPool.QueryRow(
 			ctx, cmd,
-			userID, utils.DecodeUniqueID(endCursor),
+			userID, lastEdge.Node.DatabaseID,
 		)
 
 		var count int
@@ -606,10 +582,10 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 			logger.NewLogger().Error(err.Error())
 			return nil, err
 		}
-
 		if count > 0 {
 			connection.PageInfo.HasNextPage = true
 		}
+		connection.PageInfo.EndCursor = &lastEdge.Cursor
 	}
 
 	err = rows.Err()
@@ -621,16 +597,17 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 	return &connection, nil
 }
 
-func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.UpdateRecruitmentPayload, error) {
+func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.UpdateRecruitmentPayload, error) {
 	cmd := `
 	  UPDATE recruitments
-		SET title = $1, competition_id = $2, type = $3, detail = $4, prefecture_id = $5, venue = $6,
-		    closing_at = $7, start_at = $8, location_lat = $9, location_lng = $10, updated_at = $11, status = $12,
-				published_at = CASE 
-												 WHEN published_at IS NULL 
-												 THEN $13
-												 ELSE published_at
-											 END 
+		SET (title, competition_id, type, detail, prefecture_id, venue, 
+			  closing_at, start_at, location_lat, location_lng, updated_at, status, published_at) = 
+				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CASE
+																														  WHEN published_at IS NULL 
+																															THEN $13
+																															ELSE published_at
+																														END
+				)
 		WHERE id = $14
 		AND user_id = $15
 		RETURNING id, title, status, created_at, published_at, competition_id, 
@@ -642,7 +619,7 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	timeNow := time.Now().Local()
 
 	var publishedAt *time.Time
-	if r.Status == model.StatusPublished {
+	if i.Status == model.StatusPublished {
 		publishedAt = &timeNow
 	} else {
 		publishedAt = nil
@@ -650,9 +627,9 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		r.Title, utils.DecodeUniqueID(r.CompetitionID), r.Type, r.Detail, utils.DecodeUniqueID(r.PrefectureID), r.Venue,
-		r.ClosingAt, r.StartAt, r.LocationLat, r.LocationLng, time.Now().Local(), strings.ToLower(string(r.Status)),
-		publishedAt, utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID,
+		i.Title, i.CompetitionID, i.Type, i.Detail, i.PrefectureID, i.Venue,
+		i.ClosingAt, i.StartAt, i.LocationLat, i.LocationLng, time.Now().Local(), strings.ToLower(string(i.Status)),
+		publishedAt, recruitmentID, viewer.DatabaseID,
 	)
 
 	var recruitment model.Recruitment
@@ -714,8 +691,8 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	// 削除するタグを見つける処理
 	for _, currentTag := range currentTags {
 		found := false
-		for _, sentTagID := range r.TagIDs {
-			if currentTag.DatabaseID == utils.DecodeUniqueID(sentTagID) {
+		for _, sentTagID := range i.TagIDs {
+			if currentTag.DatabaseID == sentTagID {
 				found = true
 			}
 		}
@@ -741,11 +718,11 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 		DO UPDATE SET updated_at = $5
 	`
 
-	for _, sentTagID := range r.TagIDs {
+	for _, sentTagID := range i.TagIDs {
 		timeNow := time.Now().Local()
 		if _, err := tx.Exec(
 			ctx, cmd,
-			recruitment.DatabaseID, utils.DecodeUniqueID(sentTagID), timeNow, timeNow, timeNow,
+			recruitment.DatabaseID, sentTagID, timeNow, timeNow, timeNow,
 		); err != nil {
 			logger.NewLogger().Error(err.Error())
 			err = tx.Rollback(ctx)
@@ -788,11 +765,11 @@ func (r *Recruitment) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Poo
 	return &payload, nil
 }
 
-func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID string) (*model.DeleteRecruitmentPayload, error) {
+func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.DeleteRecruitmentPayload, error) {
 	viewer := user.GetViewer(ctx)
 
 	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
-	row := dbPool.QueryRow(ctx, cmd, utils.DecodeUniqueID(recruitmentID), viewer.DatabaseID)
+	row := dbPool.QueryRow(ctx, cmd, recruitmentID, viewer.DatabaseID)
 
 	var recruitment model.Recruitment
 	err := row.Scan(&recruitment.DatabaseID)
