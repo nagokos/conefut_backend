@@ -177,6 +177,11 @@ func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEm
 	return result, nil
 }
 
+// SendResetPasswordEmail is the resolver for the sendResetPasswordEmail field.
+func (r *mutationResolver) SendResetPasswordEmail(ctx context.Context, input model.SendResetPasswordEmailInput) (model.SendResetPasswordEmailResult, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Viewer is the resolver for the viewer field.
 func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
 	user := user.GetViewer(ctx)
