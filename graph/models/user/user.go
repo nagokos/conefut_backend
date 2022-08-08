@@ -54,6 +54,10 @@ type VerifyEmailInput struct {
 	Code string
 }
 
+type ResetPasswordInput struct {
+	Email string
+}
+
 //* アドレスが重複しないかチェック
 func checkExistsEmail() validation.RuleFunc {
 	return func(v interface{}) error {
