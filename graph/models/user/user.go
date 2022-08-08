@@ -236,8 +236,8 @@ func GeneratePasswordResetToken() (string, error) {
 }
 
 //* 実際にメールを送信する処理
-func SendingVerifyEmail(pin string, to string) error {
-	message := strings.NewReader(fmt.Sprint(pin))
+func SendingEmail(content string, to string) error {
+	message := strings.NewReader(content)
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
 	err := smtp.SendMail(host, nil, "connefut@example.com", []string{to}, newMessage)
@@ -283,7 +283,7 @@ func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 		return false, err
 	}
 
-	if err := SendingVerifyEmail(pin, *viewer.UnverifiedEmail); err != nil {
+	if err := SendingEmail(pin, *viewer.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
 	}
@@ -316,7 +316,7 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 		return nil, err
 	}
 
-	if err := SendingVerifyEmail(pin, *user.UnverifiedEmail); err != nil {
+	if err := SendingEmail(pin, *user.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	}
 
 	//todo 本番環境と開発環境では処理が違ってくる
-	err = SendingVerifyEmail(pin, user.Email)
+	err = SendingEmail(pin, user.Email)
 	if err != nil {
 		return nil, err
 	}
