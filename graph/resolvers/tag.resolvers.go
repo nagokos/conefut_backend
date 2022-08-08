@@ -5,7 +5,6 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -17,28 +16,31 @@ import (
 )
 
 // CreateTag is the resolver for the createTag field.
-func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*model.CreateTagPayload, error) {
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (model.CreateTagResult, error) {
 	tag := tag.Tag{
 		Name: input.Name,
 	}
 
-	err := tag.CreateTagValidate()
-	if err != nil {
+	if err := tag.CreateTagValidate(); err != nil {
 		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
 		errs := err.(validation.Errors)
 
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		var result model.CreateTagInvalidInputErrors
+		for field, message := range errs {
+			result.InvalidInputs = append(result.InvalidInputs, &model.CreateTagInvalidInputError{
+				Field:   model.CreateTagInvalidInputField(strings.ToUpper(field)),
+				Message: message.Error(),
+			})
 		}
-		return nil, errors.New("タグの作成に失敗しました")
+		return result, nil
 	}
 
-	res, err := tag.CreateTag(ctx, r.dbPool)
+	result, err := tag.CreateTag(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	return result, nil
 }
 
 // Tags is the resolver for the tags field.
@@ -55,7 +57,16 @@ func (r *tagResolver) ID(ctx context.Context, obj *model.Tag) (string, error) {
 	return utils.GenerateUniqueID("Tag", obj.DatabaseID), nil
 }
 
+// Cursor is the resolver for the cursor field.
+func (r *tagEdgeResolver) Cursor(ctx context.Context, obj *model.TagEdge) (string, error) {
+	return utils.GenerateUniqueID("Tag", obj.Node.DatabaseID), nil
+}
+
 // Tag returns generated.TagResolver implementation.
 func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
 
+// TagEdge returns generated.TagEdgeResolver implementation.
+func (r *Resolver) TagEdge() generated.TagEdgeResolver { return &tagEdgeResolver{r} }
+
 type tagResolver struct{ *Resolver }
+type tagEdgeResolver struct{ *Resolver }

@@ -233,6 +233,21 @@ func (r *userResolver) Followings(ctx context.Context, obj *model.User, first *i
 	return connection, nil
 }
 
+// FeedbackFollow is the resolver for the feedbackFollow field.
+func (r *userResolver) FeedbackFollow(ctx context.Context, obj *model.User) (*model.FeedbackFollow, error) {
+	viewer := user.GetViewer(ctx)
+	//* ログインしていない時とログインユーザーとobjが同じ場合は処理を進めない。follow,unfollowでviewer.accountUser.feedbackFollowを返すため
+	if viewer == nil || viewer.DatabaseID == obj.DatabaseID {
+		return &model.FeedbackFollow{UserID: obj.DatabaseID}, nil
+	}
+	feedback, err := relationship.GetFeedbackFollow(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return feedback, nil
+}
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 

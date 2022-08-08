@@ -75,7 +75,7 @@ func checkExistsEmail() validation.RuleFunc {
 
 		if count == 1 {
 			logger.NewLogger().Error("This email address is already exists")
-			err = errors.New("このメールアドレスは既に存在します")
+			err = errors.New("このメールアドレスは既に使用されています")
 		}
 
 		return err
@@ -435,7 +435,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	cmd := `
 		INSERT INTO users
 			(name, email, unverified_email, password_digest, email_verification_pin,
-				email_verification_pin_expires_at, last_sign_in_at, created_at, updated_at)
+				email_verification_pin_expires_at, last_sign_in_at, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
 	`

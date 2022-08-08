@@ -21,6 +21,14 @@ type Connection interface {
 	IsConnection()
 }
 
+type CreateRecruitmentResult interface {
+	IsCreateRecruitmentResult()
+}
+
+type CreateTagResult interface {
+	IsCreateTagResult()
+}
+
 type Edge interface {
 	IsEdge()
 }
@@ -45,8 +53,17 @@ type SendVerifyNewEmailResult interface {
 	IsSendVerifyNewEmailResult()
 }
 
+type UpdateRecruitmentResult interface {
+	IsUpdateRecruitmentResult()
+}
+
 type VerifyEmailResult interface {
 	IsVerifyEmailResult()
+}
+
+type AddStockResult struct {
+	FeedbackStock   *FeedbackStock   `json:"feedbackStock"`
+	RecruitmentEdge *RecruitmentEdge `json:"recruitmentEdge"`
 }
 
 type Applicant struct {
@@ -130,19 +147,45 @@ type Competition struct {
 
 func (Competition) IsNode() {}
 
-type CreateRecruitmentPayload struct {
-	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
+type CreateRecruitmentInvalidInputError struct {
+	Field   RecruitmentInvalidInputField `json:"field"`
+	Message string                       `json:"message"`
 }
+
+type CreateRecruitmentInvalidInputErrors struct {
+	InvalidInputs []*CreateRecruitmentInvalidInputError `json:"invalidInputs"`
+}
+
+func (CreateRecruitmentInvalidInputErrors) IsCreateRecruitmentResult() {}
+
+type CreateRecruitmentSuccess struct {
+	RecruitmentEdge *RecruitmentEdge `json:"recruitmentEdge"`
+}
+
+func (CreateRecruitmentSuccess) IsCreateRecruitmentResult() {}
 
 type CreateTagInput struct {
 	Name string `json:"name"`
 }
 
-type CreateTagPayload struct {
-	FeedbackTagEdge *TagEdge `json:"feedbackTagEdge"`
+type CreateTagInvalidInputError struct {
+	Field   CreateTagInvalidInputField `json:"field"`
+	Message string                     `json:"message"`
 }
 
-type DeleteRecruitmentPayload struct {
+type CreateTagInvalidInputErrors struct {
+	InvalidInputs []*CreateTagInvalidInputError `json:"invalidInputs"`
+}
+
+func (CreateTagInvalidInputErrors) IsCreateTagResult() {}
+
+type CreateTagSuccess struct {
+	TagEdge *TagEdge `json:"tagEdge"`
+}
+
+func (CreateTagSuccess) IsCreateTagResult() {}
+
+type DeleteRecruitmentResult struct {
 	DeletedRecruitmentID string `json:"deletedRecruitmentId"`
 }
 
@@ -157,37 +200,24 @@ type FeedbackApplicant struct {
 
 func (FeedbackApplicant) IsNode() {}
 
-type FeedbackFollow struct {
-	ID               string `json:"id"`
-	ViewerDoesFollow bool   `json:"viewerDoesFollow"`
-}
-
-func (FeedbackFollow) IsNode() {}
-
-type FeedbackStock struct {
-	ID                      string           `json:"id"`
-	ViewerDoesStock         bool             `json:"viewerDoesStock"`
-	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
-	RemovedRecruitmentID    *string          `json:"removedRecruitmentId"`
-}
-
-func (FeedbackStock) IsNode() {}
-
 type FollowConnection struct {
-	PageInfo    *PageInfo     `json:"pageInfo"`
-	Edges       []*FollowEdge `json:"edges"`
-	FollowCount int           `json:"followCount"`
+	PageInfo *PageInfo     `json:"pageInfo"`
+	Edges    []*FollowEdge `json:"edges"`
 }
 
 func (FollowConnection) IsConnection() {}
 
 type FollowEdge struct {
-	Cursor   string          `json:"cursor"`
-	Node     *User           `json:"node"`
-	Feedback *FeedbackFollow `json:"feedback"`
+	Cursor string `json:"cursor"`
+	Node   *User  `json:"node"`
 }
 
 func (FollowEdge) IsEdge() {}
+
+type FollowResult struct {
+	FeedbackFollow *FeedbackFollow `json:"feedbackFollow"`
+	Viewer         *Viewer         `json:"viewer"`
+}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -303,6 +333,11 @@ type RegisterUserSuccess struct {
 
 func (RegisterUserSuccess) IsRegisterUserResult() {}
 
+type RemoveStockResult struct {
+	FeedbackStock        *FeedbackStock `json:"feedbackStock"`
+	RemovedRecruitmentID string         `json:"removedRecruitmentId"`
+}
+
 type Room struct {
 	ID     string  `json:"id"`
 	Entrie *Entrie `json:"entrie"`
@@ -353,10 +388,27 @@ type TagEdge struct {
 
 func (TagEdge) IsEdge() {}
 
-type UpdateRecruitmentPayload struct {
-	FeedbackRecruitmentEdge *RecruitmentEdge `json:"feedbackRecruitmentEdge"`
-	DeletedRecruitmentID    *string          `json:"deletedRecruitmentId"`
+type UnFollowResult struct {
+	FeedbackFollow *FeedbackFollow `json:"feedbackFollow"`
+	Viewer         *Viewer         `json:"viewer"`
 }
+
+type UpdateRecruitmentInvalidInputError struct {
+	Field   RecruitmentInvalidInputField `json:"field"`
+	Message string                       `json:"message"`
+}
+
+type UpdateRecruitmentInvalidInputErrors struct {
+	InvalidInputs []*UpdateRecruitmentInvalidInputError `json:"invalidInputs"`
+}
+
+func (UpdateRecruitmentInvalidInputErrors) IsUpdateRecruitmentResult() {}
+
+type UpdateRecruitmentSuccess struct {
+	Recruitment *Recruitment `json:"recruitment"`
+}
+
+func (UpdateRecruitmentSuccess) IsUpdateRecruitmentResult() {}
 
 type VerifyEmailAuthenticationError struct {
 	Message string `json:"message"`
@@ -489,6 +541,45 @@ func (e ChangePasswordInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type CreateTagInvalidInputField string
+
+const (
+	CreateTagInvalidInputFieldName CreateTagInvalidInputField = "NAME"
+)
+
+var AllCreateTagInvalidInputField = []CreateTagInvalidInputField{
+	CreateTagInvalidInputFieldName,
+}
+
+func (e CreateTagInvalidInputField) IsValid() bool {
+	switch e {
+	case CreateTagInvalidInputFieldName:
+		return true
+	}
+	return false
+}
+
+func (e CreateTagInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *CreateTagInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CreateTagInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CreateTagInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e CreateTagInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type EmailVerificationStatus string
 
 const (
@@ -568,6 +659,59 @@ func (e *LoginUserInvalidInputField) UnmarshalGQL(v interface{}) error {
 }
 
 func (e LoginUserInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type RecruitmentInvalidInputField string
+
+const (
+	RecruitmentInvalidInputFieldTitle         RecruitmentInvalidInputField = "TITLE"
+	RecruitmentInvalidInputFieldCompetitionID RecruitmentInvalidInputField = "COMPETITION_ID"
+	RecruitmentInvalidInputFieldType          RecruitmentInvalidInputField = "TYPE"
+	RecruitmentInvalidInputFieldDetail        RecruitmentInvalidInputField = "DETAIL"
+	RecruitmentInvalidInputFieldPrefectureID  RecruitmentInvalidInputField = "PREFECTURE_ID"
+	RecruitmentInvalidInputFieldVenue         RecruitmentInvalidInputField = "VENUE"
+	RecruitmentInvalidInputFieldStartAt       RecruitmentInvalidInputField = "START_AT"
+	RecruitmentInvalidInputFieldClosingAt     RecruitmentInvalidInputField = "CLOSING_AT"
+)
+
+var AllRecruitmentInvalidInputField = []RecruitmentInvalidInputField{
+	RecruitmentInvalidInputFieldTitle,
+	RecruitmentInvalidInputFieldCompetitionID,
+	RecruitmentInvalidInputFieldType,
+	RecruitmentInvalidInputFieldDetail,
+	RecruitmentInvalidInputFieldPrefectureID,
+	RecruitmentInvalidInputFieldVenue,
+	RecruitmentInvalidInputFieldStartAt,
+	RecruitmentInvalidInputFieldClosingAt,
+}
+
+func (e RecruitmentInvalidInputField) IsValid() bool {
+	switch e {
+	case RecruitmentInvalidInputFieldTitle, RecruitmentInvalidInputFieldCompetitionID, RecruitmentInvalidInputFieldType, RecruitmentInvalidInputFieldDetail, RecruitmentInvalidInputFieldPrefectureID, RecruitmentInvalidInputFieldVenue, RecruitmentInvalidInputFieldStartAt, RecruitmentInvalidInputFieldClosingAt:
+		return true
+	}
+	return false
+}
+
+func (e RecruitmentInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *RecruitmentInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RecruitmentInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RecruitmentInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e RecruitmentInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

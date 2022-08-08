@@ -30,6 +30,7 @@ type User implements Node {
     @goField(forceResolver: true)
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
+  feedbackFollow: FeedbackFollow!
 }
 
 # *** Mutation ***
@@ -37,10 +38,13 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserResult!
   loginUser(input: LoginUserInput!): LoginUserResult!
   logoutUser: Boolean!
-  sendVerifyEmail: Boolean!
-  sendVerifyNewEmail(input: SendVerifyNewEmailInput!): SendVerifyNewEmailResult!
+  sendVerifyEmail: Boolean! @hasLoggedIn
+  sendVerifyNewEmail(
+    input: SendVerifyNewEmailInput!
+  ): SendVerifyNewEmailResult! @hasLoggedIn
   changePassword(input: ChangePasswordInput!): ChangePasswordResult!
-  verifyEmail(input: VerifyEmailInput!): VerifyEmailResult!
+    @hasLoggedIn
+  verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
 }
 
 #* Register

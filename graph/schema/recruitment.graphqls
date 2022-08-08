@@ -1,9 +1,11 @@
 extend type Query {
   recruitments(first: Int, after: String): RecruitmentConnection!
   viewerRecruitments(first: Int, after: String): RecruitmentConnection!
+    @hasLoggedIn
   recruitment(id: ID!): Recruitment!
   stockedRecruitments(first: Int, after: String): RecruitmentConnection!
-  appliedRecruitments: [Recruitment!]!
+    @hasLoggedIn
+  appliedRecruitments: [Recruitment!]! @hasLoggedIn
 }
 
 type RecruitmentConnection implements Connection {
@@ -12,7 +14,7 @@ type RecruitmentConnection implements Connection {
 }
 
 type RecruitmentEdge implements Edge {
-  cursor: String!
+  cursor: String! @goField(forceResolver: true)
   node: Recruitment!
 }
 
@@ -33,8 +35,9 @@ type Recruitment implements Node {
   competition: Competition!
   prefecture: Prefecture!
   user: User!
-  tags: [Tag]!
+  tags: [Tag!]!
   applicant: Applicant
+  FeedbackStock: FeedbackStock!
 }
 
 enum Type {
@@ -52,29 +55,27 @@ enum Status {
 }
 
 extend type Mutation {
-  createRecruitment(input: RecruitmentInput!): CreateRecruitmentPayload!
-    @emailVerified(status: VERIFIED)
+  createRecruitment(input: RecruitmentInput!): CreateRecruitmentResult!
+    @hasEmailVerified(status: VERIFIED)
     @hasLoggedIn
   updateRecruitment(
     id: ID!
     input: RecruitmentInput!
-  ): UpdateRecruitmentPayload! @emailVerified(status: VERIFIED) @hasLoggedIn
-  deleteRecruitment(id: ID!): DeleteRecruitmentPayload!
-    @emailVerified(status: VERIFIED)
+  ): UpdateRecruitmentResult! @hasEmailVerified(status: VERIFIED) @hasLoggedIn
+  deleteRecruitment(id: ID!): DeleteRecruitmentResult!
+    @hasEmailVerified(status: VERIFIED)
     @hasLoggedIn
 }
 
-type CreateRecruitmentPayload {
-  feedbackRecruitmentEdge: RecruitmentEdge!
-}
-
-type UpdateRecruitmentPayload {
-  feedbackRecruitmentEdge: RecruitmentEdge!
-  deletedRecruitmentId: ID
-}
-
-type DeleteRecruitmentPayload {
-  deletedRecruitmentId: ID!
+enum RecruitmentInvalidInputField {
+  TITLE
+  COMPETITION_ID
+  TYPE
+  DETAIL
+  PREFECTURE_ID
+  VENUE
+  START_AT
+  CLOSING_AT
 }
 
 input RecruitmentInput {
@@ -90,4 +91,45 @@ input RecruitmentInput {
   locationLng: Float
   status: Status!
   tagIds: [ID!]!
+}
+
+#* CreateRecruitment
+union CreateRecruitmentResult =
+    CreateRecruitmentSuccess
+  | CreateRecruitmentInvalidInputErrors
+
+type CreateRecruitmentSuccess {
+  recruitmentEdge: RecruitmentEdge!
+}
+
+type CreateRecruitmentInvalidInputErrors {
+  invalidInputs: [CreateRecruitmentInvalidInputError!]!
+}
+
+type CreateRecruitmentInvalidInputError {
+  field: RecruitmentInvalidInputField!
+  message: String!
+}
+
+#* UpdateRecruitment
+union UpdateRecruitmentResult =
+    UpdateRecruitmentSuccess
+  | UpdateRecruitmentInvalidInputErrors
+
+type UpdateRecruitmentSuccess {
+  recruitment: Recruitment!
+}
+
+type UpdateRecruitmentInvalidInputErrors {
+  invalidInputs: [UpdateRecruitmentInvalidInputError!]!
+}
+
+type UpdateRecruitmentInvalidInputError {
+  field: RecruitmentInvalidInputField!
+  message: String!
+}
+
+#* deleteRecruitment
+type DeleteRecruitmentResult {
+  deletedRecruitmentId: ID!
 }
