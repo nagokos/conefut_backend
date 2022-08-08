@@ -146,54 +146,54 @@ func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpoo
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		RETURNING id, title, status, created_at, published_at, competition_id, user_id, closing_at, type, prefecture_id
 		`
-
 	timeNow := time.Now().Local()
+	viewer := user.GetViewer(ctx)
 	var publishedAt *time.Time
 	if i.Status == model.StatusPublished {
 		publishedAt = &timeNow
 	} else {
 		publishedAt = nil
 	}
-	viewer := user.GetViewer(ctx)
 	row := dbPool.QueryRow(
 		ctx, cmd,
 		i.Title, i.CompetitionID, strings.ToLower(string(i.Type)), i.Detail, i.PrefectureID, i.Venue, i.StartAt,
 		i.ClosingAt, i.LocationLat, i.LocationLng, strings.ToLower(string(i.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
-	var payload model.CreateRecruitmentPayload
 	var recruitment model.Recruitment
-	err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt, &recruitment.PublishedAt,
+	if err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt, &recruitment.PublishedAt,
 		&recruitment.CompetitionID, &recruitment.UserID, &recruitment.ClosingAt, &recruitment.Type, &recruitment.PrefectureID,
-	)
-	if err != nil {
+	); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	var recruitmentEdge model.RecruitmentEdge
-
-	recruitment.Status = model.Status(strings.ToUpper(recruitment.Status.String()))
-	recruitment.Type = model.Type(strings.ToUpper(recruitment.Type.String()))
-	recruitmentEdge.Node = &recruitment
-	recruitmentEdge.Cursor = utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
-	payload.FeedbackRecruitmentEdge = &recruitmentEdge
-
+	cmd = `
+		INSERT INTO recruitment_tags
+			(recruitment_id, tag_id, created_at, updated_at)
+		VALUES
+			($1, $2, $3, $4)
+  `
 	if len(i.TagIDs) > 0 {
-		cmd = "INSERT INTO recruitment_tags (recruitment_id, tag_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
-		for _, sentTagID := range i.TagIDs {
-			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, sentTagID, timeNow, timeNow); err != nil {
+		for _, sentTag := range i.TagIDs {
+			if _, err := dbPool.Exec(ctx, cmd, recruitment.DatabaseID, sentTag, timeNow, timeNow); err != nil {
 				logger.NewLogger().Error(err.Error())
+				return nil, err
 			}
 		}
 	}
 
-	return &payload, nil
+	result := model.CreateRecruitmentSuccess{
+		RecruitmentEdge: &model.RecruitmentEdge{
+			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
+			Node:   &recruitment,
+		},
+	}
+	return result, nil
 }
 
+//* ログインユーザーが作成した募集を取得
 func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
-	viewer := user.GetViewer(ctx)
-
 	cmd := `
 		SELECT id, title, type, status, closing_at, created_at, 
 		       published_at, prefecture_id, competition_id
@@ -203,7 +203,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 		ORDER BY id DESC
 		LIMIT $4
 	`
-
+	viewer := user.GetViewer(ctx)
 	rows, err := dbPool.Query(
 		ctx, cmd,
 		viewer.DatabaseID, !params.UseAfter, params.After, params.NumRows,
@@ -280,7 +280,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 	return &connection, nil
 }
 
-//* IDで募集を検索
+//* IDで募集を取得
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
 	cmd := `
 	  SELECT id, title, type, status, detail, start_at, closing_at, venue, location_lat, 
@@ -423,6 +423,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 	return &recConnection, nil
 }
 
+//* ストックしている募集を取得
 func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	viewer := user.GetViewer(ctx)
 
@@ -472,7 +473,6 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 
 	if len(connection.Edges) > 0 {
 		lastEdge := connection.Edges[len(connection.Edges)-1]
-		// todo endCursor
 		cmd = `
 			SELECT COUNT(DISTINCT r.id)
 			FROM 
@@ -518,6 +518,7 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 	return &connection, nil
 }
 
+//* ユーザーが作成した募集を取得
 func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	cmd := `
 	  SELECT id, title, type, prefecture_id, competition_id, closing_at, start_at
@@ -528,7 +529,6 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 		ORDER BY id DESC
 		LIMIT $4
 	`
-
 	rows, err := dbPool.Query(
 		ctx, cmd,
 		userID, !params.UseAfter, params.After, params.NumRows,
@@ -559,7 +559,6 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 
 	if len(connection.Edges) > 0 {
 		lastEdge := connection.Edges[len(connection.Edges)-1]
-		// todo endCursor
 		cmd = `
 			SELECT COUNT(DISTINCT r.id)
 			FROM (
@@ -598,7 +597,8 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 	return &connection, nil
 }
 
-func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.UpdateRecruitmentPayload, error) {
+//* 募集の更新
+func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (model.UpdateRecruitmentResult, error) {
 	cmd := `
 	  UPDATE recruitments
 		SET (title, competition_id, type, detail, prefecture_id, venue, 
@@ -615,7 +615,6 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 		          user_id, closing_at, type, prefecture_id, location_lat, location_lng,
 							venue, detail, start_at
 	`
-
 	viewer := user.GetViewer(ctx)
 	timeNow := time.Now().Local()
 
@@ -634,71 +633,48 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 	)
 
 	var recruitment model.Recruitment
-	err := row.Scan(
+	if err := row.Scan(
 		&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt,
 		&recruitment.PublishedAt, &recruitment.CompetitionID, &recruitment.UserID, &recruitment.ClosingAt,
 		&recruitment.Type, &recruitment.PrefectureID, &recruitment.LocationLat, &recruitment.LocationLng, &recruitment.Venue, &recruitment.Detail, &recruitment.StartAt,
-	)
-	if err != nil {
+	); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	payload := model.UpdateRecruitmentPayload{
-		FeedbackRecruitmentEdge: &model.RecruitmentEdge{
-			Cursor: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID),
-			Node:   &recruitment,
-		},
-	}
-
-	if model.Status(strings.ToUpper(recruitment.Status.String())) == model.StatusDraft {
-		deleteID := utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)
-		payload.DeletedRecruitmentID = &deleteID
-	}
-
-	cmd = `
-	  SELECT t.id
-		FROM tags AS t
-		INNER JOIN recruitment_tags AS r_t
-		  ON r_t.tag_id = t.id
-		WHERE r_t.recruitment_id = $1
-	`
-
-	rows, err := dbPool.Query(ctx, cmd, recruitment.DatabaseID)
+	//* 募集に紐づいているタグを取得する
+	recruitmentTags, err := tag.GetTagsByRecruitmentID(ctx, dbPool, recruitment.DatabaseID)
 	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
-
-	var currentTags []*model.Tag // 更新する募集に既についているタグ
-	for rows.Next() {
-		var tag model.Tag
-		err := rows.Scan(&tag.DatabaseID)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
-		currentTags = append(currentTags, &tag)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	var oldTags []*model.Tag // チェックを外されたタグ(削除するもの)
-
-	// 削除するタグを見つける処理
-	for _, currentTag := range currentTags {
+	//* チェックを外されたタグ(削除するもの)
+	var removeTags []int
+	//* 削除するタグを見つける処理
+	for _, recruitmentTag := range recruitmentTags {
 		found := false
+		//* 送られてきたタグの中に今のタグがあるか
 		for _, sentTagID := range i.TagIDs {
-			if currentTag.DatabaseID == sentTagID {
+			if recruitmentTag.DatabaseID == sentTagID {
 				found = true
 			}
 		}
 		if !found {
-			oldTags = append(oldTags, currentTag)
+			removeTags = append(removeTags, recruitmentTag.DatabaseID)
+		}
+	}
+
+	//* 新しく付与するタグを見つける処理
+	var addTags []int
+	for _, sentTag := range i.TagIDs {
+		found := false
+		for _, recruitmentTag := range recruitmentTags {
+			if sentTag == recruitmentTag.DatabaseID {
+				found = true
+			}
+		}
+		if !found {
+			addTags = append(addTags, sentTag)
 		}
 	}
 
@@ -708,76 +684,55 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 		return nil, err
 	}
 
-	cmd = `
-	  INSERT INTO recruitment_tags 
-		  (recruitment_id, tag_id, created_at, updated_at) 
-		VALUES 
-		  ($1, $2, $3, $4)
-		ON CONFLICT 
-		  ON CONSTRAINT 
-			  recruitment_tags_recruitment_id_tag_id_key
-		DO UPDATE SET updated_at = $5
-	`
-
-	for _, sentTagID := range i.TagIDs {
-		timeNow := time.Now().Local()
-		if _, err := tx.Exec(
-			ctx, cmd,
-			recruitment.DatabaseID, sentTagID, timeNow, timeNow, timeNow,
-		); err != nil {
-			logger.NewLogger().Error(err.Error())
-			err = tx.Rollback(ctx)
-			if err != nil {
+	//* タグを追加
+	for _, addTag := range addTags {
+		if err := tag.AddRecruitmentTag(ctx, tx, addTag, recruitment.DatabaseID); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
 			return nil, err
 		}
 	}
 
-	cmd = `
-	  DELETE FROM recruitment_tags AS r_t
-		WHERE r_t.recruitment_id = $1 AND r_t.tag_id = $2
-	`
-
-	for _, tag := range oldTags {
-		if _, err := tx.Exec(
-			ctx, cmd,
-			recruitment.DatabaseID, tag.DatabaseID,
-		); err != nil {
-			logger.NewLogger().Error(err.Error())
-			err = tx.Rollback(ctx)
-			if err != nil {
+	//* タグを削除
+	for _, removeTag := range removeTags {
+		if err := tag.RemoveRecruitmentTag(ctx, tx, removeTag, recruitmentID); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
 				logger.NewLogger().Error(err.Error())
 			}
 			return nil, err
 		}
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		logger.NewLogger().Error(err.Error())
-		err = tx.Rollback(ctx)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-		}
 		return nil, err
 	}
 
-	return &payload, nil
+	result := model.UpdateRecruitmentSuccess{
+		Recruitment: &recruitment,
+	}
+	return result, nil
 }
 
-func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.DeleteRecruitmentPayload, error) {
+func DeleteRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.DeleteRecruitmentResult, error) {
+	cmd := `
+	  DELETE FROM recruitments 
+		WHERE id = $1 
+		AND user_id = $2 
+		RETURNING id
+	`
 	viewer := user.GetViewer(ctx)
-
-	cmd := "DELETE FROM recruitments AS r WHERE r.id = $1 AND r.user_id = $2 RETURNING id"
 	row := dbPool.QueryRow(ctx, cmd, recruitmentID, viewer.DatabaseID)
 
-	var recruitment model.Recruitment
-	err := row.Scan(&recruitment.DatabaseID)
-	if err != nil {
+	var ID int
+	if err := row.Scan(&ID); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	return &model.DeleteRecruitmentPayload{DeletedRecruitmentID: utils.GenerateUniqueID("Recruitment", recruitment.DatabaseID)}, nil
+	success := model.DeleteRecruitmentResult{
+		DeletedRecruitmentID: utils.GenerateUniqueID("Recruitment", ID),
+	}
+	return &success, nil
 }
