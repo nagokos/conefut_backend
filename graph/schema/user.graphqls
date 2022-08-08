@@ -45,6 +45,9 @@ extend type Mutation {
   changePassword(input: ChangePasswordInput!): ChangePasswordResult!
     @hasLoggedIn
   verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
+  sendResetPasswordEmail(
+    input: SendResetPasswordEmailInput!
+  ): SendResetPasswordEmailResult!
 }
 
 #* Register
@@ -208,4 +211,26 @@ enum VerifyEmailInvalidInputField {
 
 input VerifyEmailInput {
   code: String!
+}
+
+#* ResetPassword
+union SendResetPasswordEmailResult =
+    SendResetPasswordEmailSuccess
+  | SendResetPasswordInvalidInputError
+
+type SendResetPasswordEmailSuccess {
+  isSendEmail: Boolean!
+}
+
+type SendResetPasswordInvalidInputError {
+  field: SendResetPasswordInvalidInputField!
+  message: String!
+}
+
+enum SendResetPasswordInvalidInputField {
+  EMAIL
+}
+
+input SendResetPasswordEmailInput {
+  email: String!
 }
