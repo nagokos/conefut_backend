@@ -75,7 +75,7 @@ func checkExistsEmail() validation.RuleFunc {
 
 		if count == 1 {
 			logger.NewLogger().Error("This email address is already exists")
-			err = errors.New("このメールアドレスは既に存在します")
+			err = errors.New("このメールアドレスは既に使用されています")
 		}
 
 		return err
