@@ -216,18 +216,23 @@ input VerifyEmailInput {
 #* ResetPassword
 union SendResetPasswordEmailResult =
     SendResetPasswordEmailSuccess
-  | SendResetPasswordInvalidInputError
+  | SendResetPasswordEmailInvalidInputError
+  | SendResetPasswordEmailUserNotFoundError
 
 type SendResetPasswordEmailSuccess {
   isSendEmail: Boolean!
 }
 
-type SendResetPasswordInvalidInputError {
-  field: SendResetPasswordInvalidInputField!
+type SendResetPasswordEmailInvalidInputError {
+  field: SendResetPasswordEmailInvalidInputField!
   message: String!
 }
 
-enum SendResetPasswordInvalidInputField {
+type SendResetPasswordEmailUserNotFoundError {
+  message: String!
+}
+
+enum SendResetPasswordEmailInvalidInputField {
   EMAIL
 }
 
