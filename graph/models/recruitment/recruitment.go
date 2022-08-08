@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/tag"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
@@ -137,7 +138,7 @@ func (i RecruitmentInput) RecruitmentValidate() error {
 }
 
 //* 募集の作成
-func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (*model.CreateRecruitmentPayload, error) {
+func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (model.CreateRecruitmentResult, error) {
 	cmd := `
 	  INSERT INTO recruitments 
 		  (title, competition_id, type, detail, prefecture_id, venue, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
