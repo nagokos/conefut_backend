@@ -474,6 +474,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	return result, nil
 }
 
+//* ログイン
 func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (model.LoginUserResult, error) {
 	cmd := `
 	  SELECT id, name, email, avatar, email_verification_status, introduction, unverified_email, password_digest 
