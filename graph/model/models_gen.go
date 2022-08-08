@@ -49,6 +49,10 @@ type RegisterUserResult interface {
 	IsRegisterUserResult()
 }
 
+type SendResetPasswordEmailResult interface {
+	IsSendResetPasswordEmailResult()
+}
+
 type SendVerifyNewEmailResult interface {
 	IsSendVerifyNewEmailResult()
 }
@@ -342,6 +346,23 @@ type Room struct {
 	ID     string  `json:"id"`
 	Entrie *Entrie `json:"entrie"`
 }
+
+type SendResetPasswordEmailInput struct {
+	Email string `json:"email"`
+}
+
+type SendResetPasswordEmailSuccess struct {
+	IsSendEmail bool `json:"isSendEmail"`
+}
+
+func (SendResetPasswordEmailSuccess) IsSendResetPasswordEmailResult() {}
+
+type SendResetPasswordInvalidInputError struct {
+	Field   SendResetPasswordInvalidInputField `json:"field"`
+	Message string                             `json:"message"`
+}
+
+func (SendResetPasswordInvalidInputError) IsSendResetPasswordEmailResult() {}
 
 type SendVerifyNewEmailInput struct {
 	Email string `json:"email"`
@@ -796,6 +817,45 @@ func (e *Role) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Role) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SendResetPasswordInvalidInputField string
+
+const (
+	SendResetPasswordInvalidInputFieldEmail SendResetPasswordInvalidInputField = "EMAIL"
+)
+
+var AllSendResetPasswordInvalidInputField = []SendResetPasswordInvalidInputField{
+	SendResetPasswordInvalidInputFieldEmail,
+}
+
+func (e SendResetPasswordInvalidInputField) IsValid() bool {
+	switch e {
+	case SendResetPasswordInvalidInputFieldEmail:
+		return true
+	}
+	return false
+}
+
+func (e SendResetPasswordInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *SendResetPasswordInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SendResetPasswordInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SendResetPasswordInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e SendResetPasswordInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
