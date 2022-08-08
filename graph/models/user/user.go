@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	crand "crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -222,6 +223,16 @@ func GenerateEmailVerification() (string, error) {
 		pin = fmt.Sprintf(pin+"%v", rand.Intn(9))
 	}
 	return pin, nil
+}
+
+//* パスワードリセットのトークンを生成
+func GeneratePasswordResetToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 //* 実際にメールを送信する処理
