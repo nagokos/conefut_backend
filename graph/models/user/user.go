@@ -439,7 +439,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	cmd := `
 		INSERT INTO users
 			(name, email, unverified_email, password_digest, email_verification_pin,
-				email_verification_pin_expires_at, last_sign_in_at, created_at)
+				email_verification_pin_expires_at, last_sign_in_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
 	`
