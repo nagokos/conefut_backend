@@ -8,7 +8,7 @@ type TagConnection implements Connection {
 }
 
 type TagEdge implements Edge {
-  cursor: String!
+  cursor: String! @goField(forceResolver: true)
   node: Tag!
 }
 
@@ -19,11 +19,26 @@ type Tag implements Node {
 }
 
 extend type Mutation {
-  createTag(input: CreateTagInput!): CreateTagPayload!
+  createTag(input: CreateTagInput!): CreateTagResult!
 }
 
-type CreateTagPayload {
-  feedbackTagEdge: TagEdge!
+union CreateTagResult = CreateTagSuccess | CreateTagInvalidInputErrors
+
+type CreateTagSuccess {
+  tagEdge: TagEdge!
+}
+
+type CreateTagInvalidInputErrors {
+  invalidInputs: [CreateTagInvalidInputError!]!
+}
+
+type CreateTagInvalidInputError {
+  field: CreateTagInvalidInputField!
+  message: String!
+}
+
+enum CreateTagInvalidInputField {
+  NAME
 }
 
 input CreateTagInput {

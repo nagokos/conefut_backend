@@ -1,26 +1,31 @@
-extend type Query {
-  checkFollowed(userId: ID!): FeedbackFollow!
-  checkFollowedByRecruitmentId(recruitmentId: ID!): FeedbackFollow!
-}
-
+# todo FollowingConnectionに変更
 type FollowConnection implements Connection {
   pageInfo: PageInfo!
   edges: [FollowEdge!]!
-  followCount: Int!
 }
 
 type FollowEdge implements Edge {
   cursor: String!
   node: User!
-  feedback: FeedbackFollow!
-}
-
-extend type Mutation {
-  follow(userId: ID!): FeedbackFollow!
-  unFollow(userId: ID!): FeedbackFollow!
 }
 
 type FeedbackFollow implements Node {
-  id: ID!
-  viewerDoesFollow: Boolean!
+  id: ID! @goField(forceResolver: true)
+  isViewerFollowed: Boolean!
+  followingsCount: Int!
+}
+
+extend type Mutation {
+  follow(userId: ID!): FollowResult! @hasLoggedIn
+  unFollow(userId: ID!): UnFollowResult! @hasLoggedIn
+}
+
+type FollowResult {
+  feedbackFollow: FeedbackFollow!
+  viewer: Viewer!
+}
+
+type UnFollowResult {
+  feedbackFollow: FeedbackFollow!
+  viewer: Viewer!
 }

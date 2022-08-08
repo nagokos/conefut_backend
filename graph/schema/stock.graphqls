@@ -1,16 +1,19 @@
-extend type Query {
-  checkStocked(recruitmentId: ID!): FeedbackStock!
-  getStockedCount(recruitmentId: ID!): FeedbackStock!
-}
-
 type FeedbackStock implements Node {
-  id: ID!
-  viewerDoesStock: Boolean!
-  feedbackRecruitmentEdge: RecruitmentEdge
-  removedRecruitmentId: ID
+  id: ID! @goField(forceResolver: true)
+  isViewerStocked: Boolean!
 }
 
 extend type Mutation {
-  addStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
-  removeStock(recruitmentId: ID!): FeedbackStock! @hasLoggedIn
+  addStock(recruitmentId: ID!): AddStockResult! @hasLoggedIn
+  removeStock(recruitmentId: ID!): RemoveStockResult! @hasLoggedIn
+}
+
+type AddStockResult {
+  feedbackStock: FeedbackStock!
+  recruitmentEdge: RecruitmentEdge!
+}
+
+type RemoveStockResult {
+  feedbackStock: FeedbackStock!
+  removedRecruitmentId: ID! @goField(forceResolver: true)
 }
