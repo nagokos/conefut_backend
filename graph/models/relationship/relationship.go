@@ -12,161 +12,70 @@ import (
 	"github.com/nagokos/connefut_backend/logger"
 )
 
-func CheckFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
-	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", userID),
-	}
-
-	viewer := user.GetViewer(ctx)
-	if viewer == nil {
-		return &feedback, nil
-	}
-
-	cmd := `
-	  SELECT COUNT(DISTINCT id)
-		FROM relationships
-		WHERE followed_id = $1
-		AND follower_id = $2
-	`
-	row := dbPool.QueryRow(
-		ctx, cmd,
-		viewer.DatabaseID, userID,
-	)
-
-	var count int
-	err := row.Scan(&count)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	if count > 0 {
-		feedback.ViewerDoesFollow = true
-	}
-
-	return &feedback, nil
-}
-
-func CheckFollowedByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (*model.FeedbackFollow, error) {
-	cmd := `
-	  SELECT id
-		FROM users 
-		WHERE id = (
-			SELECT user_id
-			FROM recruitments 
-			WHERE id = $1
-		)
-	`
-	row := dbPool.QueryRow(
-		ctx, cmd,
-		recruitmentID,
-	)
-
-	var userID int
-	err := row.Scan(&userID)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", userID),
-	}
-	viewer := user.GetViewer(ctx)
-	if viewer == nil {
-		return &feedback, nil
-	}
-
-	cmd = `
-	  SELECT COUNT(DISTINCT id)
-		FROM relationships
-		WHERE followed_id = $1
-		AND follower_id = (
-			SELECT user_id
-			FROM recruitments 
-			WHERE id = $2
-		)
-	`
-	row = dbPool.QueryRow(
-		ctx, cmd,
-		viewer.DatabaseID, recruitmentID,
-	)
-
-	var count int
-	err = row.Scan(&count)
-	if err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-
-	if count > 0 {
-		feedback.ViewerDoesFollow = true
-	}
-
-	feedback.ID = utils.GenerateUniqueID("Relationship", userID)
-	return &feedback, nil
-}
-
-func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
-	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", userID),
-	}
-
+func Follow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FollowResult, error) {
 	viewer := user.GetViewer(ctx)
 	timeNow := time.Now().Local()
-
-	cmd := "INSERT INTO relationships (followed_id, follower_id, created_at, updated_at) VALUES ($1, $2, $3, $4)"
-	_, err := dbPool.Exec(
-		ctx, cmd,
-		viewer.DatabaseID, userID, timeNow, timeNow,
-	)
-	if err != nil {
+	cmd := `
+	  INSERT INTO relationships 
+		  (followed_id, follower_id, created_at, updated_at) 
+		VALUES 
+		  ($1, $2, $3, $4)
+	`
+	if _, err := dbPool.Exec(ctx, cmd, userID, viewer.DatabaseID, timeNow, timeNow); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	feedback.ViewerDoesFollow = true
-
-	return &feedback, nil
-}
-
-func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
-	feedback := model.FeedbackFollow{
-		ID: utils.GenerateUniqueID("Relationship", userID),
+	result := model.FollowResult{
+		Viewer: &model.Viewer{
+			AccountUser: viewer,
+		},
+		FeedbackFollow: &model.FeedbackFollow{
+			UserID:           userID,
+			IsViewerFollowed: true,
+		},
 	}
 
+	return &result, nil
+}
+
+func UnFollow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.UnFollowResult, error) {
 	viewer := user.GetViewer(ctx)
 	cmd := `
 	  DELETE FROM relationships
 		WHERE followed_id = $1
 		AND follower_id = $2
 	`
-	_, err := dbPool.Exec(
-		ctx, cmd,
-		viewer.DatabaseID, userID,
-	)
-	if err != nil {
+	if _, err := dbPool.Exec(ctx, cmd, userID, viewer.DatabaseID); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	return &feedback, nil
+	result := model.UnFollowResult{
+		Viewer: &model.Viewer{
+			AccountUser: viewer,
+		},
+		FeedbackFollow: &model.FeedbackFollow{
+			UserID:           userID,
+			IsViewerFollowed: false,
+		},
+	}
+	return &result, nil
 }
 
 func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params search.SearchParams) (*model.FollowConnection, error) {
 	cmd := `
 	  SELECT u.id, u.name, u.avatar
 		FROM (
-			SELECT id, follower_id
+			SELECT followed_id
 			FROM relationships
-			WHERE followed_id = $1
-			AND ($2 OR follower_id > $3)
+			WHERE follower_id = $1
+			AND ($2 OR followed_id > $3)
 			LIMIT $4
 		) as r
 		INNER JOIN users as u
-		  ON u.id = r.follower_id
+		  ON u.id = r.followed_id
 	`
-
 	rows, err := dbPool.Query(
 		ctx, cmd,
 		userID, !params.UseAfter, params.After, params.NumRows,
@@ -187,16 +96,9 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 			logger.NewLogger().Error(err.Error())
 		}
 
-		feedback, err := CheckFollowed(ctx, dbPool, following.DatabaseID)
-		if err != nil {
-			logger.NewLogger().Error(err.Error())
-			return nil, err
-		}
-
 		connection.Edges = append(connection.Edges, &model.FollowEdge{
-			Cursor:   utils.GenerateUniqueID("User", following.DatabaseID),
-			Node:     &following,
-			Feedback: feedback,
+			Cursor: utils.GenerateUniqueID("User", following.DatabaseID),
+			Node:   &following,
 		})
 	}
 
@@ -205,25 +107,7 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 		return nil, err
 	}
 
-	cmd = `
-	  SELECT COUNT(DISTINCT r.follower_id)
-		FROM (
-			SELECT follower_id
-			FROM relationships
-			WHERE followed_id = $1
-		) as r
-	`
-	row := dbPool.QueryRow(ctx, cmd, userID)
-
-	var totalCount int
-	if err := row.Scan(&totalCount); err != nil {
-		logger.NewLogger().Error(err.Error())
-		return nil, err
-	}
-	connection.FollowCount = totalCount
-
 	if len(connection.Edges) > 0 {
-		// todo endCursor
 		lastEdge := connection.Edges[len(connection.Edges)-1]
 
 		cmd = `
@@ -249,7 +133,57 @@ func GetFollowings(ctx context.Context, dbPool *pgxpool.Pool, userID int, params
 		if count > 0 {
 			connection.PageInfo.HasNextPage = true
 		}
+		connection.PageInfo.EndCursor = &lastEdge.Cursor
 	}
 
 	return &connection, nil
+}
+
+func GetFeedbackFollow(ctx context.Context, dbPool *pgxpool.Pool, userID int) (*model.FeedbackFollow, error) {
+	isFollowed, err := IsViewerFollowed(ctx, dbPool, userID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	feedback := model.FeedbackFollow{
+		UserID:           userID,
+		IsViewerFollowed: isFollowed,
+	}
+	return &feedback, nil
+}
+
+func IsViewerFollowed(ctx context.Context, dbPool *pgxpool.Pool, userID int) (bool, error) {
+	cmd := `
+		SELECT COUNT(DISTINCT id)
+		FROM relationships
+		WHERE follower_id = $1
+		AND followed_id = $2
+	`
+	viewer := user.GetViewer(ctx)
+	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID, userID)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
+func GetFollowingsCount(ctx context.Context, dbPool *pgxpool.Pool, userID int) (int, error) {
+	cmd := `
+	  SELECT COUNT(DISTINCT id)
+		FROM relationships
+		WHERE follower_id = $1
+	`
+	row := dbPool.QueryRow(ctx, cmd, userID)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return 0, nil
+	}
+	return count, nil
 }

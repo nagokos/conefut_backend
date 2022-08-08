@@ -14,13 +14,15 @@ import (
 	"github.com/nagokos/connefut_backend/graph/model"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/stock"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
 
 // CreateRecruitment is the resolver for the createRecruitment field.
-func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (*model.CreateRecruitmentPayload, error) {
-	rm := recruitment.RecruitmentInput{
+func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (model.CreateRecruitmentResult, error) {
+	i := recruitment.RecruitmentInput{
 		Title:         input.Title,
 		Type:          input.Type,
 		Detail:        input.Detail,
@@ -35,28 +37,30 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
 	}
 
-	err := rm.RecruitmentValidate()
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment validation errors:", err.Error())
+	if err := i.RecruitmentValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		var result model.CreateRecruitmentInvalidInputErrors
+		for field, errMessage := range errs {
+			result.InvalidInputs = append(result.InvalidInputs, &model.CreateRecruitmentInvalidInputError{
+				Field:   model.RecruitmentInvalidInputField(strings.ToUpper(field)),
+				Message: errMessage.Error(),
+			})
 		}
-		return nil, err
+		return result, nil
 	}
 
-	payload, err := rm.CreateRecruitment(ctx, r.dbPool)
+	result, err := i.CreateRecruitment(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
-
-	return payload, nil
+	return result, nil
 }
 
 // UpdateRecruitment is the resolver for the updateRecruitment field.
-func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (*model.UpdateRecruitmentPayload, error) {
-	rm := recruitment.RecruitmentInput{
+func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (model.UpdateRecruitmentResult, error) {
+	i := recruitment.RecruitmentInput{
 		Title:         input.Title,
 		Type:          input.Type,
 		Detail:        input.Detail,
@@ -71,33 +75,36 @@ func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, inp
 		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
 	}
 
-	err := rm.RecruitmentValidate()
-	if err != nil {
-		logger.NewLogger().Sugar().Errorf("recruitment validation errors %s", err.Error())
+	if err := i.RecruitmentValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		for k, errMessage := range errs {
-			utils.NewValidationError(errMessage.Error(), utils.WithField(strings.ToLower(k))).AddGraphQLError(ctx)
+		var result model.UpdateRecruitmentInvalidInputErrors
+		for field, message := range errs {
+			result.InvalidInputs = append(result.InvalidInputs, &model.UpdateRecruitmentInvalidInputError{
+				Field:   model.RecruitmentInvalidInputField(strings.ToUpper(field)),
+				Message: message.Error(),
+			})
 		}
-		return &model.UpdateRecruitmentPayload{}, err
+		return result, nil
 	}
 
-	res, err := rm.UpdateRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
+	result, err := i.UpdateRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
-		return res, err
+		return nil, err
 	}
 
-	return res, nil
+	return result, nil
 }
 
 // DeleteRecruitment is the resolver for the deleteRecruitment field.
-func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentPayload, error) {
-	res, err := recruitment.DeleteRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
+func (r *mutationResolver) DeleteRecruitment(ctx context.Context, id string) (*model.DeleteRecruitmentResult, error) {
+	success, err := recruitment.DeleteRecruitment(ctx, r.dbPool, utils.DecodeUniqueIDIdentifierOnly(id))
 	if err != nil {
-		return res, err
+		return nil, err
 	}
-	return res, nil
+	return success, nil
 }
 
 // Recruitments is the resolver for the recruitments field.
@@ -161,7 +168,6 @@ func (r *queryResolver) AppliedRecruitments(ctx context.Context) ([]*model.Recru
 	if err != nil {
 		return res, err
 	}
-
 	return res, err
 }
 
@@ -225,7 +231,33 @@ func (r *recruitmentResolver) Applicant(ctx context.Context, obj *model.Recruitm
 	panic(fmt.Errorf("not implemented"))
 }
 
+// FeedbackStock is the resolver for the FeedbackStock field.
+func (r *recruitmentResolver) FeedbackStock(ctx context.Context, obj *model.Recruitment) (*model.FeedbackStock, error) {
+	viewer := user.GetViewer(ctx)
+	//* ログインしているときは処理を進めない
+	if viewer == nil {
+		return &model.FeedbackStock{RecruitmentID: obj.DatabaseID}, nil
+	}
+	feedback, err := stock.GetFeedbackStock(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return feedback, nil
+}
+
+// Cursor is the resolver for the cursor field.
+func (r *recruitmentEdgeResolver) Cursor(ctx context.Context, obj *model.RecruitmentEdge) (string, error) {
+	return utils.GenerateUniqueID("Recruitment", obj.Node.DatabaseID), nil
+}
+
 // Recruitment returns generated.RecruitmentResolver implementation.
 func (r *Resolver) Recruitment() generated.RecruitmentResolver { return &recruitmentResolver{r} }
 
+// RecruitmentEdge returns generated.RecruitmentEdgeResolver implementation.
+func (r *Resolver) RecruitmentEdge() generated.RecruitmentEdgeResolver {
+	return &recruitmentEdgeResolver{r}
+}
+
 type recruitmentResolver struct{ *Resolver }
+type recruitmentEdgeResolver struct{ *Resolver }

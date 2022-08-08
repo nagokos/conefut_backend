@@ -9,6 +9,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/model"
@@ -91,6 +92,7 @@ func GetTags(ctx context.Context, dbPool *pgxpool.Pool) (*model.TagConnection, e
 	return &connection, nil
 }
 
+//* loaderで使用する募集に紐づいているタグを取得
 func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []interface{}, cmdArray []string) (map[string][]*model.Tag, error) {
 	if len(IDs) == 0 {
 		return nil, nil
@@ -98,11 +100,11 @@ func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []in
 
 	cmd := fmt.Sprintf(
 		`
-	  SELECT t.id, t.name, r_t.recruitment_id
-		FROM tags AS t
-		INNER JOIN recruitment_tags AS r_t
-		ON r_t.tag_id = t.id
-		WHERE r_t.recruitment_id IN (%s)
+			SELECT t.id, t.name, r_t.recruitment_id
+			FROM tags AS t
+			INNER JOIN recruitment_tags AS r_t
+			ON r_t.tag_id = t.id
+			WHERE r_t.recruitment_id IN (%s)
 		`,
 		strings.Join(cmdArray, ","),
 	)
@@ -138,7 +140,39 @@ func GetTagsByRecruitmentIDs(ctx context.Context, dbPool *pgxpool.Pool, IDs []in
 	return tagByRecruitmentID, nil
 }
 
-func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.CreateTagPayload, error) {
+func GetTagsByRecruitmentID(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) ([]*model.Tag, error) {
+	cmd := `
+	  SELECT t.id
+		FROM tags AS t
+		INNER JOIN recruitment_tags AS r_t
+		  ON r_t.tag_id = t.id
+		WHERE r_t.recruitment_id = $1
+	`
+	rows, err := dbPool.Query(ctx, cmd, recruitmentID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []*model.Tag
+	for rows.Next() {
+		var tag model.Tag
+		if err := rows.Scan(&tag.DatabaseID); err != nil {
+			logger.NewLogger().Error(err.Error())
+		}
+		tags = append(tags, &tag)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	return tags, nil
+}
+
+func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (model.CreateTagResult, error) {
 	timeNow := time.Now().Local()
 
 	cmd := "INSERT INTO tags (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING id, name"
@@ -151,11 +185,38 @@ func (t *Tag) CreateTag(ctx context.Context, dbPool *pgxpool.Pool) (*model.Creat
 		return nil, err
 	}
 
-	payload := model.CreateTagPayload{
-		FeedbackTagEdge: &model.TagEdge{
-			Cursor: utils.GenerateUniqueID("Tag", tag.DatabaseID),
-			Node:   &tag,
+	result := model.CreateTagSuccess{
+		TagEdge: &model.TagEdge{
+			Node: &tag,
 		},
 	}
-	return &payload, nil
+	return result, nil
+}
+
+func AddRecruitmentTag(ctx context.Context, tx pgx.Tx, tagID, recruitmentID int) error {
+	cmd := `
+		INSERT INTO recruitment_tags 
+			(recruitment_id, tag_id, created_at, updated_at) 
+		VALUES 
+			($1, $2, $3, $4)
+  `
+	now := time.Now().Local()
+	if _, err := tx.Exec(ctx, cmd, recruitmentID, tagID, now, now, now); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func RemoveRecruitmentTag(ctx context.Context, tx pgx.Tx, tagID, recruitmentID int) error {
+	cmd := `
+		DELETE FROM recruitment_tags 
+		WHERE recruitment_id = $1 
+		AND tag_id = $2
+  `
+	if _, err := tx.Exec(ctx, cmd, recruitmentID, tagID); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return err
+	}
+	return nil
 }
