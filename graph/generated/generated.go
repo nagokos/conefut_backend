@@ -177,6 +177,19 @@ type ComplexityRoot struct {
 		Viewer         func(childComplexity int) int
 	}
 
+	IdentifyResetPasswordUserInvalidInputError struct {
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
+	IdentifyResetPasswordUserNotFoundError struct {
+		Message func(childComplexity int) int
+	}
+
+	IdentifyResetPasswordUserSuccess struct {
+		User func(childComplexity int) int
+	}
+
 	LoginUserAuthenticationError struct {
 		Message func(childComplexity int) int
 	}
@@ -206,25 +219,25 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddRecruitmentTag      func(childComplexity int, tagID string, recruitmentID string) int
-		AddStock               func(childComplexity int, recruitmentID string) int
-		ApplyForRecruitment    func(childComplexity int, recruitmentID string, input *model.ApplicantInput) int
-		ChangePassword         func(childComplexity int, input model.ChangePasswordInput) int
-		CreateMessage          func(childComplexity int, roomID string, input model.CreateMessageInput) int
-		CreateRecruitment      func(childComplexity int, input model.RecruitmentInput) int
-		CreateTag              func(childComplexity int, input model.CreateTagInput) int
-		DeleteRecruitment      func(childComplexity int, id string) int
-		Follow                 func(childComplexity int, userID string) int
-		LoginUser              func(childComplexity int, input model.LoginUserInput) int
-		LogoutUser             func(childComplexity int) int
-		RegisterUser           func(childComplexity int, input model.RegisterUserInput) int
-		RemoveStock            func(childComplexity int, recruitmentID string) int
-		SendResetPasswordEmail func(childComplexity int, input model.SendResetPasswordEmailInput) int
-		SendVerifyEmail        func(childComplexity int) int
-		SendVerifyNewEmail     func(childComplexity int, input model.SendVerifyNewEmailInput) int
-		UnFollow               func(childComplexity int, userID string) int
-		UpdateRecruitment      func(childComplexity int, id string, input model.RecruitmentInput) int
-		VerifyEmail            func(childComplexity int, input model.VerifyEmailInput) int
+		AddRecruitmentTag         func(childComplexity int, tagID string, recruitmentID string) int
+		AddStock                  func(childComplexity int, recruitmentID string) int
+		ApplyForRecruitment       func(childComplexity int, recruitmentID string, input *model.ApplicantInput) int
+		ChangePassword            func(childComplexity int, input model.ChangePasswordInput) int
+		CreateMessage             func(childComplexity int, roomID string, input model.CreateMessageInput) int
+		CreateRecruitment         func(childComplexity int, input model.RecruitmentInput) int
+		CreateTag                 func(childComplexity int, input model.CreateTagInput) int
+		DeleteRecruitment         func(childComplexity int, id string) int
+		Follow                    func(childComplexity int, userID string) int
+		IdentifyPasswordResetUser func(childComplexity int, input model.IdentifyResetPasswordUserInput) int
+		LoginUser                 func(childComplexity int, input model.LoginUserInput) int
+		LogoutUser                func(childComplexity int) int
+		RegisterUser              func(childComplexity int, input model.RegisterUserInput) int
+		RemoveStock               func(childComplexity int, recruitmentID string) int
+		SendVerifyEmail           func(childComplexity int) int
+		SendVerifyNewEmail        func(childComplexity int, input model.SendVerifyNewEmailInput) int
+		UnFollow                  func(childComplexity int, userID string) int
+		UpdateRecruitment         func(childComplexity int, id string, input model.RecruitmentInput) int
+		VerifyEmail               func(childComplexity int, input model.VerifyEmailInput) int
 	}
 
 	PageInfo struct {
@@ -311,19 +324,6 @@ type ComplexityRoot struct {
 	Room struct {
 		Entrie func(childComplexity int) int
 		ID     func(childComplexity int) int
-	}
-
-	SendResetPasswordEmailInvalidInputError struct {
-		Field   func(childComplexity int) int
-		Message func(childComplexity int) int
-	}
-
-	SendResetPasswordEmailSuccess struct {
-		IsSendEmail func(childComplexity int) int
-	}
-
-	SendResetPasswordEmailUserNotFoundError struct {
-		Message func(childComplexity int) int
 	}
 
 	SendVerifyNewEmailInvalidInputError struct {
@@ -447,7 +447,7 @@ type MutationResolver interface {
 	SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (model.SendVerifyNewEmailResult, error)
 	ChangePassword(ctx context.Context, input model.ChangePasswordInput) (model.ChangePasswordResult, error)
 	VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (model.VerifyEmailResult, error)
-	SendResetPasswordEmail(ctx context.Context, input model.SendResetPasswordEmailInput) (model.SendResetPasswordEmailResult, error)
+	IdentifyPasswordResetUser(ctx context.Context, input model.IdentifyResetPasswordUserInput) (model.IdentifyResetPasswordUserResult, error)
 }
 type PrefectureResolver interface {
 	ID(ctx context.Context, obj *model.Prefecture) (string, error)
@@ -827,6 +827,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FollowResult.Viewer(childComplexity), true
 
+	case "IdentifyResetPasswordUserInvalidInputError.field":
+		if e.complexity.IdentifyResetPasswordUserInvalidInputError.Field == nil {
+			break
+		}
+
+		return e.complexity.IdentifyResetPasswordUserInvalidInputError.Field(childComplexity), true
+
+	case "IdentifyResetPasswordUserInvalidInputError.message":
+		if e.complexity.IdentifyResetPasswordUserInvalidInputError.Message == nil {
+			break
+		}
+
+		return e.complexity.IdentifyResetPasswordUserInvalidInputError.Message(childComplexity), true
+
+	case "IdentifyResetPasswordUserNotFoundError.message":
+		if e.complexity.IdentifyResetPasswordUserNotFoundError.Message == nil {
+			break
+		}
+
+		return e.complexity.IdentifyResetPasswordUserNotFoundError.Message(childComplexity), true
+
+	case "IdentifyResetPasswordUserSuccess.user":
+		if e.complexity.IdentifyResetPasswordUserSuccess.User == nil {
+			break
+		}
+
+		return e.complexity.IdentifyResetPasswordUserSuccess.User(childComplexity), true
+
 	case "LoginUserAuthenticationError.message":
 		if e.complexity.LoginUserAuthenticationError.Message == nil {
 			break
@@ -1005,6 +1033,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Follow(childComplexity, args["userId"].(string)), true
 
+	case "Mutation.identifyPasswordResetUser":
+		if e.complexity.Mutation.IdentifyPasswordResetUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_identifyPasswordResetUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.IdentifyPasswordResetUser(childComplexity, args["input"].(model.IdentifyResetPasswordUserInput)), true
+
 	case "Mutation.loginUser":
 		if e.complexity.Mutation.LoginUser == nil {
 			break
@@ -1047,18 +1087,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveStock(childComplexity, args["recruitmentId"].(string)), true
-
-	case "Mutation.sendResetPasswordEmail":
-		if e.complexity.Mutation.SendResetPasswordEmail == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_sendResetPasswordEmail_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.SendResetPasswordEmail(childComplexity, args["input"].(model.SendResetPasswordEmailInput)), true
 
 	case "Mutation.sendVerifyEmail":
 		if e.complexity.Mutation.SendVerifyEmail == nil {
@@ -1536,34 +1564,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Room.ID(childComplexity), true
 
-	case "SendResetPasswordEmailInvalidInputError.field":
-		if e.complexity.SendResetPasswordEmailInvalidInputError.Field == nil {
-			break
-		}
-
-		return e.complexity.SendResetPasswordEmailInvalidInputError.Field(childComplexity), true
-
-	case "SendResetPasswordEmailInvalidInputError.message":
-		if e.complexity.SendResetPasswordEmailInvalidInputError.Message == nil {
-			break
-		}
-
-		return e.complexity.SendResetPasswordEmailInvalidInputError.Message(childComplexity), true
-
-	case "SendResetPasswordEmailSuccess.isSendEmail":
-		if e.complexity.SendResetPasswordEmailSuccess.IsSendEmail == nil {
-			break
-		}
-
-		return e.complexity.SendResetPasswordEmailSuccess.IsSendEmail(childComplexity), true
-
-	case "SendResetPasswordEmailUserNotFoundError.message":
-		if e.complexity.SendResetPasswordEmailUserNotFoundError.Message == nil {
-			break
-		}
-
-		return e.complexity.SendResetPasswordEmailUserNotFoundError.Message(childComplexity), true
-
 	case "SendVerifyNewEmailInvalidInputError.field":
 		if e.complexity.SendVerifyNewEmailInvalidInputError.Field == nil {
 			break
@@ -1837,10 +1837,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputApplyForRecruitmentInput,
 		ec.unmarshalInputChangePasswordInput,
 		ec.unmarshalInputCreateTagInput,
+		ec.unmarshalInputIdentifyResetPasswordUserInput,
 		ec.unmarshalInputLoginUserInput,
 		ec.unmarshalInputRecruitmentInput,
 		ec.unmarshalInputRegisterUserInput,
-		ec.unmarshalInputSendResetPasswordEmailInput,
 		ec.unmarshalInputSendVerifyNewEmailInput,
 		ec.unmarshalInputVerifyEmailInput,
 		ec.unmarshalInputapplicantInput,
@@ -2349,9 +2349,9 @@ extend type Mutation {
   changePassword(input: ChangePasswordInput!): ChangePasswordResult!
     @hasLoggedIn
   verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
-  sendResetPasswordEmail(
-    input: SendResetPasswordEmailInput!
-  ): SendResetPasswordEmailResult!
+  identifyPasswordResetUser(
+    input: IdentifyResetPasswordUserInput!
+  ): IdentifyResetPasswordUserResult!
 }
 
 #* Register
@@ -2517,30 +2517,30 @@ input VerifyEmailInput {
   code: String!
 }
 
-#* ResetPassword
-union SendResetPasswordEmailResult =
-    SendResetPasswordEmailSuccess
-  | SendResetPasswordEmailInvalidInputError
-  | SendResetPasswordEmailUserNotFoundError
+#* IdentifyResetPasswordUser
+union IdentifyResetPasswordUserResult =
+    IdentifyResetPasswordUserSuccess
+  | IdentifyResetPasswordUserInvalidInputError
+  | IdentifyResetPasswordUserNotFoundError
 
-type SendResetPasswordEmailSuccess {
-  isSendEmail: Boolean!
+type IdentifyResetPasswordUserSuccess {
+  user: User!
 }
 
-type SendResetPasswordEmailInvalidInputError {
-  field: SendResetPasswordEmailInvalidInputField!
+type IdentifyResetPasswordUserInvalidInputError {
+  field: IdentifyResetPasswordUserInvalidInputField!
   message: String!
 }
 
-enum SendResetPasswordEmailInvalidInputField {
+enum IdentifyResetPasswordUserInvalidInputField {
   EMAIL
 }
 
-type SendResetPasswordEmailUserNotFoundError {
+type IdentifyResetPasswordUserNotFoundError {
   message: String!
 }
 
-input SendResetPasswordEmailInput {
+input IdentifyResetPasswordUserInput {
   email: String!
 }
 `, BuiltIn: false},
@@ -2728,6 +2728,21 @@ func (ec *executionContext) field_Mutation_follow_args(ctx context.Context, rawA
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_identifyPasswordResetUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.IdentifyResetPasswordUserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNIdentifyResetPasswordUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_loginUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2770,21 +2785,6 @@ func (ec *executionContext) field_Mutation_removeStock_args(ctx context.Context,
 		}
 	}
 	args["recruitmentId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_sendResetPasswordEmail_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.SendResetPasswordEmailInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNSendResetPasswordEmailInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
 	return args, nil
 }
 
@@ -5236,6 +5236,208 @@ func (ec *executionContext) fieldContext_FollowResult_viewer(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _IdentifyResetPasswordUserInvalidInputError_field(ctx context.Context, field graphql.CollectedField, obj *model.IdentifyResetPasswordUserInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IdentifyResetPasswordUserInvalidInputError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.IdentifyResetPasswordUserInvalidInputField)
+	fc.Result = res
+	return ec.marshalNIdentifyResetPasswordUserInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserInvalidInputField(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IdentifyResetPasswordUserInvalidInputError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IdentifyResetPasswordUserInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type IdentifyResetPasswordUserInvalidInputField does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IdentifyResetPasswordUserInvalidInputError_message(ctx context.Context, field graphql.CollectedField, obj *model.IdentifyResetPasswordUserInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IdentifyResetPasswordUserInvalidInputError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IdentifyResetPasswordUserInvalidInputError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IdentifyResetPasswordUserInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IdentifyResetPasswordUserNotFoundError_message(ctx context.Context, field graphql.CollectedField, obj *model.IdentifyResetPasswordUserNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IdentifyResetPasswordUserNotFoundError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IdentifyResetPasswordUserNotFoundError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IdentifyResetPasswordUserNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IdentifyResetPasswordUserSuccess_user(ctx context.Context, field graphql.CollectedField, obj *model.IdentifyResetPasswordUserSuccess) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IdentifyResetPasswordUserSuccess_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IdentifyResetPasswordUserSuccess_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IdentifyResetPasswordUserSuccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_User_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "unverifiedEmail":
+				return ec.fieldContext_User_unverifiedEmail(ctx, field)
+			case "avatar":
+				return ec.fieldContext_User_avatar(ctx, field)
+			case "introduction":
+				return ec.fieldContext_User_introduction(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "emailVerificationStatus":
+				return ec.fieldContext_User_emailVerificationStatus(ctx, field)
+			case "recruitments":
+				return ec.fieldContext_User_recruitments(ctx, field)
+			case "followings":
+				return ec.fieldContext_User_followings(ctx, field)
+			case "feedbackFollow":
+				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _LoginUserAuthenticationError_message(ctx context.Context, field graphql.CollectedField, obj *model.LoginUserAuthenticationError) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_LoginUserAuthenticationError_message(ctx, field)
 	if err != nil {
@@ -6980,8 +7182,8 @@ func (ec *executionContext) fieldContext_Mutation_verifyEmail(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_sendResetPasswordEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_sendResetPasswordEmail(ctx, field)
+func (ec *executionContext) _Mutation_identifyPasswordResetUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_identifyPasswordResetUser(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -6994,7 +7196,7 @@ func (ec *executionContext) _Mutation_sendResetPasswordEmail(ctx context.Context
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SendResetPasswordEmail(rctx, fc.Args["input"].(model.SendResetPasswordEmailInput))
+		return ec.resolvers.Mutation().IdentifyPasswordResetUser(rctx, fc.Args["input"].(model.IdentifyResetPasswordUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7006,19 +7208,19 @@ func (ec *executionContext) _Mutation_sendResetPasswordEmail(ctx context.Context
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.SendResetPasswordEmailResult)
+	res := resTmp.(model.IdentifyResetPasswordUserResult)
 	fc.Result = res
-	return ec.marshalNSendResetPasswordEmailResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailResult(ctx, field.Selections, res)
+	return ec.marshalNIdentifyResetPasswordUserResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserResult(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_sendResetPasswordEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_identifyPasswordResetUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type SendResetPasswordEmailResult does not have child fields")
+			return nil, errors.New("field of type IdentifyResetPasswordUserResult does not have child fields")
 		},
 	}
 	defer func() {
@@ -7028,7 +7230,7 @@ func (ec *executionContext) fieldContext_Mutation_sendResetPasswordEmail(ctx con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_sendResetPasswordEmail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_identifyPasswordResetUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -9970,182 +10172,6 @@ func (ec *executionContext) fieldContext_Room_entrie(ctx context.Context, field 
 				return ec.fieldContext_Entrie_user(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Entrie", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SendResetPasswordEmailInvalidInputError_field(ctx context.Context, field graphql.CollectedField, obj *model.SendResetPasswordEmailInvalidInputError) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendResetPasswordEmailInvalidInputError_field(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Field, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.SendResetPasswordEmailInvalidInputField)
-	fc.Result = res
-	return ec.marshalNSendResetPasswordEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailInvalidInputField(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SendResetPasswordEmailInvalidInputError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SendResetPasswordEmailInvalidInputError",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type SendResetPasswordEmailInvalidInputField does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SendResetPasswordEmailInvalidInputError_message(ctx context.Context, field graphql.CollectedField, obj *model.SendResetPasswordEmailInvalidInputError) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendResetPasswordEmailInvalidInputError_message(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SendResetPasswordEmailInvalidInputError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SendResetPasswordEmailInvalidInputError",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SendResetPasswordEmailSuccess_isSendEmail(ctx context.Context, field graphql.CollectedField, obj *model.SendResetPasswordEmailSuccess) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendResetPasswordEmailSuccess_isSendEmail(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsSendEmail, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SendResetPasswordEmailSuccess_isSendEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SendResetPasswordEmailSuccess",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SendResetPasswordEmailUserNotFoundError_message(ctx context.Context, field graphql.CollectedField, obj *model.SendResetPasswordEmailUserNotFoundError) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SendResetPasswordEmailUserNotFoundError_message(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SendResetPasswordEmailUserNotFoundError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SendResetPasswordEmailUserNotFoundError",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13763,6 +13789,34 @@ func (ec *executionContext) unmarshalInputCreateTagInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputIdentifyResetPasswordUserInput(ctx context.Context, obj interface{}) (model.IdentifyResetPasswordUserInput, error) {
+	var it model.IdentifyResetPasswordUserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLoginUserInput(ctx context.Context, obj interface{}) (model.LoginUserInput, error) {
 	var it model.LoginUserInput
 	asMap := map[string]interface{}{}
@@ -13950,34 +14004,6 @@ func (ec *executionContext) unmarshalInputRegisterUserInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			it.Password, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputSendResetPasswordEmailInput(ctx context.Context, obj interface{}) (model.SendResetPasswordEmailInput, error) {
-	var it model.SendResetPasswordEmailInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"email"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "email":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14369,6 +14395,36 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	}
 }
 
+func (ec *executionContext) _IdentifyResetPasswordUserResult(ctx context.Context, sel ast.SelectionSet, obj model.IdentifyResetPasswordUserResult) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.IdentifyResetPasswordUserSuccess:
+		return ec._IdentifyResetPasswordUserSuccess(ctx, sel, &obj)
+	case *model.IdentifyResetPasswordUserSuccess:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._IdentifyResetPasswordUserSuccess(ctx, sel, obj)
+	case model.IdentifyResetPasswordUserInvalidInputError:
+		return ec._IdentifyResetPasswordUserInvalidInputError(ctx, sel, &obj)
+	case *model.IdentifyResetPasswordUserInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._IdentifyResetPasswordUserInvalidInputError(ctx, sel, obj)
+	case model.IdentifyResetPasswordUserNotFoundError:
+		return ec._IdentifyResetPasswordUserNotFoundError(ctx, sel, &obj)
+	case *model.IdentifyResetPasswordUserNotFoundError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._IdentifyResetPasswordUserNotFoundError(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _LoginUserResult(ctx context.Context, sel ast.SelectionSet, obj model.LoginUserResult) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -14496,36 +14552,6 @@ func (ec *executionContext) _RegisterUserResult(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._RegisterUserInvalidInputErrors(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _SendResetPasswordEmailResult(ctx context.Context, sel ast.SelectionSet, obj model.SendResetPasswordEmailResult) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case model.SendResetPasswordEmailSuccess:
-		return ec._SendResetPasswordEmailSuccess(ctx, sel, &obj)
-	case *model.SendResetPasswordEmailSuccess:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._SendResetPasswordEmailSuccess(ctx, sel, obj)
-	case model.SendResetPasswordEmailInvalidInputError:
-		return ec._SendResetPasswordEmailInvalidInputError(ctx, sel, &obj)
-	case *model.SendResetPasswordEmailInvalidInputError:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._SendResetPasswordEmailInvalidInputError(ctx, sel, obj)
-	case model.SendResetPasswordEmailUserNotFoundError:
-		return ec._SendResetPasswordEmailUserNotFoundError(ctx, sel, &obj)
-	case *model.SendResetPasswordEmailUserNotFoundError:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._SendResetPasswordEmailUserNotFoundError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -15513,6 +15539,97 @@ func (ec *executionContext) _FollowResult(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var identifyResetPasswordUserInvalidInputErrorImplementors = []string{"IdentifyResetPasswordUserInvalidInputError", "IdentifyResetPasswordUserResult"}
+
+func (ec *executionContext) _IdentifyResetPasswordUserInvalidInputError(ctx context.Context, sel ast.SelectionSet, obj *model.IdentifyResetPasswordUserInvalidInputError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, identifyResetPasswordUserInvalidInputErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IdentifyResetPasswordUserInvalidInputError")
+		case "field":
+
+			out.Values[i] = ec._IdentifyResetPasswordUserInvalidInputError_field(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "message":
+
+			out.Values[i] = ec._IdentifyResetPasswordUserInvalidInputError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var identifyResetPasswordUserNotFoundErrorImplementors = []string{"IdentifyResetPasswordUserNotFoundError", "IdentifyResetPasswordUserResult"}
+
+func (ec *executionContext) _IdentifyResetPasswordUserNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *model.IdentifyResetPasswordUserNotFoundError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, identifyResetPasswordUserNotFoundErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IdentifyResetPasswordUserNotFoundError")
+		case "message":
+
+			out.Values[i] = ec._IdentifyResetPasswordUserNotFoundError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var identifyResetPasswordUserSuccessImplementors = []string{"IdentifyResetPasswordUserSuccess", "IdentifyResetPasswordUserResult"}
+
+func (ec *executionContext) _IdentifyResetPasswordUserSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.IdentifyResetPasswordUserSuccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, identifyResetPasswordUserSuccessImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IdentifyResetPasswordUserSuccess")
+		case "user":
+
+			out.Values[i] = ec._IdentifyResetPasswordUserSuccess_user(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var loginUserAuthenticationErrorImplementors = []string{"LoginUserAuthenticationError", "LoginUserResult", "Error"}
 
 func (ec *executionContext) _LoginUserAuthenticationError(ctx context.Context, sel ast.SelectionSet, obj *model.LoginUserAuthenticationError) graphql.Marshaler {
@@ -15884,10 +16001,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "sendResetPasswordEmail":
+		case "identifyPasswordResetUser":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_sendResetPasswordEmail(ctx, field)
+				return ec._Mutation_identifyPasswordResetUser(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -16875,97 +16992,6 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 		case "entrie":
 
 			out.Values[i] = ec._Room_entrie(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var sendResetPasswordEmailInvalidInputErrorImplementors = []string{"SendResetPasswordEmailInvalidInputError", "SendResetPasswordEmailResult"}
-
-func (ec *executionContext) _SendResetPasswordEmailInvalidInputError(ctx context.Context, sel ast.SelectionSet, obj *model.SendResetPasswordEmailInvalidInputError) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, sendResetPasswordEmailInvalidInputErrorImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SendResetPasswordEmailInvalidInputError")
-		case "field":
-
-			out.Values[i] = ec._SendResetPasswordEmailInvalidInputError_field(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "message":
-
-			out.Values[i] = ec._SendResetPasswordEmailInvalidInputError_message(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var sendResetPasswordEmailSuccessImplementors = []string{"SendResetPasswordEmailSuccess", "SendResetPasswordEmailResult"}
-
-func (ec *executionContext) _SendResetPasswordEmailSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.SendResetPasswordEmailSuccess) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, sendResetPasswordEmailSuccessImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SendResetPasswordEmailSuccess")
-		case "isSendEmail":
-
-			out.Values[i] = ec._SendResetPasswordEmailSuccess_isSendEmail(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var sendResetPasswordEmailUserNotFoundErrorImplementors = []string{"SendResetPasswordEmailUserNotFoundError", "SendResetPasswordEmailResult"}
-
-func (ec *executionContext) _SendResetPasswordEmailUserNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *model.SendResetPasswordEmailUserNotFoundError) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, sendResetPasswordEmailUserNotFoundErrorImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SendResetPasswordEmailUserNotFoundError")
-		case "message":
-
-			out.Values[i] = ec._SendResetPasswordEmailUserNotFoundError_message(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -18577,6 +18603,31 @@ func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast
 	return ret
 }
 
+func (ec *executionContext) unmarshalNIdentifyResetPasswordUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserInput(ctx context.Context, v interface{}) (model.IdentifyResetPasswordUserInput, error) {
+	res, err := ec.unmarshalInputIdentifyResetPasswordUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNIdentifyResetPasswordUserInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserInvalidInputField(ctx context.Context, v interface{}) (model.IdentifyResetPasswordUserInvalidInputField, error) {
+	var res model.IdentifyResetPasswordUserInvalidInputField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNIdentifyResetPasswordUserInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserInvalidInputField(ctx context.Context, sel ast.SelectionSet, v model.IdentifyResetPasswordUserInvalidInputField) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNIdentifyResetPasswordUserResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐIdentifyResetPasswordUserResult(ctx context.Context, sel ast.SelectionSet, v model.IdentifyResetPasswordUserResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._IdentifyResetPasswordUserResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -19093,31 +19144,6 @@ func (ec *executionContext) marshalNRoom2ᚖgithubᚗcomᚋnagokosᚋconnefut_ba
 		return graphql.Null
 	}
 	return ec._Room(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNSendResetPasswordEmailInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailInput(ctx context.Context, v interface{}) (model.SendResetPasswordEmailInput, error) {
-	res, err := ec.unmarshalInputSendResetPasswordEmailInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNSendResetPasswordEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailInvalidInputField(ctx context.Context, v interface{}) (model.SendResetPasswordEmailInvalidInputField, error) {
-	var res model.SendResetPasswordEmailInvalidInputField
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNSendResetPasswordEmailInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailInvalidInputField(ctx context.Context, sel ast.SelectionSet, v model.SendResetPasswordEmailInvalidInputField) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) marshalNSendResetPasswordEmailResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendResetPasswordEmailResult(ctx context.Context, sel ast.SelectionSet, v model.SendResetPasswordEmailResult) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._SendResetPasswordEmailResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNSendVerifyNewEmailInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSendVerifyNewEmailInput(ctx context.Context, v interface{}) (model.SendVerifyNewEmailInput, error) {
