@@ -45,6 +45,9 @@ extend type Mutation {
   changePassword(input: ChangePasswordInput!): ChangePasswordResult!
     @hasLoggedIn
   verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
+  identifyPasswordResetUser(
+    input: IdentifyResetPasswordUserInput!
+  ): IdentifyResetPasswordUserResult!
 }
 
 #* Register
@@ -178,7 +181,7 @@ input ChangePasswordInput {
 union VerifyEmailResult =
     VerifyEmailSuccess
   | VerifyEmailAuthenticationError
-  | VerifyEmailPinExpiredError
+  | VerifyEmailCodeExpiredError
   | VerifyEmailInvalidInputErrors
 
 type VerifyEmailSuccess {
@@ -189,7 +192,7 @@ type VerifyEmailAuthenticationError implements Error {
   message: String!
 }
 
-type VerifyEmailPinExpiredError implements Error {
+type VerifyEmailCodeExpiredError implements Error {
   message: String!
 }
 
@@ -208,4 +211,31 @@ enum VerifyEmailInvalidInputField {
 
 input VerifyEmailInput {
   code: String!
+}
+
+#* IdentifyResetPasswordUser
+union IdentifyResetPasswordUserResult =
+    IdentifyResetPasswordUserSuccess
+  | IdentifyResetPasswordUserInvalidInputError
+  | IdentifyResetPasswordUserNotFoundError
+
+type IdentifyResetPasswordUserSuccess {
+  user: User!
+}
+
+type IdentifyResetPasswordUserInvalidInputError {
+  field: IdentifyResetPasswordUserInvalidInputField!
+  message: String!
+}
+
+enum IdentifyResetPasswordUserInvalidInputField {
+  EMAIL
+}
+
+type IdentifyResetPasswordUserNotFoundError {
+  message: String!
+}
+
+input IdentifyResetPasswordUserInput {
+  email: String!
 }

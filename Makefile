@@ -5,7 +5,6 @@ DC_WEB = $(DC) exec web
 DC_DB = $(DC) exec db
 POSTGRESQL_URL = ${DB_URL}
 
-# ** docker command **
 dc_build:
 	${DC} build
 

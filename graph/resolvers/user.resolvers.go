@@ -5,6 +5,7 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -175,6 +176,11 @@ func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEm
 		return nil, err
 	}
 	return result, nil
+}
+
+// IdentifyPasswordResetUser is the resolver for the identifyPasswordResetUser field.
+func (r *mutationResolver) IdentifyPasswordResetUser(ctx context.Context, input model.IdentifyResetPasswordUserInput) (model.IdentifyResetPasswordUserResult, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Viewer is the resolver for the viewer field.

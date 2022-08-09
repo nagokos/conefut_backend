@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	crand "crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -52,6 +53,10 @@ type ChangePasswordInput struct {
 
 type VerifyEmailInput struct {
 	Code string
+}
+
+type ResetPasswordInput struct {
+	Email string
 }
 
 //* アドレスが重複しないかチェック
@@ -210,19 +215,29 @@ func CheckPasswordHash(passwordDigest, password string) error {
 }
 
 //* メール認証のPINを生成
-func GenerateEmailVerification() (string, error) {
+func GenerateEmailVerificationCode() (string, error) {
 	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	rand.Seed(seed.Int64())
-	var pin string
+	var code string
 	for i := 0; i < 6; i++ {
-		pin = fmt.Sprintf(pin+"%v", rand.Intn(9))
+		code = fmt.Sprintf(code+"%v", rand.Intn(9))
 	}
-	return pin, nil
+	return code, nil
+}
+
+//* パスワードリセットのトークンを生成
+func GeneratePasswordResetToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 //* 実際にメールを送信する処理
-func SendingVerifyEmail(pin string, to string) error {
-	message := strings.NewReader(fmt.Sprint(pin))
+func SendingEmail(content string, to string) error {
+	message := strings.NewReader(content)
 	transformer := japanese.ISO2022JP.NewEncoder()
 	newMessage, _ := ioutil.ReadAll(transform.NewReader(message, transformer))
 	err := smtp.SendMail(host, nil, "connefut@example.com", []string{to}, newMessage)
@@ -248,8 +263,9 @@ func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, er
 //* メールアドレスに認証メール送信
 func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 	viewer := GetViewer(ctx)
-	pinExpiresAt := time.Now().Add(10 * time.Minute)
-	pin, err := GenerateEmailVerification()
+	now := time.Now().Local()
+	expiresAt := now.Add(10 * time.Minute)
+	code, err := GenerateEmailVerificationCode()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
@@ -257,18 +273,18 @@ func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 
 	cmd := `
 	  UPDATE users
-		SET (email_verification_pin, email_verification_pin_expires_at) = ($1, $2)
+		SET (email_verification_code, email_verification_code_expires_at, updated_at) = ($1, $2)
 		WHERE id = $3
 	`
 	if _, err := dbPool.Exec(
 		ctx, cmd,
-		pin, pinExpiresAt, viewer.DatabaseID,
+		code, expiresAt, viewer.DatabaseID,
 	); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
 	}
 
-	if err := SendingVerifyEmail(pin, *viewer.UnverifiedEmail); err != nil {
+	if err := SendingEmail(code, *viewer.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return false, err
 	}
@@ -279,13 +295,13 @@ func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.SendVerifyNewEmailResult, error) {
 	cmd := `
 	  UPDATE users
-		SET (email_verification_pin, email_verification_pin_expires_at, unverified_email) = ($1, $2, $3)
+		SET (email_verification_code, email_verification_code_expires_at, unverified_email) = ($1, $2, $3)
 		WHERE id = $4
 		RETURNING id, unverified_email
 	`
 	viewer := GetViewer(ctx)
-	pinExpiresAt := time.Now().Add(10 * time.Minute)
-	pin, err := GenerateEmailVerification()
+	codeExpiresAt := time.Now().Add(10 * time.Minute)
+	code, err := GenerateEmailVerificationCode()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -293,7 +309,7 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		pin, pinExpiresAt, u.Email, viewer.DatabaseID,
+		code, codeExpiresAt, u.Email, viewer.DatabaseID,
 	)
 	var user model.User
 	if err := row.Scan(&user.DatabaseID, &user.UnverifiedEmail); err != nil {
@@ -301,7 +317,7 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 		return nil, err
 	}
 
-	if err := SendingVerifyEmail(pin, *user.UnverifiedEmail); err != nil {
+	if err := SendingEmail(code, *user.UnverifiedEmail); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
@@ -313,30 +329,30 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.VerifyEmailResult, error) {
 	viewer := GetViewer(ctx)
 	cmd := `
-	  SELECT email_verification_pin, email_verification_pin_expires_at
+	  SELECT email_verification_code, email_verification_code_expires_at
 		FROM users
 		WHERE id = $1
 	`
 	row := dbPool.QueryRow(ctx, cmd, viewer.DatabaseID)
-	var pin string
-	var pinExpiresAt time.Time
-	if err := row.Scan(&pin, &pinExpiresAt); err != nil {
+	var code string
+	var codeExpiresAt time.Time
+	if err := row.Scan(&code, &codeExpiresAt); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 
-	//* pinの有効期限チェック
-	if time.Now().Local().After(pinExpiresAt) {
-		logger.NewLogger().Error("pin code expired")
-		result := model.VerifyEmailPinExpiredError{
+	//* codeの有効期限チェック
+	if time.Now().Local().After(codeExpiresAt) {
+		logger.NewLogger().Error("code code expired")
+		result := model.VerifyEmailCodeExpiredError{
 			Message: "認証コードの有効期限が切れています。認証コードを再取得してください。",
 		}
 		return result, nil
 	}
 
-	//* 送られてきたpinとユーザーのpinを比較
-	if i.Code != pin {
-		logger.NewLogger().Error("Pin code does not match")
+	//* 送られてきたcodeとユーザーのcodeを比較
+	if i.Code != code {
+		logger.NewLogger().Error("Code does not match")
 		result := model.VerifyEmailAuthenticationError{
 			Message: "認証コードに誤りがあります",
 		}
@@ -345,7 +361,7 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 
 	cmd = `
 	  UPDATE users
-		SET (email, unverified_email, email_verification_status, email_verification_pin_expires_at, email_verification_pin, updated_at) = ($1, $2, $3, $4, $5, $6)
+		SET (email, unverified_email, email_verification_status, email_verification_code_expires_at, email_verification_code, updated_at) = ($1, $2, $3, $4, $5, $6)
 		WHERE id = $7
 		RETURNING id, email, unverified_email, email_verification_status
 	`
@@ -434,22 +450,22 @@ func GetUserIDByProviderAndUID(ctx context.Context, dbPool *pgxpool.Pool, provid
 func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.RegisterUserResult, error) {
 	cmd := `
 		INSERT INTO users
-			(name, email, unverified_email, password_digest, email_verification_pin,
-				email_verification_pin_expires_at, last_sign_in_at, created_at)
+			(name, email, unverified_email, password_digest, email_verification_code,
+				email_verification_code_expires_at, last_sign_in_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
 	`
 	now := time.Now().Local()
 	pwdHash := GeneratePasswordHash(u.Password)
-	pinExpiresAt := time.Now().Add(10 * time.Minute)
-	pin, err := GenerateEmailVerification()
+	codeExpiresAt := time.Now().Add(10 * time.Minute)
+	code, err := GenerateEmailVerificationCode()
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		u.Name, u.Email, u.Email, pwdHash, pin, pinExpiresAt, now, now, now,
+		u.Name, u.Email, u.Email, pwdHash, code, codeExpiresAt, now, now, now,
 	)
 
 	var user model.User
@@ -459,7 +475,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	}
 
 	//todo 本番環境と開発環境では処理が違ってくる
-	err = SendingVerifyEmail(pin, user.Email)
+	err = SendingEmail(code, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -474,6 +490,7 @@ func (u *User) RegisterUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Re
 	return result, nil
 }
 
+//* ログイン
 func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (model.LoginUserResult, error) {
 	cmd := `
 	  SELECT id, name, email, avatar, email_verification_status, introduction, unverified_email, password_digest 

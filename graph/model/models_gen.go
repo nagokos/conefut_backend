@@ -37,6 +37,10 @@ type Error interface {
 	IsError()
 }
 
+type IdentifyResetPasswordUserResult interface {
+	IsIdentifyResetPasswordUserResult()
+}
+
 type LoginUserResult interface {
 	IsLoginUserResult()
 }
@@ -218,6 +222,29 @@ type FollowResult struct {
 	FeedbackFollow *FeedbackFollow `json:"feedbackFollow"`
 	Viewer         *Viewer         `json:"viewer"`
 }
+
+type IdentifyResetPasswordUserInput struct {
+	Email string `json:"email"`
+}
+
+type IdentifyResetPasswordUserInvalidInputError struct {
+	Field   IdentifyResetPasswordUserInvalidInputField `json:"field"`
+	Message string                                     `json:"message"`
+}
+
+func (IdentifyResetPasswordUserInvalidInputError) IsIdentifyResetPasswordUserResult() {}
+
+type IdentifyResetPasswordUserNotFoundError struct {
+	Message string `json:"message"`
+}
+
+func (IdentifyResetPasswordUserNotFoundError) IsIdentifyResetPasswordUserResult() {}
+
+type IdentifyResetPasswordUserSuccess struct {
+	User *User `json:"user"`
+}
+
+func (IdentifyResetPasswordUserSuccess) IsIdentifyResetPasswordUserResult() {}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -417,6 +444,13 @@ type VerifyEmailAuthenticationError struct {
 func (VerifyEmailAuthenticationError) IsVerifyEmailResult() {}
 func (VerifyEmailAuthenticationError) IsError()             {}
 
+type VerifyEmailCodeExpiredError struct {
+	Message string `json:"message"`
+}
+
+func (VerifyEmailCodeExpiredError) IsVerifyEmailResult() {}
+func (VerifyEmailCodeExpiredError) IsError()             {}
+
 type VerifyEmailInput struct {
 	Code string `json:"code"`
 }
@@ -433,13 +467,6 @@ type VerifyEmailInvalidInputErrors struct {
 }
 
 func (VerifyEmailInvalidInputErrors) IsVerifyEmailResult() {}
-
-type VerifyEmailPinExpiredError struct {
-	Message string `json:"message"`
-}
-
-func (VerifyEmailPinExpiredError) IsVerifyEmailResult() {}
-func (VerifyEmailPinExpiredError) IsError()             {}
 
 type VerifyEmailSuccess struct {
 	Viewer *Viewer `json:"viewer"`
@@ -618,6 +645,45 @@ func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type IdentifyResetPasswordUserInvalidInputField string
+
+const (
+	IdentifyResetPasswordUserInvalidInputFieldEmail IdentifyResetPasswordUserInvalidInputField = "EMAIL"
+)
+
+var AllIdentifyResetPasswordUserInvalidInputField = []IdentifyResetPasswordUserInvalidInputField{
+	IdentifyResetPasswordUserInvalidInputFieldEmail,
+}
+
+func (e IdentifyResetPasswordUserInvalidInputField) IsValid() bool {
+	switch e {
+	case IdentifyResetPasswordUserInvalidInputFieldEmail:
+		return true
+	}
+	return false
+}
+
+func (e IdentifyResetPasswordUserInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *IdentifyResetPasswordUserInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = IdentifyResetPasswordUserInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid IdentifyResetPasswordUserInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e IdentifyResetPasswordUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
