@@ -181,7 +181,7 @@ input ChangePasswordInput {
 union VerifyEmailResult =
     VerifyEmailSuccess
   | VerifyEmailAuthenticationError
-  | VerifyEmailPinExpiredError
+  | VerifyEmailCodeExpiredError
   | VerifyEmailInvalidInputErrors
 
 type VerifyEmailSuccess {
@@ -192,7 +192,7 @@ type VerifyEmailAuthenticationError implements Error {
   message: String!
 }
 
-type VerifyEmailPinExpiredError implements Error {
+type VerifyEmailCodeExpiredError implements Error {
   message: String!
 }
 
@@ -228,12 +228,12 @@ type SendResetPasswordEmailInvalidInputError {
   message: String!
 }
 
-type SendResetPasswordEmailUserNotFoundError {
-  message: String!
-}
-
 enum SendResetPasswordEmailInvalidInputField {
   EMAIL
+}
+
+type SendResetPasswordEmailUserNotFoundError {
+  message: String!
 }
 
 input SendResetPasswordEmailInput {
