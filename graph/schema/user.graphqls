@@ -45,9 +45,9 @@ extend type Mutation {
   changePassword(input: ChangePasswordInput!): ChangePasswordResult!
     @hasLoggedIn
   verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
-  sendResetPasswordEmail(
-    input: SendResetPasswordEmailInput!
-  ): SendResetPasswordEmailResult!
+  identifyPasswordResetUser(
+    input: IdentifyResetPasswordUserInput!
+  ): IdentifyResetPasswordUserResult!
 }
 
 #* Register
@@ -213,29 +213,29 @@ input VerifyEmailInput {
   code: String!
 }
 
-#* ResetPassword
-union SendResetPasswordEmailResult =
-    SendResetPasswordEmailSuccess
-  | SendResetPasswordEmailInvalidInputError
-  | SendResetPasswordEmailUserNotFoundError
+#* IdentifyResetPasswordUser
+union IdentifyResetPasswordUserResult =
+    IdentifyResetPasswordUserSuccess
+  | IdentifyResetPasswordUserInvalidInputError
+  | IdentifyResetPasswordUserNotFoundError
 
-type SendResetPasswordEmailSuccess {
-  isSendEmail: Boolean!
+type IdentifyResetPasswordUserSuccess {
+  user: User!
 }
 
-type SendResetPasswordEmailInvalidInputError {
-  field: SendResetPasswordEmailInvalidInputField!
+type IdentifyResetPasswordUserInvalidInputError {
+  field: IdentifyResetPasswordUserInvalidInputField!
   message: String!
 }
 
-enum SendResetPasswordEmailInvalidInputField {
+enum IdentifyResetPasswordUserInvalidInputField {
   EMAIL
 }
 
-type SendResetPasswordEmailUserNotFoundError {
+type IdentifyResetPasswordUserNotFoundError {
   message: String!
 }
 
-input SendResetPasswordEmailInput {
+input IdentifyResetPasswordUserInput {
   email: String!
 }
