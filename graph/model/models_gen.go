@@ -444,6 +444,13 @@ type VerifyEmailAuthenticationError struct {
 func (VerifyEmailAuthenticationError) IsVerifyEmailResult() {}
 func (VerifyEmailAuthenticationError) IsError()             {}
 
+type VerifyEmailCodeExpiredError struct {
+	Message string `json:"message"`
+}
+
+func (VerifyEmailCodeExpiredError) IsVerifyEmailResult() {}
+func (VerifyEmailCodeExpiredError) IsError()             {}
+
 type VerifyEmailInput struct {
 	Code string `json:"code"`
 }
@@ -460,13 +467,6 @@ type VerifyEmailInvalidInputErrors struct {
 }
 
 func (VerifyEmailInvalidInputErrors) IsVerifyEmailResult() {}
-
-type VerifyEmailPinExpiredError struct {
-	Message string `json:"message"`
-}
-
-func (VerifyEmailPinExpiredError) IsVerifyEmailResult() {}
-func (VerifyEmailPinExpiredError) IsError()             {}
 
 type VerifyEmailSuccess struct {
 	Viewer *Viewer `json:"viewer"`
