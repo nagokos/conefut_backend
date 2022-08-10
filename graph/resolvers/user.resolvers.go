@@ -202,8 +202,33 @@ func (r *mutationResolver) SendResetPasswordEmailToUser(ctx context.Context, inp
 }
 
 // ResetUserPassword is the resolver for the resetUserPassword field.
-func (r *mutationResolver) ResetUserPassword(ctx context.Context, input model.ResetUserPasswordInput) (model.ResetUserPasswordResult, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) ResetUserPassword(ctx context.Context, token string, input model.ResetUserPasswordInput) (model.ResetUserPasswordResult, error) {
+	fmt.Println("h")
+	i := user.ResetPasswordInput{
+		NewPassword:             input.NewPassword,
+		NewPasswordConfirmation: input.NewPasswordConfirmation,
+	}
+
+	if err := i.ResetPasswordValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+
+		var result model.ResetUserPasswordInvalidInputErrors
+		for field, message := range errs {
+			result.InvalidInputs = append(result.InvalidInputs, &model.ResetUserPasswordInvalidInputError{
+				Field:   model.ResetUserPasswordInvalidInputField(strings.ToUpper(field)),
+				Message: message.Error(),
+			})
+		}
+		return result, nil
+	}
+
+	result, err := i.ResetPassword(ctx, r.dbPool, token)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return result, nil
 }
 
 // Viewer is the resolver for the viewer field.
