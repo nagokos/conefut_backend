@@ -49,7 +49,10 @@ extend type Mutation {
   sendResetPasswordEmailToUser(
     input: SendResetPasswordEmailToUserInput!
   ): SendResetPasswordEmailToUserResult!
-  resetUserPassword(input: ResetUserPasswordInput!): ResetUserPasswordResult!
+  resetUserPassword(
+    token: String!
+    input: ResetUserPasswordInput!
+  ): ResetUserPasswordResult!
 }
 
 #* Register
@@ -254,8 +257,8 @@ type ResetUserPasswordInvalidInputError {
 }
 
 enum ResetUserPasswordInvalidInputField {
-  PASSWORD
-  PASSWORD_CONFIRMATION
+  NEW_PASSWORD
+  NEW_PASSWORD_CONFIRMATION
 }
 
 type ResetUserPasswordInvalidTokenError {
@@ -263,6 +266,6 @@ type ResetUserPasswordInvalidTokenError {
 }
 
 input ResetUserPasswordInput {
-  password: String!
-  passwordConfirmation: String!
+  newPassword: String!
+  newPasswordConfirmation: String!
 }
