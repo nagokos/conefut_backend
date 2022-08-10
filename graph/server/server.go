@@ -17,6 +17,7 @@ import (
 	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/models/oauth"
+	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/resolvers"
 	"github.com/nagokos/connefut_backend/logger"
 )
@@ -64,6 +65,7 @@ func main() {
 			r.Get("/callback", oauth.AuthLineCallback)
 		})
 	})
+	r.Get("/password/reset", user.ConfirmationPasswordResetURL)
 
 	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)

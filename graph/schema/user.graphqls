@@ -38,16 +38,18 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserResult!
   loginUser(input: LoginUserInput!): LoginUserResult!
   logoutUser: Boolean!
-  sendVerifyEmail: Boolean! @hasLoggedIn
-  sendVerifyNewEmail(
-    input: SendVerifyNewEmailInput!
-  ): SendVerifyNewEmailResult! @hasLoggedIn
-  changePassword(input: ChangePasswordInput!): ChangePasswordResult!
+  resendVerificationCodeToUser: Boolean! @hasLoggedIn
+  changeUserEmail(input: ChangeUserEmailInput!): ChangeUserEmailResult!
     @hasLoggedIn
-  verifyEmail(input: VerifyEmailInput!): VerifyEmailResult! @hasLoggedIn
-  identifyPasswordResetUser(
-    input: IdentifyResetPasswordUserInput!
-  ): IdentifyResetPasswordUserResult!
+  verifyUserEmail(input: VerifyUserEmailInput!): VerifyUserEmailResult!
+    @hasLoggedIn
+  changeUserPassword(
+    input: ChangeUserPasswordInput!
+  ): ChangeUserPasswordResult! @hasLoggedIn
+  sendResetPasswordEmailToUser(
+    input: SendResetPasswordEmailToUserInput!
+  ): SendResetPasswordEmailToUserResult!
+  resetUserPassword(input: ResetUserPasswordInput!): ResetUserPasswordResult!
 }
 
 #* Register
@@ -116,126 +118,151 @@ input LoginUserInput {
   password: String!
 }
 
-#* NewEmail
-union SendVerifyNewEmailResult =
-    SendVerifyNewEmailSuccess
-  | SendVerifyNewEmailInvalidInputErrors
+#* ChangeEmail
+union ChangeUserEmailResult =
+    ChangeUserEmailSuccess
+  | ChangeUserEmailInvalidInputError
 
-type SendVerifyNewEmailSuccess {
+type ChangeUserEmailSuccess {
   viewer: Viewer!
 }
 
-type SendVerifyNewEmailInvalidInputErrors {
-  invalidInputs: [SendVerifyNewEmailInvalidInputError!]!
-}
-
-type SendVerifyNewEmailInvalidInputError implements Error {
+type ChangeUserEmailInvalidInputError implements Error {
   message: String!
-  field: SendVerifyNewEmailInvalidInputField!
+  field: ChangeUserEmailInvalidInputField!
 }
 
-enum SendVerifyNewEmailInvalidInputField {
-  EMAIL
+enum ChangeUserEmailInvalidInputField {
+  NEW_EMAIL
 }
 
-input SendVerifyNewEmailInput {
-  email: String!
+input ChangeUserEmailInput {
+  newEmail: String!
 }
 
 #* ChangePassword
-union ChangePasswordResult =
-    ChangePasswordSuccess
-  | ChangePasswordInvalidInputErrors
-  | ChangePasswordAuthenticationError
+union ChangeUserPasswordResult =
+    ChangeUserPasswordSuccess
+  | ChangeUserPasswordInvalidInputErrors
+  | ChangeUserPasswordAuthenticationError
 
-type ChangePasswordSuccess {
+type ChangeUserPasswordSuccess {
   isChangedPassword: Boolean!
 }
 
-type ChangePasswordAuthenticationError implements Error {
+type ChangeUserPasswordAuthenticationError implements Error {
   message: String!
 }
 
-type ChangePasswordInvalidInputErrors {
-  invalidInputs: [ChangePasswordInvalidInputError!]!
+type ChangeUserPasswordInvalidInputErrors {
+  invalidInputs: [ChangeUserPasswordInvalidInputError!]!
 }
 
-type ChangePasswordInvalidInputError implements Error {
+type ChangeUserPasswordInvalidInputError implements Error {
   message: String!
-  field: ChangePasswordInvalidInputField!
+  field: ChangeUserPasswordInvalidInputField!
 }
 
-enum ChangePasswordInvalidInputField {
+enum ChangeUserPasswordInvalidInputField {
   CURRENT_PASSWORD
   NEW_PASSWORD
   NEW_PASSWORD_CONFIRMATION
 }
 
-input ChangePasswordInput {
+input ChangeUserPasswordInput {
   currentPassword: String!
   newPassword: String!
   newPasswordConfirmation: String!
 }
 
 #* VerifyEmail
-union VerifyEmailResult =
-    VerifyEmailSuccess
-  | VerifyEmailAuthenticationError
-  | VerifyEmailCodeExpiredError
-  | VerifyEmailInvalidInputErrors
+union VerifyUserEmailResult =
+    VerifyUserEmailSuccess
+  | VerifyUserEmailAuthenticationError
+  | VerifyUserEmailCodeExpiredError
+  | VerifyUserEmailInvalidInputError
 
-type VerifyEmailSuccess {
+type VerifyUserEmailSuccess {
   viewer: Viewer!
 }
 
-type VerifyEmailAuthenticationError implements Error {
+type VerifyUserEmailAuthenticationError implements Error {
   message: String!
 }
 
-type VerifyEmailCodeExpiredError implements Error {
+type VerifyUserEmailCodeExpiredError implements Error {
   message: String!
 }
 
-type VerifyEmailInvalidInputErrors {
-  invalidInputs: [VerifyEmailInvalidInputError!]!
-}
-
-type VerifyEmailInvalidInputError implements Error {
+type VerifyUserEmailInvalidInputError implements Error {
   message: String!
-  field: VerifyEmailInvalidInputField!
+  field: VerifyUserEmailInvalidInputField!
 }
 
-enum VerifyEmailInvalidInputField {
+enum VerifyUserEmailInvalidInputField {
   CODE
 }
 
-input VerifyEmailInput {
+input VerifyUserEmailInput {
   code: String!
 }
 
-#* IdentifyResetPasswordUser
-union IdentifyResetPasswordUserResult =
-    IdentifyResetPasswordUserSuccess
-  | IdentifyResetPasswordUserInvalidInputError
-  | IdentifyResetPasswordUserNotFoundError
+#* SendResetPasswordEmail
+union SendResetPasswordEmailToUserResult =
+    SendResetPasswordEmailToUserSuccess
+  | SendResetPasswordEmailToUserInvalidInputError
+  | SendResetPasswordEmailToUserNotFoundError
 
-type IdentifyResetPasswordUserSuccess {
-  user: User!
+type SendResetPasswordEmailToUserSuccess {
+  isSentEmail: Boolean!
 }
 
-type IdentifyResetPasswordUserInvalidInputError {
-  field: IdentifyResetPasswordUserInvalidInputField!
+type SendResetPasswordEmailToUserInvalidInputError {
+  field: SendResetPasswordEmailToUserInvalidInputField!
   message: String!
 }
 
-enum IdentifyResetPasswordUserInvalidInputField {
+enum SendResetPasswordEmailToUserInvalidInputField {
   EMAIL
 }
 
-type IdentifyResetPasswordUserNotFoundError {
+type SendResetPasswordEmailToUserNotFoundError {
   message: String!
 }
 
-input IdentifyResetPasswordUserInput {
+input SendResetPasswordEmailToUserInput {
   email: String!
+}
+
+#* ResetPassword
+union ResetUserPasswordResult =
+    ResetUserPasswordSuccess
+  | ResetUserPasswordInvalidInputErrors
+  | ResetUserPasswordInvalidTokenError
+
+type ResetUserPasswordSuccess {
+  viewer: Viewer!
+}
+
+type ResetUserPasswordInvalidInputErrors {
+  invalidInputs: [ResetUserPasswordInvalidInputError!]!
+}
+
+type ResetUserPasswordInvalidInputError {
+  field: ResetUserPasswordInvalidInputField!
+  message: String!
+}
+
+enum ResetUserPasswordInvalidInputField {
+  PASSWORD
+  PASSWORD_CONFIRMATION
+}
+
+type ResetUserPasswordInvalidTokenError {
+  message: String!
+}
+
+input ResetUserPasswordInput {
+  password: String!
+  passwordConfirmation: String!
 }

@@ -98,6 +98,8 @@ func AuthLineCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// todo メールアドレスが登録していない場合は新規登録に失敗するかフォームへ移動
+
 	nonce, err := r.Cookie("nonce")
 	http.SetCookie(w, &http.Cookie{
 		HttpOnly: true,
@@ -134,6 +136,7 @@ func AuthLineCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
 	isAuth, err := claims.CheckAuthAlreadyExists(r.Context(), dbPool)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())

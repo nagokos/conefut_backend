@@ -85,8 +85,8 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// SendVerifyEmail is the resolver for the sendVerifyEmail field.
-func (r *mutationResolver) SendVerifyEmail(ctx context.Context) (bool, error) {
+// ResendVerificationCodeToUser is the resolver for the resendVerificationCodeToUser field.
+func (r *mutationResolver) ResendVerificationCodeToUser(ctx context.Context) (bool, error) {
 	isSentEmail, err := user.SendVerifyEmail(ctx, r.dbPool)
 	if err != nil {
 		return false, err
@@ -94,36 +94,59 @@ func (r *mutationResolver) SendVerifyEmail(ctx context.Context) (bool, error) {
 	return isSentEmail, nil
 }
 
-// SendVerifyNewEmail is the resolver for the sendVerifyNewEmail field.
-func (r *mutationResolver) SendVerifyNewEmail(ctx context.Context, input model.SendVerifyNewEmailInput) (model.SendVerifyNewEmailResult, error) {
-	u := user.User{
-		Email: input.Email,
+// ChangeUserEmail is the resolver for the changeUserEmail field.
+func (r *mutationResolver) ChangeUserEmail(ctx context.Context, input model.ChangeUserEmailInput) (model.ChangeUserEmailResult, error) {
+	i := user.ChangeEmailInput{
+		NewEmail: input.NewEmail,
 	}
 
-	err := u.SendVerifyNewEmailValidate()
-	if err != nil {
+	if err := i.ChangeEmailValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var result model.SendVerifyNewEmailInvalidInputErrors
-		for k, errMessage := range errs {
-			result.InvalidInputs = append(result.InvalidInputs, &model.SendVerifyNewEmailInvalidInputError{
-				Message: errMessage.Error(),
-				Field:   model.SendVerifyNewEmailInvalidInputField(strings.ToLower(k)),
-			})
+		for field, message := range errs {
+			result := model.ChangeUserEmailInvalidInputError{
+				Message: message.Error(),
+				Field:   model.ChangeUserEmailInvalidInputField(strings.ToUpper(field)),
+			}
+			return result, nil
 		}
-		return result, nil
 	}
 
-	result, err := u.SendVerifyNewEmail(ctx, r.dbPool)
+	result, err := i.ChangeEmail(ctx, r.dbPool)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-// ChangePassword is the resolver for the changePassword field.
-func (r *mutationResolver) ChangePassword(ctx context.Context, input model.ChangePasswordInput) (model.ChangePasswordResult, error) {
+// VerifyUserEmail is the resolver for the verifyUserEmail field.
+func (r *mutationResolver) VerifyUserEmail(ctx context.Context, input model.VerifyUserEmailInput) (model.VerifyUserEmailResult, error) {
+	i := user.VerifyEmailInput{
+		Code: input.Code,
+	}
+	if err := i.VerifyEmailValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+
+		for field, message := range errs {
+			result := model.VerifyUserEmailInvalidInputError{
+				Message: message.Error(),
+				Field:   model.VerifyUserEmailInvalidInputField(strings.ToUpper(field)),
+			}
+			return result, nil
+		}
+	}
+
+	result, err := i.VerifyEmail(ctx, r.dbPool)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ChangeUserPassword is the resolver for the changeUserPassword field.
+func (r *mutationResolver) ChangeUserPassword(ctx context.Context, input model.ChangeUserPasswordInput) (model.ChangeUserPasswordResult, error) {
 	i := user.ChangePasswordInput{
 		CurrentPassword:         input.CurrentPassword,
 		NewPassword:             input.NewPassword,
@@ -134,11 +157,11 @@ func (r *mutationResolver) ChangePassword(ctx context.Context, input model.Chang
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var result model.ChangePasswordInvalidInputErrors
+		var result model.ChangeUserPasswordInvalidInputErrors
 		for k, errMessage := range errs {
-			result.InvalidInputs = append(result.InvalidInputs, &model.ChangePasswordInvalidInputError{
+			result.InvalidInputs = append(result.InvalidInputs, &model.ChangeUserPasswordInvalidInputError{
 				Message: errMessage.Error(),
-				Field:   model.ChangePasswordInvalidInputField(strings.ToLower(k[:1]) + k[1:]),
+				Field:   model.ChangeUserPasswordInvalidInputField(strings.ToUpper(k[:1]) + k[1:]),
 			})
 		}
 		return result, nil
@@ -152,34 +175,34 @@ func (r *mutationResolver) ChangePassword(ctx context.Context, input model.Chang
 	return result, nil
 }
 
-// VerifyEmail is the resolver for the verifyEmail field.
-func (r *mutationResolver) VerifyEmail(ctx context.Context, input model.VerifyEmailInput) (model.VerifyEmailResult, error) {
-	i := user.VerifyEmailInput{
-		Code: input.Code,
+// SendResetPasswordEmailToUser is the resolver for the sendResetPasswordEmailToUser field.
+func (r *mutationResolver) SendResetPasswordEmailToUser(ctx context.Context, input model.SendResetPasswordEmailToUserInput) (model.SendResetPasswordEmailToUserResult, error) {
+	i := user.ResetPasswordInput{
+		Email: input.Email,
 	}
-	if err := i.VerifyEmailValidate(); err != nil {
+	if err := i.SendResetPasswordEmailValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
 
-		var result model.VerifyEmailInvalidInputErrors
-		for k, errMessage := range errs {
-			result.InvalidInputs = append(result.InvalidInputs, &model.VerifyEmailInvalidInputError{
-				Message: errMessage.Error(),
-				Field:   model.VerifyEmailInvalidInputField(strings.ToLower(k)),
-			})
+		for field, message := range errs {
+			result := model.SendResetPasswordEmailToUserInvalidInputError{
+				Field:   model.SendResetPasswordEmailToUserInvalidInputField(strings.ToUpper(field)),
+				Message: message.Error(),
+			}
+			return result, nil
 		}
-		return result, nil
 	}
 
-	result, err := i.VerifyEmail(ctx, r.dbPool)
+	result, err := i.SendResetPasswordEmail(ctx, r.dbPool)
 	if err != nil {
+		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
 	return result, nil
 }
 
-// IdentifyPasswordResetUser is the resolver for the identifyPasswordResetUser field.
-func (r *mutationResolver) IdentifyPasswordResetUser(ctx context.Context, input model.IdentifyResetPasswordUserInput) (model.IdentifyResetPasswordUserResult, error) {
+// ResetUserPassword is the resolver for the resetUserPassword field.
+func (r *mutationResolver) ResetUserPassword(ctx context.Context, input model.ResetUserPasswordInput) (model.ResetUserPasswordResult, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
