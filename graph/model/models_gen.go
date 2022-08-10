@@ -13,8 +13,8 @@ type ApplyForRecruitmentError interface {
 	IsApplyForRecruitmentError()
 }
 
-type ChangePasswordResult interface {
-	IsChangePasswordResult()
+type ChangeUserPasswordResult interface {
+	IsChangeUserPasswordResult()
 }
 
 type Connection interface {
@@ -37,10 +37,6 @@ type Error interface {
 	IsError()
 }
 
-type IdentifyResetPasswordUserResult interface {
-	IsIdentifyResetPasswordUserResult()
-}
-
 type LoginUserResult interface {
 	IsLoginUserResult()
 }
@@ -53,16 +49,24 @@ type RegisterUserResult interface {
 	IsRegisterUserResult()
 }
 
-type SendVerifyNewEmailResult interface {
-	IsSendVerifyNewEmailResult()
+type ResetUserPasswordResult interface {
+	IsResetUserPasswordResult()
+}
+
+type SendResetPasswordEmailToUserResult interface {
+	IsSendResetPasswordEmailToUserResult()
+}
+
+type SendVerifyNewEmailToUserResult interface {
+	IsSendVerifyNewEmailToUserResult()
 }
 
 type UpdateRecruitmentResult interface {
 	IsUpdateRecruitmentResult()
 }
 
-type VerifyEmailResult interface {
-	IsVerifyEmailResult()
+type VerifyUserEmailResult interface {
+	IsVerifyUserEmailResult()
 }
 
 type AddStockResult struct {
@@ -111,37 +115,37 @@ type ApplyForRecruitmentSelfGeneratedError struct {
 func (ApplyForRecruitmentSelfGeneratedError) IsApplyForRecruitmentError() {}
 func (ApplyForRecruitmentSelfGeneratedError) IsError()                    {}
 
-type ChangePasswordAuthenticationError struct {
+type ChangeUserPasswordAuthenticationError struct {
 	Message string `json:"message"`
 }
 
-func (ChangePasswordAuthenticationError) IsChangePasswordResult() {}
-func (ChangePasswordAuthenticationError) IsError()                {}
+func (ChangeUserPasswordAuthenticationError) IsChangeUserPasswordResult() {}
+func (ChangeUserPasswordAuthenticationError) IsError()                    {}
 
-type ChangePasswordInput struct {
+type ChangeUserPasswordInput struct {
 	CurrentPassword         string `json:"currentPassword"`
 	NewPassword             string `json:"newPassword"`
 	NewPasswordConfirmation string `json:"newPasswordConfirmation"`
 }
 
-type ChangePasswordInvalidInputError struct {
-	Message string                          `json:"message"`
-	Field   ChangePasswordInvalidInputField `json:"field"`
+type ChangeUserPasswordInvalidInputError struct {
+	Message string                              `json:"message"`
+	Field   ChangeUserPasswordInvalidInputField `json:"field"`
 }
 
-func (ChangePasswordInvalidInputError) IsError() {}
+func (ChangeUserPasswordInvalidInputError) IsError() {}
 
-type ChangePasswordInvalidInputErrors struct {
-	InvalidInputs []*ChangePasswordInvalidInputError `json:"invalidInputs"`
+type ChangeUserPasswordInvalidInputErrors struct {
+	InvalidInputs []*ChangeUserPasswordInvalidInputError `json:"invalidInputs"`
 }
 
-func (ChangePasswordInvalidInputErrors) IsChangePasswordResult() {}
+func (ChangeUserPasswordInvalidInputErrors) IsChangeUserPasswordResult() {}
 
-type ChangePasswordSuccess struct {
+type ChangeUserPasswordSuccess struct {
 	IsChangedPassword bool `json:"isChangedPassword"`
 }
 
-func (ChangePasswordSuccess) IsChangePasswordResult() {}
+func (ChangeUserPasswordSuccess) IsChangeUserPasswordResult() {}
 
 type Competition struct {
 	ID         string `json:"id"`
@@ -222,29 +226,6 @@ type FollowResult struct {
 	FeedbackFollow *FeedbackFollow `json:"feedbackFollow"`
 	Viewer         *Viewer         `json:"viewer"`
 }
-
-type IdentifyResetPasswordUserInput struct {
-	Email string `json:"email"`
-}
-
-type IdentifyResetPasswordUserInvalidInputError struct {
-	Field   IdentifyResetPasswordUserInvalidInputField `json:"field"`
-	Message string                                     `json:"message"`
-}
-
-func (IdentifyResetPasswordUserInvalidInputError) IsIdentifyResetPasswordUserResult() {}
-
-type IdentifyResetPasswordUserNotFoundError struct {
-	Message string `json:"message"`
-}
-
-func (IdentifyResetPasswordUserNotFoundError) IsIdentifyResetPasswordUserResult() {}
-
-type IdentifyResetPasswordUserSuccess struct {
-	User *User `json:"user"`
-}
-
-func (IdentifyResetPasswordUserSuccess) IsIdentifyResetPasswordUserResult() {}
 
 type LoginUserAuthenticationError struct {
 	Message string `json:"message"`
@@ -365,33 +346,84 @@ type RemoveStockResult struct {
 	RemovedRecruitmentID string         `json:"removedRecruitmentId"`
 }
 
+type ResetUserPasswordInput struct {
+	Password             string `json:"password"`
+	PasswordConfirmation string `json:"passwordConfirmation"`
+}
+
+type ResetUserPasswordInvalidInputError struct {
+	Field   ResetUserPasswordInvalidInputField `json:"field"`
+	Message string                             `json:"message"`
+}
+
+type ResetUserPasswordInvalidInputErrors struct {
+	InvalidInputs []*ResetUserPasswordInvalidInputError `json:"invalidInputs"`
+}
+
+func (ResetUserPasswordInvalidInputErrors) IsResetUserPasswordResult() {}
+
+type ResetUserPasswordInvalidTokenError struct {
+	Message string `json:"message"`
+}
+
+func (ResetUserPasswordInvalidTokenError) IsResetUserPasswordResult() {}
+
+type ResetUserPasswordSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (ResetUserPasswordSuccess) IsResetUserPasswordResult() {}
+
 type Room struct {
 	ID     string  `json:"id"`
 	Entrie *Entrie `json:"entrie"`
 }
 
-type SendVerifyNewEmailInput struct {
+type SendResetPasswordEmailToUserInput struct {
 	Email string `json:"email"`
 }
 
-type SendVerifyNewEmailInvalidInputError struct {
-	Message string                              `json:"message"`
-	Field   SendVerifyNewEmailInvalidInputField `json:"field"`
+type SendResetPasswordEmailToUserInvalidInputError struct {
+	Field   SendResetPasswordEmailToUserInvalidInputField `json:"field"`
+	Message string                                        `json:"message"`
 }
 
-func (SendVerifyNewEmailInvalidInputError) IsError() {}
+func (SendResetPasswordEmailToUserInvalidInputError) IsSendResetPasswordEmailToUserResult() {}
 
-type SendVerifyNewEmailInvalidInputErrors struct {
-	InvalidInputs []*SendVerifyNewEmailInvalidInputError `json:"invalidInputs"`
+type SendResetPasswordEmailToUserNotFoundError struct {
+	Message string `json:"message"`
 }
 
-func (SendVerifyNewEmailInvalidInputErrors) IsSendVerifyNewEmailResult() {}
+func (SendResetPasswordEmailToUserNotFoundError) IsSendResetPasswordEmailToUserResult() {}
 
-type SendVerifyNewEmailSuccess struct {
+type SendResetPasswordEmailToUserSuccess struct {
+	IsSentEmail bool `json:"isSentEmail"`
+}
+
+func (SendResetPasswordEmailToUserSuccess) IsSendResetPasswordEmailToUserResult() {}
+
+type SendVerifyNewEmailToUserInput struct {
+	Email string `json:"email"`
+}
+
+type SendVerifyNewEmailToUserInvalidInputError struct {
+	Message string                                    `json:"message"`
+	Field   SendVerifyNewEmailToUserInvalidInputField `json:"field"`
+}
+
+func (SendVerifyNewEmailToUserInvalidInputError) IsError() {}
+
+type SendVerifyNewEmailToUserInvalidInputErrors struct {
+	InvalidInputs []*SendVerifyNewEmailToUserInvalidInputError `json:"invalidInputs"`
+}
+
+func (SendVerifyNewEmailToUserInvalidInputErrors) IsSendVerifyNewEmailToUserResult() {}
+
+type SendVerifyNewEmailToUserSuccess struct {
 	Viewer *Viewer `json:"viewer"`
 }
 
-func (SendVerifyNewEmailSuccess) IsSendVerifyNewEmailResult() {}
+func (SendVerifyNewEmailToUserSuccess) IsSendVerifyNewEmailToUserResult() {}
 
 type Tag struct {
 	ID         string `json:"id"`
@@ -437,42 +469,42 @@ type UpdateRecruitmentSuccess struct {
 
 func (UpdateRecruitmentSuccess) IsUpdateRecruitmentResult() {}
 
-type VerifyEmailAuthenticationError struct {
+type VerifyUserEmailAuthenticationError struct {
 	Message string `json:"message"`
 }
 
-func (VerifyEmailAuthenticationError) IsVerifyEmailResult() {}
-func (VerifyEmailAuthenticationError) IsError()             {}
+func (VerifyUserEmailAuthenticationError) IsVerifyUserEmailResult() {}
+func (VerifyUserEmailAuthenticationError) IsError()                 {}
 
-type VerifyEmailCodeExpiredError struct {
+type VerifyUserEmailCodeExpiredError struct {
 	Message string `json:"message"`
 }
 
-func (VerifyEmailCodeExpiredError) IsVerifyEmailResult() {}
-func (VerifyEmailCodeExpiredError) IsError()             {}
+func (VerifyUserEmailCodeExpiredError) IsVerifyUserEmailResult() {}
+func (VerifyUserEmailCodeExpiredError) IsError()                 {}
 
-type VerifyEmailInput struct {
+type VerifyUserEmailInput struct {
 	Code string `json:"code"`
 }
 
-type VerifyEmailInvalidInputError struct {
-	Message string                       `json:"message"`
-	Field   VerifyEmailInvalidInputField `json:"field"`
+type VerifyUserEmailInvalidInputError struct {
+	Message string                           `json:"message"`
+	Field   VerifyUserEmailInvalidInputField `json:"field"`
 }
 
-func (VerifyEmailInvalidInputError) IsError() {}
+func (VerifyUserEmailInvalidInputError) IsError() {}
 
-type VerifyEmailInvalidInputErrors struct {
-	InvalidInputs []*VerifyEmailInvalidInputError `json:"invalidInputs"`
+type VerifyUserEmailInvalidInputErrors struct {
+	InvalidInputs []*VerifyUserEmailInvalidInputError `json:"invalidInputs"`
 }
 
-func (VerifyEmailInvalidInputErrors) IsVerifyEmailResult() {}
+func (VerifyUserEmailInvalidInputErrors) IsVerifyUserEmailResult() {}
 
-type VerifyEmailSuccess struct {
+type VerifyUserEmailSuccess struct {
 	Viewer *Viewer `json:"viewer"`
 }
 
-func (VerifyEmailSuccess) IsVerifyEmailResult() {}
+func (VerifyUserEmailSuccess) IsVerifyUserEmailResult() {}
 
 type Viewer struct {
 	AccountUser *User `json:"accountUser"`
@@ -525,46 +557,46 @@ func (e ApplyForRecruitmentInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type ChangePasswordInvalidInputField string
+type ChangeUserPasswordInvalidInputField string
 
 const (
-	ChangePasswordInvalidInputFieldCurrentPassword         ChangePasswordInvalidInputField = "CURRENT_PASSWORD"
-	ChangePasswordInvalidInputFieldNewPassword             ChangePasswordInvalidInputField = "NEW_PASSWORD"
-	ChangePasswordInvalidInputFieldNewPasswordConfirmation ChangePasswordInvalidInputField = "NEW_PASSWORD_CONFIRMATION"
+	ChangeUserPasswordInvalidInputFieldCurrentPassword         ChangeUserPasswordInvalidInputField = "CURRENT_PASSWORD"
+	ChangeUserPasswordInvalidInputFieldNewPassword             ChangeUserPasswordInvalidInputField = "NEW_PASSWORD"
+	ChangeUserPasswordInvalidInputFieldNewPasswordConfirmation ChangeUserPasswordInvalidInputField = "NEW_PASSWORD_CONFIRMATION"
 )
 
-var AllChangePasswordInvalidInputField = []ChangePasswordInvalidInputField{
-	ChangePasswordInvalidInputFieldCurrentPassword,
-	ChangePasswordInvalidInputFieldNewPassword,
-	ChangePasswordInvalidInputFieldNewPasswordConfirmation,
+var AllChangeUserPasswordInvalidInputField = []ChangeUserPasswordInvalidInputField{
+	ChangeUserPasswordInvalidInputFieldCurrentPassword,
+	ChangeUserPasswordInvalidInputFieldNewPassword,
+	ChangeUserPasswordInvalidInputFieldNewPasswordConfirmation,
 }
 
-func (e ChangePasswordInvalidInputField) IsValid() bool {
+func (e ChangeUserPasswordInvalidInputField) IsValid() bool {
 	switch e {
-	case ChangePasswordInvalidInputFieldCurrentPassword, ChangePasswordInvalidInputFieldNewPassword, ChangePasswordInvalidInputFieldNewPasswordConfirmation:
+	case ChangeUserPasswordInvalidInputFieldCurrentPassword, ChangeUserPasswordInvalidInputFieldNewPassword, ChangeUserPasswordInvalidInputFieldNewPasswordConfirmation:
 		return true
 	}
 	return false
 }
 
-func (e ChangePasswordInvalidInputField) String() string {
+func (e ChangeUserPasswordInvalidInputField) String() string {
 	return string(e)
 }
 
-func (e *ChangePasswordInvalidInputField) UnmarshalGQL(v interface{}) error {
+func (e *ChangeUserPasswordInvalidInputField) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = ChangePasswordInvalidInputField(str)
+	*e = ChangeUserPasswordInvalidInputField(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid ChangePasswordInvalidInputField", str)
+		return fmt.Errorf("%s is not a valid ChangeUserPasswordInvalidInputField", str)
 	}
 	return nil
 }
 
-func (e ChangePasswordInvalidInputField) MarshalGQL(w io.Writer) {
+func (e ChangeUserPasswordInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -645,45 +677,6 @@ func (e *EmailVerificationStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EmailVerificationStatus) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type IdentifyResetPasswordUserInvalidInputField string
-
-const (
-	IdentifyResetPasswordUserInvalidInputFieldEmail IdentifyResetPasswordUserInvalidInputField = "EMAIL"
-)
-
-var AllIdentifyResetPasswordUserInvalidInputField = []IdentifyResetPasswordUserInvalidInputField{
-	IdentifyResetPasswordUserInvalidInputFieldEmail,
-}
-
-func (e IdentifyResetPasswordUserInvalidInputField) IsValid() bool {
-	switch e {
-	case IdentifyResetPasswordUserInvalidInputFieldEmail:
-		return true
-	}
-	return false
-}
-
-func (e IdentifyResetPasswordUserInvalidInputField) String() string {
-	return string(e)
-}
-
-func (e *IdentifyResetPasswordUserInvalidInputField) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = IdentifyResetPasswordUserInvalidInputField(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid IdentifyResetPasswordUserInvalidInputField", str)
-	}
-	return nil
-}
-
-func (e IdentifyResetPasswordUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -824,6 +817,47 @@ func (e RegisterUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type ResetUserPasswordInvalidInputField string
+
+const (
+	ResetUserPasswordInvalidInputFieldPassword             ResetUserPasswordInvalidInputField = "PASSWORD"
+	ResetUserPasswordInvalidInputFieldPasswordConfirmation ResetUserPasswordInvalidInputField = "PASSWORD_CONFIRMATION"
+)
+
+var AllResetUserPasswordInvalidInputField = []ResetUserPasswordInvalidInputField{
+	ResetUserPasswordInvalidInputFieldPassword,
+	ResetUserPasswordInvalidInputFieldPasswordConfirmation,
+}
+
+func (e ResetUserPasswordInvalidInputField) IsValid() bool {
+	switch e {
+	case ResetUserPasswordInvalidInputFieldPassword, ResetUserPasswordInvalidInputFieldPasswordConfirmation:
+		return true
+	}
+	return false
+}
+
+func (e ResetUserPasswordInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *ResetUserPasswordInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ResetUserPasswordInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ResetUserPasswordInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e ResetUserPasswordInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type Role string
 
 const (
@@ -865,42 +899,81 @@ func (e Role) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type SendVerifyNewEmailInvalidInputField string
+type SendResetPasswordEmailToUserInvalidInputField string
 
 const (
-	SendVerifyNewEmailInvalidInputFieldEmail SendVerifyNewEmailInvalidInputField = "EMAIL"
+	SendResetPasswordEmailToUserInvalidInputFieldEmail SendResetPasswordEmailToUserInvalidInputField = "EMAIL"
 )
 
-var AllSendVerifyNewEmailInvalidInputField = []SendVerifyNewEmailInvalidInputField{
-	SendVerifyNewEmailInvalidInputFieldEmail,
+var AllSendResetPasswordEmailToUserInvalidInputField = []SendResetPasswordEmailToUserInvalidInputField{
+	SendResetPasswordEmailToUserInvalidInputFieldEmail,
 }
 
-func (e SendVerifyNewEmailInvalidInputField) IsValid() bool {
+func (e SendResetPasswordEmailToUserInvalidInputField) IsValid() bool {
 	switch e {
-	case SendVerifyNewEmailInvalidInputFieldEmail:
+	case SendResetPasswordEmailToUserInvalidInputFieldEmail:
 		return true
 	}
 	return false
 }
 
-func (e SendVerifyNewEmailInvalidInputField) String() string {
+func (e SendResetPasswordEmailToUserInvalidInputField) String() string {
 	return string(e)
 }
 
-func (e *SendVerifyNewEmailInvalidInputField) UnmarshalGQL(v interface{}) error {
+func (e *SendResetPasswordEmailToUserInvalidInputField) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = SendVerifyNewEmailInvalidInputField(str)
+	*e = SendResetPasswordEmailToUserInvalidInputField(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid SendVerifyNewEmailInvalidInputField", str)
+		return fmt.Errorf("%s is not a valid SendResetPasswordEmailToUserInvalidInputField", str)
 	}
 	return nil
 }
 
-func (e SendVerifyNewEmailInvalidInputField) MarshalGQL(w io.Writer) {
+func (e SendResetPasswordEmailToUserInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SendVerifyNewEmailToUserInvalidInputField string
+
+const (
+	SendVerifyNewEmailToUserInvalidInputFieldEmail SendVerifyNewEmailToUserInvalidInputField = "EMAIL"
+)
+
+var AllSendVerifyNewEmailToUserInvalidInputField = []SendVerifyNewEmailToUserInvalidInputField{
+	SendVerifyNewEmailToUserInvalidInputFieldEmail,
+}
+
+func (e SendVerifyNewEmailToUserInvalidInputField) IsValid() bool {
+	switch e {
+	case SendVerifyNewEmailToUserInvalidInputFieldEmail:
+		return true
+	}
+	return false
+}
+
+func (e SendVerifyNewEmailToUserInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *SendVerifyNewEmailToUserInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SendVerifyNewEmailToUserInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SendVerifyNewEmailToUserInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e SendVerifyNewEmailToUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -994,41 +1067,41 @@ func (e Type) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type VerifyEmailInvalidInputField string
+type VerifyUserEmailInvalidInputField string
 
 const (
-	VerifyEmailInvalidInputFieldCode VerifyEmailInvalidInputField = "CODE"
+	VerifyUserEmailInvalidInputFieldCode VerifyUserEmailInvalidInputField = "CODE"
 )
 
-var AllVerifyEmailInvalidInputField = []VerifyEmailInvalidInputField{
-	VerifyEmailInvalidInputFieldCode,
+var AllVerifyUserEmailInvalidInputField = []VerifyUserEmailInvalidInputField{
+	VerifyUserEmailInvalidInputFieldCode,
 }
 
-func (e VerifyEmailInvalidInputField) IsValid() bool {
+func (e VerifyUserEmailInvalidInputField) IsValid() bool {
 	switch e {
-	case VerifyEmailInvalidInputFieldCode:
+	case VerifyUserEmailInvalidInputFieldCode:
 		return true
 	}
 	return false
 }
 
-func (e VerifyEmailInvalidInputField) String() string {
+func (e VerifyUserEmailInvalidInputField) String() string {
 	return string(e)
 }
 
-func (e *VerifyEmailInvalidInputField) UnmarshalGQL(v interface{}) error {
+func (e *VerifyUserEmailInvalidInputField) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = VerifyEmailInvalidInputField(str)
+	*e = VerifyUserEmailInvalidInputField(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid VerifyEmailInvalidInputField", str)
+		return fmt.Errorf("%s is not a valid VerifyUserEmailInvalidInputField", str)
 	}
 	return nil
 }
 
-func (e VerifyEmailInvalidInputField) MarshalGQL(w io.Writer) {
+func (e VerifyUserEmailInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
