@@ -38,15 +38,14 @@ extend type Mutation {
   registerUser(input: RegisterUserInput!): RegisterUserResult!
   loginUser(input: LoginUserInput!): LoginUserResult!
   logoutUser: Boolean!
-  sendVerifyEmailToUser: Boolean! @hasLoggedIn
-  sendVerifyNewEmailToUser(
-    input: SendVerifyNewEmailToUserInput!
-  ): SendVerifyNewEmailToUserResult! @hasLoggedIn
+  resendVerificationCodeToUser: Boolean! @hasLoggedIn
+  changeUserEmail(input: ChangeUserEmailInput!): ChangeUserEmailResult!
+    @hasLoggedIn
+  verifyUserEmail(input: VerifyUserEmailInput!): VerifyUserEmailResult!
+    @hasLoggedIn
   changeUserPassword(
     input: ChangeUserPasswordInput!
   ): ChangeUserPasswordResult! @hasLoggedIn
-  verifyUserEmail(input: VerifyUserEmailInput!): VerifyUserEmailResult!
-    @hasLoggedIn
   sendResetPasswordEmailToUser(
     input: SendResetPasswordEmailToUserInput!
   ): SendResetPasswordEmailToUserResult!
@@ -119,30 +118,26 @@ input LoginUserInput {
   password: String!
 }
 
-#* NewEmail
-union SendVerifyNewEmailToUserResult =
-    SendVerifyNewEmailToUserSuccess
-  | SendVerifyNewEmailToUserInvalidInputErrors
+#* ChangeEmail
+union ChangeUserEmailResult =
+    ChangeUserEmailSuccess
+  | ChangeUserEmailInvalidInputError
 
-type SendVerifyNewEmailToUserSuccess {
+type ChangeUserEmailSuccess {
   viewer: Viewer!
 }
 
-type SendVerifyNewEmailToUserInvalidInputErrors {
-  invalidInputs: [SendVerifyNewEmailToUserInvalidInputError!]!
-}
-
-type SendVerifyNewEmailToUserInvalidInputError implements Error {
+type ChangeUserEmailInvalidInputError implements Error {
   message: String!
-  field: SendVerifyNewEmailToUserInvalidInputField!
+  field: ChangeUserEmailInvalidInputField!
 }
 
-enum SendVerifyNewEmailToUserInvalidInputField {
-  EMAIL
+enum ChangeUserEmailInvalidInputField {
+  NEW_EMAIL
 }
 
-input SendVerifyNewEmailToUserInput {
-  email: String!
+input ChangeUserEmailInput {
+  newEmail: String!
 }
 
 #* ChangePassword
@@ -185,7 +180,7 @@ union VerifyUserEmailResult =
     VerifyUserEmailSuccess
   | VerifyUserEmailAuthenticationError
   | VerifyUserEmailCodeExpiredError
-  | VerifyUserEmailInvalidInputErrors
+  | VerifyUserEmailInvalidInputError
 
 type VerifyUserEmailSuccess {
   viewer: Viewer!
@@ -197,10 +192,6 @@ type VerifyUserEmailAuthenticationError implements Error {
 
 type VerifyUserEmailCodeExpiredError implements Error {
   message: String!
-}
-
-type VerifyUserEmailInvalidInputErrors {
-  invalidInputs: [VerifyUserEmailInvalidInputError!]!
 }
 
 type VerifyUserEmailInvalidInputError implements Error {

@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+	"net/http"
 	"net/smtp"
 	"regexp"
 	"strings"
@@ -51,12 +52,18 @@ type ChangePasswordInput struct {
 	NewPasswordConfirmation string
 }
 
+type ChangeEmailInput struct {
+	NewEmail string
+}
+
 type VerifyEmailInput struct {
 	Code string
 }
 
 type ResetPasswordInput struct {
-	Email string
+	Email                string
+	Password             string
+	PasswordConfirmation string
 }
 
 //* アドレスが重複しないかチェック
@@ -144,10 +151,10 @@ func (u User) AuthenticateUserValidate() error {
 }
 
 //* 新規メールアドレス
-func (u User) SendVerifyNewEmailValidate() error {
-	return validation.ValidateStruct(&u,
+func (i ChangeEmailInput) ChangeEmailValidate() error {
+	return validation.ValidateStruct(&i,
 		validation.Field(
-			&u.Email,
+			&i.NewEmail,
 			validation.Required.Error("メールアドレスを入力してください"),
 			validation.RuneLength(1, 100).Error("メールアドレスは100文字以内で入力してください"),
 			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
@@ -193,6 +200,19 @@ func (i ChangePasswordInput) ChangePasswordValidate() error {
 	)
 }
 
+//* パスワードリセット
+func (i ResetPasswordInput) SendResetPasswordEmailValidate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(
+			&i.Email,
+			validation.Required.Error("メールアドレスを入力してください"),
+			validation.RuneLength(1, 100).Error("メールアドレスは100文字以内で入力してください"),
+			validation.Match(regexp.MustCompile(`^[a-zA-Z0-9_+-]+(.[a-zA-Z0-9_+-]+)*@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$`)).
+				Error("メールアドレスを正しく入力してください"),
+		),
+	)
+}
+
 //* ログインユーザー取得
 func GetViewer(ctx context.Context) *model.User {
 	raw, _ := ctx.Value(UserCtxKey).(*model.User)
@@ -227,7 +247,7 @@ func GenerateEmailVerificationCode() (string, error) {
 
 //* パスワードリセットのトークンを生成
 func GeneratePasswordResetToken() (string, error) {
-	b := make([]byte, 16)
+	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return "", err
@@ -292,7 +312,7 @@ func SendVerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (bool, error) {
 }
 
 //* 新しいメールアドレスに認証メール送信
-func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.SendVerifyNewEmailResult, error) {
+func (i *ChangeEmailInput) ChangeEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.ChangeUserEmailResult, error) {
 	cmd := `
 	  UPDATE users
 		SET (email_verification_code, email_verification_code_expires_at, unverified_email) = ($1, $2, $3)
@@ -309,7 +329,7 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		code, codeExpiresAt, u.Email, viewer.DatabaseID,
+		code, codeExpiresAt, i.NewEmail, viewer.DatabaseID,
 	)
 	var user model.User
 	if err := row.Scan(&user.DatabaseID, &user.UnverifiedEmail); err != nil {
@@ -321,12 +341,12 @@ func (u User) SendVerifyNewEmail(ctx context.Context, dbPool *pgxpool.Pool) (mod
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	result := model.SendVerifyNewEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	result := model.ChangeUserEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
 	return result, nil
 }
 
 //* メールアドレス認証
-func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.VerifyEmailResult, error) {
+func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.VerifyUserEmailResult, error) {
 	viewer := GetViewer(ctx)
 	cmd := `
 	  SELECT email_verification_code, email_verification_code_expires_at
@@ -344,7 +364,7 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 	//* codeの有効期限チェック
 	if time.Now().Local().After(codeExpiresAt) {
 		logger.NewLogger().Error("code code expired")
-		result := model.VerifyEmailCodeExpiredError{
+		result := model.VerifyUserEmailCodeExpiredError{
 			Message: "認証コードの有効期限が切れています。認証コードを再取得してください。",
 		}
 		return result, nil
@@ -353,7 +373,7 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 	//* 送られてきたcodeとユーザーのcodeを比較
 	if i.Code != code {
 		logger.NewLogger().Error("Code does not match")
-		result := model.VerifyEmailAuthenticationError{
+		result := model.VerifyUserEmailAuthenticationError{
 			Message: "認証コードに誤りがあります",
 		}
 		return result, nil
@@ -374,12 +394,12 @@ func (i VerifyEmailInput) VerifyEmail(ctx context.Context, dbPool *pgxpool.Pool)
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	result := model.VerifyEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
+	result := model.VerifyUserEmailSuccess{Viewer: &model.Viewer{AccountUser: &user}}
 	return result, nil
 }
 
 //* パスワードを変更
-func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool.Pool) (model.ChangePasswordResult, error) {
+func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool.Pool) (model.ChangeUserPasswordResult, error) {
 	viewer := GetViewer(ctx)
 	cmd := `
 	  SELECT password_digest
@@ -396,7 +416,7 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 	//* 送られてきた現在のパスワードとハッシュ化したパスワードを比較
 	if err := CheckPasswordHash(*passwordDigest, i.CurrentPassword); err != nil {
 		logger.NewLogger().Error(err.Error())
-		result := model.ChangePasswordAuthenticationError{
+		result := model.ChangeUserPasswordAuthenticationError{
 			Message: "現在のパスワードが有効ではありません",
 		}
 		return result, nil
@@ -416,7 +436,7 @@ func (i ChangePasswordInput) ChangePassword(ctx context.Context, dbPool *pgxpool
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	return model.ChangePasswordSuccess{IsChangedPassword: true}, nil
+	return model.ChangeUserPasswordSuccess{IsChangedPassword: true}, nil
 }
 
 //* 外部認証用のユーザー取得
@@ -533,4 +553,99 @@ func (u *User) LoginUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Login
 	}
 	cookie.SetAuthCookie(ctx, token)
 	return result, nil
+}
+
+//* リセットパスワードの送信
+func (i *ResetPasswordInput) SendResetPasswordEmail(ctx context.Context, dbPool *pgxpool.Pool) (model.SendResetPasswordEmailToUserResult, error) {
+	cmd := `
+	  SELECT COUNT(DISTINCT id)
+		FROM users
+		WHERE email = $1
+	`
+	row := dbPool.QueryRow(ctx, cmd, i.Email)
+	var count int
+	if err := row.Scan(&count); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	if count > 0 {
+		cmd := `
+		  UPDATE users
+			SET (password_reset_token, password_reset_token_expires_at, updated_at) = ($1, $2, $3)
+			WHERE email = $4
+		`
+		now := time.Now().Local()
+		expiresAt := now.Add(1 * time.Hour)
+		token, err := GeneratePasswordResetToken()
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		if _, err := dbPool.Exec(ctx, cmd, token, expiresAt, now, i.Email); err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		resetPasswordURL := fmt.Sprintf("http://localhost:8080/password/reset?token=%s", token)
+		if err := SendingEmail(resetPasswordURL, i.Email); err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		result := model.SendResetPasswordEmailToUserSuccess{
+			IsSentEmail: true,
+		}
+		return result, nil
+	} else {
+		result := model.SendResetPasswordEmailToUserNotFoundError{
+			Message: "ユーザーが見つかりませんでした",
+		}
+		return result, nil
+	}
+}
+
+//* パスワードリセットURLのトークンの有効性を確認
+func IsTokenValid(ctx context.Context, dbPool *pgxpool.Pool, token string) (bool, error) {
+	cmd := `
+	  SELECT password_reset_token_expires_at
+		FROM users
+		WHERE password_reset_token = $1
+	`
+	row := dbPool.QueryRow(ctx, cmd, token)
+	var expiresAt time.Time
+	if err := row.Scan(&expiresAt); err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	if time.Now().Local().After(expiresAt) {
+		logger.NewLogger().Error("Token has expired")
+		return false, nil
+	}
+	return true, nil
+}
+
+//* パスワードリセットURLの有効性の確認
+func ConfirmationPasswordResetURL(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	fmt.Println(token)
+	if token == "" {
+		logger.NewLogger().Error("there is no token")
+		http.Error(w, "there is no token", http.StatusBadRequest)
+		return
+	}
+	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
+	ctx := context.Background()
+	isValid, err := IsTokenValid(ctx, dbPool, token)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		http.Error(w, "token is invalid", http.StatusBadRequest)
+		return
+	}
+	if isValid {
+		redirect := fmt.Sprintf("http://localhost:5173/account/password_reset?token=%s", token)
+		http.Redirect(w, r, redirect, http.StatusPermanentRedirect)
+	} else {
+		http.Redirect(w, r, "http://localhost:5173/login", http.StatusPermanentRedirect)
+	}
 }
