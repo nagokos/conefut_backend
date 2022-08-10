@@ -61,9 +61,9 @@ type VerifyEmailInput struct {
 }
 
 type ResetPasswordInput struct {
-	Email                string
-	Password             string
-	PasswordConfirmation string
+	Email                   string
+	NewPassword             string
+	NewPasswordConfirmation string
 }
 
 //* アドレスが重複しないかチェック
@@ -99,7 +99,7 @@ func passwordEqualToThePasswordConfirmation(new string) validation.RuleFunc {
 	return func(value interface{}) error {
 		confirmation, _ := value.(string)
 		if new != confirmation {
-			return errors.New("新規パスワード確認が一致しません")
+			return errors.New("新規パスワードと一致しません")
 		}
 		return nil
 	}
@@ -213,6 +213,24 @@ func (i ResetPasswordInput) SendResetPasswordEmailValidate() error {
 	)
 }
 
+//* パスワードリセット変更
+func (i ResetPasswordInput) ResetPasswordValidate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(
+			&i.NewPassword,
+			validation.Required.Error("新規パスワードを入力してください"),
+			validation.RuneLength(8, 100).Error("新規パスワードは8文字以上で入力してください"),
+			validation.Match(regexp.MustCompile("[a-z]")).Error("新規パスワードを正しく入力してください"),
+			validation.Match(regexp.MustCompile(`\d`)).Error("新規パスワードを正しく入力してください"),
+		),
+		validation.Field(
+			&i.NewPasswordConfirmation,
+			validation.Required.Error("新規パスワード確認を入力してください"),
+			validation.By(passwordEqualToThePasswordConfirmation(i.NewPassword)),
+		),
+	)
+}
+
 //* ログインユーザー取得
 func GetViewer(ctx context.Context) *model.User {
 	raw, _ := ctx.Value(UserCtxKey).(*model.User)
@@ -234,7 +252,7 @@ func CheckPasswordHash(passwordDigest, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(passwordDigest), []byte(password))
 }
 
-//* メール認証のPINを生成
+//* メール認証のCodeを生成
 func GenerateEmailVerificationCode() (string, error) {
 	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	rand.Seed(seed.Int64())
@@ -248,7 +266,7 @@ func GenerateEmailVerificationCode() (string, error) {
 //* パスワードリセットのトークンを生成
 func GeneratePasswordResetToken() (string, error) {
 	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
+	if _, err := crand.Read(b); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return "", err
 	}
@@ -602,7 +620,7 @@ func (i *ResetPasswordInput) SendResetPasswordEmail(ctx context.Context, dbPool 
 	}
 }
 
-//* パスワードリセットURLのトークンの有効性を確認
+//* パスワードリセットトークンの有効性を確認
 func IsTokenValid(ctx context.Context, dbPool *pgxpool.Pool, token string) (bool, error) {
 	cmd := `
 	  SELECT password_reset_token_expires_at
@@ -627,25 +645,71 @@ func IsTokenValid(ctx context.Context, dbPool *pgxpool.Pool, token string) (bool
 //* パスワードリセットURLの有効性の確認
 func ConfirmationPasswordResetURL(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
-	fmt.Println(token)
 	if token == "" {
 		logger.NewLogger().Error("there is no token")
 		http.Error(w, "there is no token", http.StatusBadRequest)
 		return
 	}
+
 	dbPool := db.DatabaseConnection()
 	defer dbPool.Close()
 	ctx := context.Background()
+
 	isValid, err := IsTokenValid(ctx, dbPool, token)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		http.Error(w, "token is invalid", http.StatusBadRequest)
 		return
 	}
+
 	if isValid {
 		redirect := fmt.Sprintf("http://localhost:5173/account/password_reset?token=%s", token)
 		http.Redirect(w, r, redirect, http.StatusPermanentRedirect)
 	} else {
 		http.Redirect(w, r, "http://localhost:5173/login", http.StatusPermanentRedirect)
+	}
+}
+
+func (i *ResetPasswordInput) ResetPassword(ctx context.Context, dbPool *pgxpool.Pool, token string) (model.ResetUserPasswordResult, error) {
+	isValid, err := IsTokenValid(ctx, dbPool, token)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	if isValid {
+		cmd := `
+		  UPDATE users
+			SET (password_digest, password_reset_token, password_reset_token_expires_at, updated_at) = ($1, $2, $3, $4)
+			WHERE password_reset_token = $5
+			RETURNING id, name, email, avatar, email_verification_status, introduction, unverified_email
+		`
+		pwdhash := GeneratePasswordHash(i.NewPassword)
+		now := time.Now().Local()
+		row := dbPool.QueryRow(ctx, cmd, pwdhash, nil, nil, now, token)
+		var user model.User
+		if err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar,
+			&user.EmailVerificationStatus, &user.Introduction, &user.UnverifiedEmail,
+		); err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		result := model.ResetUserPasswordSuccess{
+			Viewer: &model.Viewer{
+				AccountUser: &user,
+			},
+		}
+		jwt, err := jwt.GenerateToken(user.DatabaseID)
+		if err != nil {
+			logger.NewLogger().Error(err.Error())
+			return nil, err
+		}
+		cookie.SetAuthCookie(ctx, jwt)
+		return result, nil
+	} else {
+		logger.NewLogger().Error("invalid token")
+		result := model.ResetUserPasswordInvalidTokenError{
+			Message: "トークンが無効です",
+		}
+		return result, nil
 	}
 }
