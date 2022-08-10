@@ -365,8 +365,8 @@ type RemoveStockResult struct {
 }
 
 type ResetUserPasswordInput struct {
-	Password             string `json:"password"`
-	PasswordConfirmation string `json:"passwordConfirmation"`
+	NewPassword             string `json:"newPassword"`
+	NewPasswordConfirmation string `json:"newPasswordConfirmation"`
 }
 
 type ResetUserPasswordInvalidInputError struct {
@@ -849,18 +849,18 @@ func (e RegisterUserInvalidInputField) MarshalGQL(w io.Writer) {
 type ResetUserPasswordInvalidInputField string
 
 const (
-	ResetUserPasswordInvalidInputFieldPassword             ResetUserPasswordInvalidInputField = "PASSWORD"
-	ResetUserPasswordInvalidInputFieldPasswordConfirmation ResetUserPasswordInvalidInputField = "PASSWORD_CONFIRMATION"
+	ResetUserPasswordInvalidInputFieldNewPassword             ResetUserPasswordInvalidInputField = "NEW_PASSWORD"
+	ResetUserPasswordInvalidInputFieldNewPasswordConfirmation ResetUserPasswordInvalidInputField = "NEW_PASSWORD_CONFIRMATION"
 )
 
 var AllResetUserPasswordInvalidInputField = []ResetUserPasswordInvalidInputField{
-	ResetUserPasswordInvalidInputFieldPassword,
-	ResetUserPasswordInvalidInputFieldPasswordConfirmation,
+	ResetUserPasswordInvalidInputFieldNewPassword,
+	ResetUserPasswordInvalidInputFieldNewPasswordConfirmation,
 }
 
 func (e ResetUserPasswordInvalidInputField) IsValid() bool {
 	switch e {
-	case ResetUserPasswordInvalidInputFieldPassword, ResetUserPasswordInvalidInputFieldPasswordConfirmation:
+	case ResetUserPasswordInvalidInputFieldNewPassword, ResetUserPasswordInvalidInputFieldNewPasswordConfirmation:
 		return true
 	}
 	return false
