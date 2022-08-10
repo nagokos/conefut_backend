@@ -136,6 +136,7 @@ func AuthLineCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbPool := db.DatabaseConnection()
+	defer dbPool.Close()
 	isAuth, err := claims.CheckAuthAlreadyExists(r.Context(), dbPool)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
