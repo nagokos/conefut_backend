@@ -64,6 +64,7 @@ func main() {
 			r.Get("/callback", oauth.AuthLineCallback)
 		})
 	})
+	r.Get("/password/reset", user.ConfirmationPasswordResetURL)
 
 	logger.NewLogger().Sugar().Infof("connect to http://localhost:%d/ for GraphQL playground", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)
