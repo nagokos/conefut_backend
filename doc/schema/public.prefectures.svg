@@ -61,39 +61,39 @@
 <text text-anchor="start" x="407" y="-606.9" font-family="Arial" font-size="14.00" fill="#000000">closing_at </text>
 <text text-anchor="start" x="473.9074" y="-606.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="400,-565.5 400,-595.5 662,-595.5 662,-565.5 400,-565.5"/>
-<text text-anchor="start" x="407" y="-576.9" font-family="Arial" font-size="14.00" fill="#000000">competition_id </text>
-<text text-anchor="start" x="501.1304" y="-576.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="407" y="-576.9" font-family="Arial" font-size="14.00" fill="#000000">prefecture_id </text>
+<text text-anchor="start" x="492.5778" y="-576.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="400,-535.5 400,-565.5 662,-565.5 662,-535.5 400,-535.5"/>
-<text text-anchor="start" x="407" y="-546.9" font-family="Arial" font-size="14.00" fill="#000000">prefecture_id </text>
-<text text-anchor="start" x="492.5778" y="-546.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="407" y="-546.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
+<text text-anchor="start" x="456.7882" y="-546.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="400,-505.5 400,-535.5 662,-535.5 662,-505.5 400,-505.5"/>
-<text text-anchor="start" x="407" y="-516.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
-<text text-anchor="start" x="456.7882" y="-516.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="407" y="-516.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
+<text text-anchor="start" x="477.028" y="-516.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="400,-475.5 400,-505.5 662,-505.5 662,-475.5 400,-475.5"/>
-<text text-anchor="start" x="407" y="-486.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
-<text text-anchor="start" x="477.028" y="-486.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="407" y="-486.9" font-family="Arial" font-size="14.00" fill="#000000">updated_at </text>
+<text text-anchor="start" x="480.9326" y="-486.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="400,-445.5 400,-475.5 662,-475.5 662,-445.5 400,-445.5"/>
-<text text-anchor="start" x="407" y="-456.9" font-family="Arial" font-size="14.00" fill="#000000">updated_at </text>
-<text text-anchor="start" x="480.9326" y="-456.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="407" y="-456.9" font-family="Arial" font-size="14.00" fill="#000000">location_lat </text>
+<text text-anchor="start" x="481.6872" y="-456.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
 <polygon fill="none" stroke="#000000" points="400,-415.5 400,-445.5 662,-445.5 662,-415.5 400,-415.5"/>
-<text text-anchor="start" x="407" y="-426.9" font-family="Arial" font-size="14.00" fill="#000000">location_lat </text>
-<text text-anchor="start" x="481.6872" y="-426.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
+<text text-anchor="start" x="407" y="-426.9" font-family="Arial" font-size="14.00" fill="#000000">location_lng </text>
+<text text-anchor="start" x="485.5792" y="-426.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
 <polygon fill="none" stroke="#000000" points="400,-385.5 400,-415.5 662,-415.5 662,-385.5 400,-385.5"/>
-<text text-anchor="start" x="407" y="-396.9" font-family="Arial" font-size="14.00" fill="#000000">location_lng </text>
-<text text-anchor="start" x="485.5792" y="-396.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
+<text text-anchor="start" x="407" y="-396.9" font-family="Arial" font-size="14.00" fill="#000000">status </text>
+<text text-anchor="start" x="448.237" y="-396.9" font-family="Arial" font-size="14.00" fill="#666666">[recruitment_status]</text>
 <polygon fill="none" stroke="#000000" points="400,-355.5 400,-385.5 662,-385.5 662,-355.5 400,-355.5"/>
-<text text-anchor="start" x="407" y="-366.9" font-family="Arial" font-size="14.00" fill="#000000">status </text>
-<text text-anchor="start" x="448.237" y="-366.9" font-family="Arial" font-size="14.00" fill="#666666">[recruitment_status]</text>
+<text text-anchor="start" x="406.5302" y="-366.9" font-family="Arial" font-size="14.00" fill="#000000">published_at </text>
+<text text-anchor="start" x="489.7854" y="-366.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="400,-325.5 400,-355.5 662,-355.5 662,-325.5 400,-325.5"/>
-<text text-anchor="start" x="406.5302" y="-336.9" font-family="Arial" font-size="14.00" fill="#000000">published_at </text>
-<text text-anchor="start" x="489.7854" y="-336.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="407" y="-336.9" font-family="Arial" font-size="14.00" fill="#000000">sport_id </text>
+<text text-anchor="start" x="460.6788" y="-336.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 </g>
 <!-- public.recruitments&#45;&gt;public.prefectures -->
 <g id="edge1" class="edge">
 <title>public.recruitments:prefecture_id&#45;&gt;public.prefectures:id</title>
-<path fill="none" stroke="#000000" d="M389.9591,-550.0489C283.5377,-540.1582 324.2672,-370.0807 400,-283 475.6879,-195.9709 581.3121,-334.0291 657,-247 685.145,-214.6377 699.8889,-150.5 657,-150.5"/>
-<polygon fill="#000000" stroke="#000000" points="390.0101,-550.0511 399.798,-554.9955 395.005,-550.2755 400,-550.5 400,-550.5 400,-550.5 395.005,-550.2755 400.202,-546.0045 390.0101,-550.0511 390.0101,-550.0511"/>
-<text text-anchor="start" x="6.66" y="-560.5" font-family="Arial" font-size="10.00" fill="#000000">FOREIGN KEY (prefecture_id) REFERENCES prefectures(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="#000000" d="M389.9396,-578.3512C336.4364,-554.0084 358.9885,-330.1568 400,-283 475.6879,-195.9709 581.3121,-334.0291 657,-247 685.145,-214.6377 699.8889,-150.5 657,-150.5"/>
+<polygon fill="#000000" stroke="#000000" points="390.2206,-578.4111 399.06,-584.9007 395.1103,-579.4556 400,-580.5 400,-580.5 400,-580.5 395.1103,-579.4556 400.94,-576.0993 390.2206,-578.4111 390.2206,-578.4111"/>
+<text text-anchor="start" x="6.66" y="-590.5" font-family="Arial" font-size="10.00" fill="#000000">FOREIGN KEY (prefecture_id) REFERENCES prefectures(id) ON DELETE RESTRICT</text>
 </g>
 </g>
 </svg>

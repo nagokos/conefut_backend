@@ -17,18 +17,18 @@ import (
 )
 
 type RecruitmentInput struct {
-	Title         string
-	Type          model.Type
-	Venue         *string
-	StartAt       *time.Time
-	Detail        *string
-	LocationLat   *float64
-	LocationLng   *float64
-	Status        model.Status
-	ClosingAt     *time.Time
-	CompetitionID int
-	PrefectureID  int
-	TagIDs        []int
+	Title        string
+	Type         model.Type
+	Venue        *string
+	StartAt      *time.Time
+	Detail       *string
+	LocationLat  *float64
+	LocationLng  *float64
+	Status       model.Status
+	ClosingAt    *time.Time
+	SportID      int
+	PrefectureID int
+	TagIDs       []int
 }
 
 func checkWithinTheDeadline(start time.Time) validation.RuleFunc {
@@ -81,7 +81,7 @@ func (i RecruitmentInput) RecruitmentValidate() error {
 			validation.RuneLength(1, 60).Error("タイトルは1文字以上60文字以内で入力してください"),
 		),
 		validation.Field(
-			&i.CompetitionID,
+			&i.SportID,
 			validation.When(i.Status == model.StatusPublished,
 				validation.Required.Error("募集競技を選択してください"),
 			),
@@ -141,10 +141,10 @@ func (i RecruitmentInput) RecruitmentValidate() error {
 func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpool.Pool) (model.CreateRecruitmentResult, error) {
 	cmd := `
 	  INSERT INTO recruitments 
-		  (title, competition_id, type, detail, prefecture_id, venue, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
+		  (title, sport_id, type, detail, prefecture_id, venue, start_at, closing_at, location_lat, location_lng, status, user_id, created_at, updated_at, published_at)
 		VALUES
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-		RETURNING id, title, status, created_at, published_at, competition_id, user_id, closing_at, type, prefecture_id
+		RETURNING id, title, status, created_at, published_at, sport_id, user_id, closing_at, type, prefecture_id
 		`
 	timeNow := time.Now().Local()
 	viewer := user.GetViewer(ctx)
@@ -156,13 +156,13 @@ func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpoo
 	}
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		i.Title, i.CompetitionID, strings.ToLower(string(i.Type)), i.Detail, i.PrefectureID, i.Venue, i.StartAt,
+		i.Title, i.SportID, strings.ToLower(string(i.Type)), i.Detail, i.PrefectureID, i.Venue, i.StartAt,
 		i.ClosingAt, i.LocationLat, i.LocationLng, strings.ToLower(string(i.Status)), viewer.DatabaseID, timeNow, timeNow, publishedAt,
 	)
 
 	var recruitment model.Recruitment
 	if err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt, &recruitment.PublishedAt,
-		&recruitment.CompetitionID, &recruitment.UserID, &recruitment.ClosingAt, &recruitment.Type, &recruitment.PrefectureID,
+		&recruitment.SportID, &recruitment.UserID, &recruitment.ClosingAt, &recruitment.Type, &recruitment.PrefectureID,
 	); err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -196,7 +196,7 @@ func (i *RecruitmentInput) CreateRecruitment(ctx context.Context, dbPool *pgxpoo
 func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	cmd := `
 		SELECT id, title, type, status, closing_at, created_at, 
-		       published_at, prefecture_id, competition_id
+		       published_at, prefecture_id, sport_id
 		FROM recruitments 
 		WHERE user_id = $1
 		AND ($2 OR id < $3)
@@ -221,7 +221,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 		var recruitment model.Recruitment
 		err := rows.Scan(
 			&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status, &recruitment.ClosingAt, &recruitment.CreatedAt,
-			&recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.CompetitionID,
+			&recruitment.PublishedAt, &recruitment.PrefectureID, &recruitment.SportID,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
@@ -284,7 +284,7 @@ func GetViewerRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params sea
 func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.Recruitment, error) {
 	cmd := `
 	  SELECT id, title, type, status, detail, start_at, closing_at, venue, location_lat, 
-		       location_lng, user_id, prefecture_id, competition_id, published_at, created_at
+		       location_lng, user_id, prefecture_id, sport_id, published_at, created_at
 		FROM recruitments
 		WHERE id = $1
 	`
@@ -294,7 +294,7 @@ func GetRecruitment(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.R
 	var recruitment model.Recruitment
 	err := row.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 		&recruitment.Detail, &recruitment.StartAt, &recruitment.ClosingAt, &recruitment.Venue, &recruitment.LocationLat, &recruitment.LocationLng,
-		&recruitment.UserID, &recruitment.PrefectureID, &recruitment.CompetitionID, &recruitment.PublishedAt, &recruitment.CreatedAt,
+		&recruitment.UserID, &recruitment.PrefectureID, &recruitment.SportID, &recruitment.PublishedAt, &recruitment.CreatedAt,
 	)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
@@ -351,10 +351,10 @@ func GetAppliedRecruitments(ctx context.Context, dbPool *pgxpool.Pool) ([]*model
 //* 全ての募集を取得
 func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	cmd := `
-		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.start_at, r.published_at, r.prefecture_id, r.user_id, r.competition_id
+		SELECT r.id, r.title, r.type, r.status, r.updated_at, r.closing_at, r.start_at, r.published_at, r.prefecture_id, r.user_id, r.sport_id
 		FROM 
 			(
-				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, competition_id, published_at, start_at
+				SELECT id, title, type, status, updated_at, closing_at, prefecture_id, user_id, sport_id, published_at, start_at
 				FROM recruitments 
 				WHERE status = 'published'
 				AND ($1 OR id < $2)
@@ -380,7 +380,7 @@ func GetRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params search.Se
 		var recruitment model.Recruitment
 		if err := rows.Scan(&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.Status,
 			&recruitment.UpdatedAt, &recruitment.ClosingAt, &recruitment.StartAt, &recruitment.PublishedAt,
-			&recruitment.PrefectureID, &recruitment.UserID, &recruitment.CompetitionID,
+			&recruitment.PrefectureID, &recruitment.UserID, &recruitment.SportID,
 		); err != nil {
 			logger.NewLogger().Error(err.Error())
 		}
@@ -521,7 +521,7 @@ func GetStockedRecruitments(ctx context.Context, dbPool *pgxpool.Pool, params se
 //* ユーザーが作成した募集を取得
 func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, params search.SearchParams) (*model.RecruitmentConnection, error) {
 	cmd := `
-	  SELECT id, title, type, prefecture_id, competition_id, closing_at, start_at
+	  SELECT id, title, type, prefecture_id, sport_id, closing_at, start_at
 		FROM recruitments
 		WHERE status = 'published'
 		AND user_id = $1
@@ -546,7 +546,7 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 		var recruitment model.Recruitment
 		err := rows.Scan(
 			&recruitment.DatabaseID, &recruitment.Title, &recruitment.Type, &recruitment.PrefectureID,
-			&recruitment.CompetitionID, &recruitment.ClosingAt, &recruitment.StartAt,
+			&recruitment.SportID, &recruitment.ClosingAt, &recruitment.StartAt,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())
@@ -601,7 +601,7 @@ func GetUserRecruitments(ctx context.Context, dbPool *pgxpool.Pool, userID int, 
 func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpool.Pool, recruitmentID int) (model.UpdateRecruitmentResult, error) {
 	cmd := `
 	  UPDATE recruitments
-		SET (title, competition_id, type, detail, prefecture_id, venue, 
+		SET (title, sport_id, type, detail, prefecture_id, venue, 
 			  closing_at, start_at, location_lat, location_lng, updated_at, status, published_at) = 
 				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CASE
 																														  WHEN published_at IS NULL 
@@ -611,7 +611,7 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 				)
 		WHERE id = $14
 		AND user_id = $15
-		RETURNING id, title, status, created_at, published_at, competition_id, 
+		RETURNING id, title, status, created_at, published_at, sport_id, 
 		          user_id, closing_at, type, prefecture_id, location_lat, location_lng,
 							venue, detail, start_at
 	`
@@ -627,7 +627,7 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 
 	row := dbPool.QueryRow(
 		ctx, cmd,
-		i.Title, i.CompetitionID, i.Type, i.Detail, i.PrefectureID, i.Venue,
+		i.Title, i.SportID, i.Type, i.Detail, i.PrefectureID, i.Venue,
 		i.ClosingAt, i.StartAt, i.LocationLat, i.LocationLng, time.Now().Local(), strings.ToLower(string(i.Status)),
 		publishedAt, recruitmentID, viewer.DatabaseID,
 	)
@@ -635,7 +635,7 @@ func (i *RecruitmentInput) UpdateRecruitment(ctx context.Context, dbPool *pgxpoo
 	var recruitment model.Recruitment
 	if err := row.Scan(
 		&recruitment.DatabaseID, &recruitment.Title, &recruitment.Status, &recruitment.CreatedAt,
-		&recruitment.PublishedAt, &recruitment.CompetitionID, &recruitment.UserID, &recruitment.ClosingAt,
+		&recruitment.PublishedAt, &recruitment.SportID, &recruitment.UserID, &recruitment.ClosingAt,
 		&recruitment.Type, &recruitment.PrefectureID, &recruitment.LocationLat, &recruitment.LocationLng, &recruitment.Venue, &recruitment.Detail, &recruitment.StartAt,
 	); err != nil {
 		logger.NewLogger().Error(err.Error())

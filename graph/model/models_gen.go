@@ -65,6 +65,10 @@ type UpdateRecruitmentResult interface {
 	IsUpdateRecruitmentResult()
 }
 
+type UpdateUserResult interface {
+	IsUpdateUserResult()
+}
+
 type VerifyUserEmailResult interface {
 	IsVerifyUserEmailResult()
 }
@@ -164,14 +168,6 @@ type ChangeUserPasswordSuccess struct {
 }
 
 func (ChangeUserPasswordSuccess) IsChangeUserPasswordResult() {}
-
-type Competition struct {
-	ID         string `json:"id"`
-	DatabaseID int    `json:"databaseId"`
-	Name       string `json:"name"`
-}
-
-func (Competition) IsNode() {}
 
 type CreateRecruitmentInvalidInputError struct {
 	Field   RecruitmentInvalidInputField `json:"field"`
@@ -320,18 +316,18 @@ type RecruitmentEdge struct {
 func (RecruitmentEdge) IsEdge() {}
 
 type RecruitmentInput struct {
-	Title         string     `json:"title"`
-	CompetitionID string     `json:"competitionId"`
-	Type          Type       `json:"type"`
-	Detail        *string    `json:"detail"`
-	PrefectureID  string     `json:"prefectureId"`
-	Venue         *string    `json:"venue"`
-	StartAt       *time.Time `json:"startAt"`
-	ClosingAt     *time.Time `json:"closingAt"`
-	LocationLat   *float64   `json:"locationLat"`
-	LocationLng   *float64   `json:"locationLng"`
-	Status        Status     `json:"status"`
-	TagIds        []string   `json:"tagIds"`
+	Title        string     `json:"title"`
+	SportID      string     `json:"sportId"`
+	Type         Type       `json:"type"`
+	Detail       *string    `json:"detail"`
+	PrefectureID string     `json:"prefectureId"`
+	Venue        *string    `json:"venue"`
+	StartAt      *time.Time `json:"startAt"`
+	ClosingAt    *time.Time `json:"closingAt"`
+	LocationLat  *float64   `json:"locationLat"`
+	LocationLng  *float64   `json:"locationLng"`
+	Status       Status     `json:"status"`
+	TagIds       []string   `json:"tagIds"`
 }
 
 type RegisterUserInput struct {
@@ -420,6 +416,14 @@ type SendResetPasswordEmailToUserSuccess struct {
 
 func (SendResetPasswordEmailToUserSuccess) IsSendResetPasswordEmailToUserResult() {}
 
+type Sport struct {
+	ID         string `json:"id"`
+	DatabaseID int    `json:"databaseId"`
+	Name       string `json:"name"`
+}
+
+func (Sport) IsNode() {}
+
 type Tag struct {
 	ID         string `json:"id"`
 	DatabaseID int    `json:"databaseId"`
@@ -463,6 +467,28 @@ type UpdateRecruitmentSuccess struct {
 }
 
 func (UpdateRecruitmentSuccess) IsUpdateRecruitmentResult() {}
+
+type UpdateUserInput struct {
+	Name         string `json:"name"`
+	Introduction string `json:"introduction"`
+}
+
+type UpdateUserInvalidInputError struct {
+	Field   UpdateUserInvalidInputField `json:"field"`
+	Message string                      `json:"message"`
+}
+
+type UpdateUserInvalidInputErrors struct {
+	InvalidInputs []*UpdateUserInvalidInputError `json:"invalidInputs"`
+}
+
+func (UpdateUserInvalidInputErrors) IsUpdateUserResult() {}
+
+type UpdateUserSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
+
+func (UpdateUserSuccess) IsUpdateUserResult() {}
 
 type VerifyUserEmailAuthenticationError struct {
 	Message string `json:"message"`
@@ -753,19 +779,19 @@ func (e LoginUserInvalidInputField) MarshalGQL(w io.Writer) {
 type RecruitmentInvalidInputField string
 
 const (
-	RecruitmentInvalidInputFieldTitle         RecruitmentInvalidInputField = "TITLE"
-	RecruitmentInvalidInputFieldCompetitionID RecruitmentInvalidInputField = "COMPETITION_ID"
-	RecruitmentInvalidInputFieldType          RecruitmentInvalidInputField = "TYPE"
-	RecruitmentInvalidInputFieldDetail        RecruitmentInvalidInputField = "DETAIL"
-	RecruitmentInvalidInputFieldPrefectureID  RecruitmentInvalidInputField = "PREFECTURE_ID"
-	RecruitmentInvalidInputFieldVenue         RecruitmentInvalidInputField = "VENUE"
-	RecruitmentInvalidInputFieldStartAt       RecruitmentInvalidInputField = "START_AT"
-	RecruitmentInvalidInputFieldClosingAt     RecruitmentInvalidInputField = "CLOSING_AT"
+	RecruitmentInvalidInputFieldTitle        RecruitmentInvalidInputField = "TITLE"
+	RecruitmentInvalidInputFieldSportID      RecruitmentInvalidInputField = "SPORT_ID"
+	RecruitmentInvalidInputFieldType         RecruitmentInvalidInputField = "TYPE"
+	RecruitmentInvalidInputFieldDetail       RecruitmentInvalidInputField = "DETAIL"
+	RecruitmentInvalidInputFieldPrefectureID RecruitmentInvalidInputField = "PREFECTURE_ID"
+	RecruitmentInvalidInputFieldVenue        RecruitmentInvalidInputField = "VENUE"
+	RecruitmentInvalidInputFieldStartAt      RecruitmentInvalidInputField = "START_AT"
+	RecruitmentInvalidInputFieldClosingAt    RecruitmentInvalidInputField = "CLOSING_AT"
 )
 
 var AllRecruitmentInvalidInputField = []RecruitmentInvalidInputField{
 	RecruitmentInvalidInputFieldTitle,
-	RecruitmentInvalidInputFieldCompetitionID,
+	RecruitmentInvalidInputFieldSportID,
 	RecruitmentInvalidInputFieldType,
 	RecruitmentInvalidInputFieldDetail,
 	RecruitmentInvalidInputFieldPrefectureID,
@@ -776,7 +802,7 @@ var AllRecruitmentInvalidInputField = []RecruitmentInvalidInputField{
 
 func (e RecruitmentInvalidInputField) IsValid() bool {
 	switch e {
-	case RecruitmentInvalidInputFieldTitle, RecruitmentInvalidInputFieldCompetitionID, RecruitmentInvalidInputFieldType, RecruitmentInvalidInputFieldDetail, RecruitmentInvalidInputFieldPrefectureID, RecruitmentInvalidInputFieldVenue, RecruitmentInvalidInputFieldStartAt, RecruitmentInvalidInputFieldClosingAt:
+	case RecruitmentInvalidInputFieldTitle, RecruitmentInvalidInputFieldSportID, RecruitmentInvalidInputFieldType, RecruitmentInvalidInputFieldDetail, RecruitmentInvalidInputFieldPrefectureID, RecruitmentInvalidInputFieldVenue, RecruitmentInvalidInputFieldStartAt, RecruitmentInvalidInputFieldClosingAt:
 		return true
 	}
 	return false
@@ -1054,6 +1080,47 @@ func (e *Type) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Type) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type UpdateUserInvalidInputField string
+
+const (
+	UpdateUserInvalidInputFieldName         UpdateUserInvalidInputField = "NAME"
+	UpdateUserInvalidInputFieldIntroduction UpdateUserInvalidInputField = "INTRODUCTION"
+)
+
+var AllUpdateUserInvalidInputField = []UpdateUserInvalidInputField{
+	UpdateUserInvalidInputFieldName,
+	UpdateUserInvalidInputFieldIntroduction,
+}
+
+func (e UpdateUserInvalidInputField) IsValid() bool {
+	switch e {
+	case UpdateUserInvalidInputFieldName, UpdateUserInvalidInputFieldIntroduction:
+		return true
+	}
+	return false
+}
+
+func (e UpdateUserInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *UpdateUserInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UpdateUserInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UpdateUserInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e UpdateUserInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

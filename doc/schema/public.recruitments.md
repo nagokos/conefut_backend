@@ -13,7 +13,6 @@
 | start_at | timestamp with time zone |  | true |  |  |  |
 | detail | varchar(10000) |  | true |  |  |  |
 | closing_at | timestamp with time zone |  | true |  |  |  |
-| competition_id | bigint |  | false |  | [public.competitions](public.competitions.md) |  |
 | prefecture_id | bigint |  | false |  | [public.prefectures](public.prefectures.md) |  |
 | user_id | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
@@ -22,6 +21,7 @@
 | location_lng | double precision |  | true |  |  |  |
 | status | recruitment_status | 'draft'::recruitment_status | false |  |  |  |
 | published_at | timestamp with time zone |  | true |  |  |  |
+| sport_id | bigint |  | false |  | [public.sports](public.sports.md) |  |
 
 ## Constraints
 
@@ -29,7 +29,7 @@
 | ---- | ---- | ---------- |
 | recruitments_user_id_fkey | FOREIGN KEY | FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE |
 | recruitments_prefecture_id_fkey | FOREIGN KEY | FOREIGN KEY (prefecture_id) REFERENCES prefectures(id) ON DELETE RESTRICT |
-| recruitments_competition_id_fkey | FOREIGN KEY | FOREIGN KEY (competition_id) REFERENCES competitions(id) ON DELETE RESTRICT |
+| recruitments_sport_id_fkey | FOREIGN KEY | FOREIGN KEY (sport_id) REFERENCES sports(id) ON DELETE RESTRICT |
 | recruitments_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 
 ## Indexes
@@ -39,7 +39,7 @@
 | recruitments_pkey | CREATE UNIQUE INDEX recruitments_pkey ON public.recruitments USING btree (id) |
 | recruitments_user_id_idx | CREATE INDEX recruitments_user_id_idx ON public.recruitments USING btree (user_id) |
 | recruitments_prefecture_id_idx | CREATE INDEX recruitments_prefecture_id_idx ON public.recruitments USING btree (prefecture_id) |
-| recruitments_competition_id_idx | CREATE INDEX recruitments_competition_id_idx ON public.recruitments USING btree (competition_id) |
+| recruitments_sport_id_idx | CREATE INDEX recruitments_sport_id_idx ON public.recruitments USING btree (sport_id) |
 
 ## Relations
 

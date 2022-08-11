@@ -13,20 +13,20 @@ import (
 )
 
 type recruitment struct {
-	id            int
-	recType       string
-	title         string
-	detail        string
-	venue         string
-	startAt       time.Time
-	closingAt     time.Time
-	competitionID int
-	prefectureID  int
-	userID        int
-	status        string
-	published_at  time.Time
-	createdAt     time.Time
-	updatedAt     time.Time
+	id           int
+	recType      string
+	title        string
+	detail       string
+	venue        string
+	startAt      time.Time
+	closingAt    time.Time
+	sportID      int
+	prefectureID int
+	userID       int
+	status       string
+	published_at time.Time
+	createdAt    time.Time
+	updatedAt    time.Time
 }
 
 func main() {
@@ -35,11 +35,11 @@ func main() {
 
 	ctx := context.Background()
 
-	cmd := "SELECT id FROM competitions LIMIT 1"
+	cmd := "SELECT id FROM sports LIMIT 1"
 	row := dbPool.QueryRow(ctx, cmd)
 
-	var competitionID int
-	err := row.Scan(&competitionID)
+	var sportID int
+	err := row.Scan(&sportID)
 	if err != nil {
 		logger.NewLogger().Fatal(err.Error())
 	}
@@ -100,19 +100,19 @@ func main() {
 以上、よろしくお願いいたします。`
 
 		recruitment := &recruitment{
-			recType:       "opponent",
-			title:         fmt.Sprintf("対戦相手募集 朝霞中央公園陸上競技場(人工芝) %v", i+1),
-			venue:         "朝霞中央公園陸上競技場",
-			startAt:       time.Now().Add(time.Hour * 240).Local(),
-			closingAt:     time.Now().Add(time.Hour * 230).Local(),
-			competitionID: competitionID,
-			prefectureID:  prefectureID,
-			userID:        userID,
-			status:        "published",
-			createdAt:     time.Now().Local(),
-			updatedAt:     time.Now().Local(),
-			detail:        detail,
-			published_at:  time.Now().Local(),
+			recType:      "opponent",
+			title:        fmt.Sprintf("対戦相手募集 朝霞中央公園陸上競技場(人工芝) %v", i+1),
+			venue:        "朝霞中央公園陸上競技場",
+			startAt:      time.Now().Add(time.Hour * 240).Local(),
+			closingAt:    time.Now().Add(time.Hour * 230).Local(),
+			sportID:      sportID,
+			prefectureID: prefectureID,
+			userID:       userID,
+			status:       "published",
+			createdAt:    time.Now().Local(),
+			updatedAt:    time.Now().Local(),
+			detail:       detail,
+			published_at: time.Now().Local(),
 		}
 		recruitments = append(recruitments, recruitment)
 	}
@@ -125,7 +125,7 @@ func main() {
 
 	cmd = `
 	  INSERT INTO recruitments 
-		  (title, type, venue, start_at, detail, closing_at, competition_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
+		  (title, type, venue, start_at, detail, closing_at, sport_id, prefecture_id, user_id, created_at, updated_at, status, published_at)
 		VALUES 
 		  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		`
@@ -134,7 +134,7 @@ func main() {
 		if _, err := tx.Exec(
 			ctx, cmd,
 			recruitment.title, recruitment.recType, recruitment.venue, recruitment.startAt, recruitment.detail,
-			recruitment.closingAt, recruitment.competitionID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
+			recruitment.closingAt, recruitment.sportID, recruitment.prefectureID, recruitment.userID, recruitment.createdAt, recruitment.updatedAt, recruitment.status, recruitment.published_at,
 		); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}

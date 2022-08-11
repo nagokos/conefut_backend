@@ -23,18 +23,18 @@ import (
 // CreateRecruitment is the resolver for the createRecruitment field.
 func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.RecruitmentInput) (model.CreateRecruitmentResult, error) {
 	i := recruitment.RecruitmentInput{
-		Title:         input.Title,
-		Type:          input.Type,
-		Detail:        input.Detail,
-		StartAt:       input.StartAt,
-		Venue:         input.Venue,
-		LocationLat:   input.LocationLat,
-		LocationLng:   input.LocationLng,
-		Status:        input.Status,
-		ClosingAt:     input.ClosingAt,
-		CompetitionID: utils.DecodeUniqueIDIdentifierOnly(input.CompetitionID),
-		PrefectureID:  utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
-		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
+		Title:        input.Title,
+		Type:         input.Type,
+		Detail:       input.Detail,
+		StartAt:      input.StartAt,
+		Venue:        input.Venue,
+		LocationLat:  input.LocationLat,
+		LocationLng:  input.LocationLng,
+		Status:       input.Status,
+		ClosingAt:    input.ClosingAt,
+		SportID:      utils.DecodeUniqueIDIdentifierOnly(input.SportID),
+		PrefectureID: utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
+		TagIDs:       utils.DecodeUniqueIDs(input.TagIds),
 	}
 
 	if err := i.RecruitmentValidate(); err != nil {
@@ -61,18 +61,18 @@ func (r *mutationResolver) CreateRecruitment(ctx context.Context, input model.Re
 // UpdateRecruitment is the resolver for the updateRecruitment field.
 func (r *mutationResolver) UpdateRecruitment(ctx context.Context, id string, input model.RecruitmentInput) (model.UpdateRecruitmentResult, error) {
 	i := recruitment.RecruitmentInput{
-		Title:         input.Title,
-		Type:          input.Type,
-		Detail:        input.Detail,
-		StartAt:       input.StartAt,
-		Venue:         input.Venue,
-		LocationLat:   input.LocationLat,
-		LocationLng:   input.LocationLng,
-		Status:        input.Status,
-		ClosingAt:     input.ClosingAt,
-		CompetitionID: utils.DecodeUniqueIDIdentifierOnly(input.CompetitionID),
-		PrefectureID:  utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
-		TagIDs:        utils.DecodeUniqueIDs(input.TagIds),
+		Title:        input.Title,
+		Type:         input.Type,
+		Detail:       input.Detail,
+		StartAt:      input.StartAt,
+		Venue:        input.Venue,
+		LocationLat:  input.LocationLat,
+		LocationLng:  input.LocationLng,
+		Status:       input.Status,
+		ClosingAt:    input.ClosingAt,
+		SportID:      utils.DecodeUniqueIDIdentifierOnly(input.SportID),
+		PrefectureID: utils.DecodeUniqueIDIdentifierOnly(input.PrefectureID),
+		TagIDs:       utils.DecodeUniqueIDs(input.TagIds),
 	}
 
 	if err := i.RecruitmentValidate(); err != nil {
@@ -186,14 +186,14 @@ func (r *recruitmentResolver) Status(ctx context.Context, obj *model.Recruitment
 	return model.Status(strings.ToUpper(obj.Status.String())), nil
 }
 
-// Competition is the resolver for the competition field.
-func (r *recruitmentResolver) Competition(ctx context.Context, obj *model.Recruitment) (*model.Competition, error) {
-	competition, err := loader.GetCompetition(ctx, obj.CompetitionID)
+// Sport is the resolver for the sport field.
+func (r *recruitmentResolver) Sport(ctx context.Context, obj *model.Recruitment) (*model.Sport, error) {
+	sport, err := loader.GetSport(ctx, obj.SportID)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
 	}
-	return competition, nil
+	return sport, nil
 }
 
 // Prefecture is the resolver for the prefecture field.

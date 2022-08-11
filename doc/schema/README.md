@@ -5,9 +5,9 @@
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
 | [public.schema_migrations](public.schema_migrations.md) | 2 |  | BASE TABLE |
-| [public.users](public.users.md) | 14 |  | BASE TABLE |
+| [public.users](public.users.md) | 16 |  | BASE TABLE |
 | [public.prefectures](public.prefectures.md) | 4 |  | BASE TABLE |
-| [public.competitions](public.competitions.md) | 4 |  | BASE TABLE |
+| [public.sports](public.sports.md) | 4 |  | BASE TABLE |
 | [public.recruitments](public.recruitments.md) | 16 |  | BASE TABLE |
 | [public.stocks](public.stocks.md) | 5 |  | BASE TABLE |
 | [public.applicants](public.applicants.md) | 6 |  | BASE TABLE |
