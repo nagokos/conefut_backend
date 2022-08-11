@@ -64,32 +64,32 @@
 <text text-anchor="start" x="252" y="-323.9" font-family="Arial" font-size="14.00" fill="#000000">closing_at </text>
 <text text-anchor="start" x="318.9074" y="-323.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="245,-282.5 245,-312.5 507,-312.5 507,-282.5 245,-282.5"/>
-<text text-anchor="start" x="252" y="-293.9" font-family="Arial" font-size="14.00" fill="#000000">competition_id </text>
-<text text-anchor="start" x="346.1304" y="-293.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="252" y="-293.9" font-family="Arial" font-size="14.00" fill="#000000">prefecture_id </text>
+<text text-anchor="start" x="337.5778" y="-293.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="245,-252.5 245,-282.5 507,-282.5 507,-252.5 245,-252.5"/>
-<text text-anchor="start" x="252" y="-263.9" font-family="Arial" font-size="14.00" fill="#000000">prefecture_id </text>
-<text text-anchor="start" x="337.5778" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="252" y="-263.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
+<text text-anchor="start" x="301.7882" y="-263.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="#000000" points="245,-222.5 245,-252.5 507,-252.5 507,-222.5 245,-222.5"/>
-<text text-anchor="start" x="252" y="-233.9" font-family="Arial" font-size="14.00" fill="#000000">user_id </text>
-<text text-anchor="start" x="301.7882" y="-233.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
+<text text-anchor="start" x="252" y="-233.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
+<text text-anchor="start" x="322.028" y="-233.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="245,-192.5 245,-222.5 507,-222.5 507,-192.5 245,-192.5"/>
-<text text-anchor="start" x="252" y="-203.9" font-family="Arial" font-size="14.00" fill="#000000">created_at </text>
-<text text-anchor="start" x="322.028" y="-203.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="252" y="-203.9" font-family="Arial" font-size="14.00" fill="#000000">updated_at </text>
+<text text-anchor="start" x="325.9326" y="-203.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="245,-162.5 245,-192.5 507,-192.5 507,-162.5 245,-162.5"/>
-<text text-anchor="start" x="252" y="-173.9" font-family="Arial" font-size="14.00" fill="#000000">updated_at </text>
-<text text-anchor="start" x="325.9326" y="-173.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="252" y="-173.9" font-family="Arial" font-size="14.00" fill="#000000">location_lat </text>
+<text text-anchor="start" x="326.6872" y="-173.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
 <polygon fill="none" stroke="#000000" points="245,-132.5 245,-162.5 507,-162.5 507,-132.5 245,-132.5"/>
-<text text-anchor="start" x="252" y="-143.9" font-family="Arial" font-size="14.00" fill="#000000">location_lat </text>
-<text text-anchor="start" x="326.6872" y="-143.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
+<text text-anchor="start" x="252" y="-143.9" font-family="Arial" font-size="14.00" fill="#000000">location_lng </text>
+<text text-anchor="start" x="330.5792" y="-143.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
 <polygon fill="none" stroke="#000000" points="245,-102.5 245,-132.5 507,-132.5 507,-102.5 245,-102.5"/>
-<text text-anchor="start" x="252" y="-113.9" font-family="Arial" font-size="14.00" fill="#000000">location_lng </text>
-<text text-anchor="start" x="330.5792" y="-113.9" font-family="Arial" font-size="14.00" fill="#666666">[double precision]</text>
+<text text-anchor="start" x="252" y="-113.9" font-family="Arial" font-size="14.00" fill="#000000">status </text>
+<text text-anchor="start" x="293.237" y="-113.9" font-family="Arial" font-size="14.00" fill="#666666">[recruitment_status]</text>
 <polygon fill="none" stroke="#000000" points="245,-72.5 245,-102.5 507,-102.5 507,-72.5 245,-72.5"/>
-<text text-anchor="start" x="252" y="-83.9" font-family="Arial" font-size="14.00" fill="#000000">status </text>
-<text text-anchor="start" x="293.237" y="-83.9" font-family="Arial" font-size="14.00" fill="#666666">[recruitment_status]</text>
+<text text-anchor="start" x="251.5302" y="-83.9" font-family="Arial" font-size="14.00" fill="#000000">published_at </text>
+<text text-anchor="start" x="334.7854" y="-83.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="#000000" points="245,-42.5 245,-72.5 507,-72.5 507,-42.5 245,-42.5"/>
-<text text-anchor="start" x="251.5302" y="-53.9" font-family="Arial" font-size="14.00" fill="#000000">published_at </text>
-<text text-anchor="start" x="334.7854" y="-53.9" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="252" y="-53.9" font-family="Arial" font-size="14.00" fill="#000000">sport_id </text>
+<text text-anchor="start" x="305.6788" y="-53.9" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 </g>
 <!-- public.recruitment_tags&#45;&gt;public.recruitments -->
 <g id="edge1" class="edge">
