@@ -75,8 +75,8 @@ func InsertPrefectures(ctx context.Context, dbPool *pgxpool.Pool) {
 	logger.NewLogger().Info("create prefectures data!")
 }
 
-func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
-	competitions := []struct {
+func InsertSports(ctx context.Context, dbPool *pgxpool.Pool) {
+	sports := []struct {
 		name string
 	}{
 		{"サッカー"},
@@ -84,16 +84,16 @@ func InsertCompetitions(ctx context.Context, dbPool *pgxpool.Pool) {
 		{"ソサイチ"},
 	}
 
-	cmd := "INSERT INTO competitions (name, created_at, updated_at) VALUES ($1, $2, $3)"
+	cmd := "INSERT INTO sports (name, created_at, updated_at) VALUES ($1, $2, $3)"
 
-	for _, competition := range competitions {
+	for _, sport := range sports {
 		timeNow := time.Now().Local()
-		if _, err := dbPool.Exec(ctx, cmd, competition.name, timeNow, timeNow); err != nil {
+		if _, err := dbPool.Exec(ctx, cmd, sport.name, timeNow, timeNow); err != nil {
 			logger.NewLogger().Fatal(err.Error())
 		}
 	}
 
-	logger.NewLogger().Info("create competitions data!")
+	logger.NewLogger().Info("create sports data!")
 }
 
 func InsertTags(ctx context.Context, dbPool *pgxpool.Pool) {
@@ -131,6 +131,6 @@ func main() {
 	ctx := context.Background()
 
 	InsertPrefectures(ctx, dbPool)
-	InsertCompetitions(ctx, dbPool)
+	InsertSports(ctx, dbPool)
 	InsertTags(ctx, dbPool)
 }

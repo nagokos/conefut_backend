@@ -81,8 +81,8 @@ func GetRoomMessages(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (
 	  	ON r.id = a.recruitment_id 
 		INNER JOIN prefectures as p 
 	  	ON p.id = r.prefecture_id
-		INNER JOIN competitions as c 
-	  	ON c.id = r.competition_id
+		INNER JOIN sports as c 
+	  	ON c.id = r.sport_id
 		WHERE m.room_id = $1
 	`
 
@@ -100,11 +100,11 @@ func GetRoomMessages(ctx context.Context, dbPool *pgxpool.Pool, roomID string) (
 		var applicant model.Applicant
 		var recruitment model.Recruitment
 		var prefecture model.Prefecture
-		var competition model.Competition
+		var sport model.Sport
 
 		err := rows.Scan(
 			&message.Content, &message.CreatedAt, &user.Name, &user.Avatar, &applicant.Message, &recruitment.Title,
-			&recruitment.Type, &recruitment.StartAt, &prefecture.Name, &competition.Name,
+			&recruitment.Type, &recruitment.StartAt, &prefecture.Name, &sport.Name,
 		)
 		if err != nil {
 			logger.NewLogger().Error(err.Error())

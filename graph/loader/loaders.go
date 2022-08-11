@@ -15,22 +15,22 @@ const (
 )
 
 type Loaders struct {
-	UserLoader        *dataloader.Loader
-	PrefectureLoader  *dataloader.Loader
-	CompetitionLoader *dataloader.Loader
-	TagLoader         *dataloader.Loader
+	UserLoader       *dataloader.Loader
+	PrefectureLoader *dataloader.Loader
+	SportLoader      *dataloader.Loader
+	TagLoader        *dataloader.Loader
 }
 
 func NewLoaders(dbPool *pgxpool.Pool) *Loaders {
 	userReader := &UserReader{dbPool: dbPool}
 	prefectureReader := &PrefectureReader{dbPool: dbPool}
-	competitionReader := &CompetitionReader{dbPool: dbPool}
+	sportReader := &SportReader{dbPool: dbPool}
 	TagReader := &TagReader{dbPool: dbPool}
 	loaders := &Loaders{
-		UserLoader:        dataloader.NewBatchedLoader(userReader.GetUsers),
-		PrefectureLoader:  dataloader.NewBatchedLoader(prefectureReader.GetPrefectures),
-		CompetitionLoader: dataloader.NewBatchedLoader(competitionReader.GetCompetitions),
-		TagLoader:         dataloader.NewBatchedLoader(TagReader.GetRecruitmentTags),
+		UserLoader:       dataloader.NewBatchedLoader(userReader.GetUsers),
+		PrefectureLoader: dataloader.NewBatchedLoader(prefectureReader.GetPrefectures),
+		SportLoader:      dataloader.NewBatchedLoader(sportReader.GetSports),
+		TagLoader:        dataloader.NewBatchedLoader(TagReader.GetRecruitmentTags),
 	}
 	return loaders
 }
