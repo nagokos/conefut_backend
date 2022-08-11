@@ -1,0 +1,9 @@
+extend type Query {
+  sports: [Sport!]!
+}
+
+type Sport implements Node {
+  id: ID! @goField(forceResolver: true)
+  databaseId: Int!
+  name: String!
+}
