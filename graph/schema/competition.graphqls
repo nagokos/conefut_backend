@@ -1,9 +1,0 @@
-extend type Query {
-  competitions: [Competition!]!
-}
-
-type Competition implements Node {
-  id: ID! @goField(forceResolver: true)
-  databaseId: Int!
-  name: String!
-}
