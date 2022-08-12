@@ -1,2 +1,2 @@
 ALTER TABLE "users"
-  ALTER COLUMN "introduction" TYPE VARCHAR(200); 
+  ALTER COLUMN "introduction" TYPE VARCHAR(160); 
