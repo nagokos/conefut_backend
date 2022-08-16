@@ -339,6 +339,26 @@ func (r *userResolver) FeedbackFollow(ctx context.Context, obj *model.User) (*mo
 	return feedback, nil
 }
 
+// PlaySports is the resolver for the playSports field.
+func (r *userResolver) PlaySports(ctx context.Context, obj *model.User) ([]*model.Sport, error) {
+	sports, err := sport.GetSportsByUserID(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return sports, nil
+}
+
+// ActivityAreas is the resolver for the activityAreas field.
+func (r *userResolver) ActivityAreas(ctx context.Context, obj *model.User) ([]*model.Prefecture, error) {
+	prefectures, err := prefecture.GetPrefecturesByUserID(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return prefectures, nil
+}
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
