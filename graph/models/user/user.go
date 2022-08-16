@@ -309,12 +309,16 @@ func SendingEmail(content string, to string) error {
 
 //* idからユーザーを取得
 func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, error) {
-	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email FROM users WHERE id = $1"
+	cmd := `
+	  SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email, website_url 
+		FROM users 
+		WHERE id = $1
+	`
 
 	var user model.User
 	row := dbPool.QueryRow(ctx, cmd, id)
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar,
-		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail)
+		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail, &user.WebsiteURL)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
