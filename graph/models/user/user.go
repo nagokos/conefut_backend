@@ -742,3 +742,150 @@ func (i *ResetPasswordInput) ResetPassword(ctx context.Context, dbPool *pgxpool.
 		return result, nil
 	}
 }
+
+//* ユーザー情報更新
+func (u *User) UpdateUser(ctx context.Context, dbPool *pgxpool.Pool) (model.UpdateUserResult, error) {
+	cmd := `
+	  UPDATE users
+		SET (name, introduction, website_url, updated_at) = ($1, $2, $3, $4)
+		WHERE id = $5
+		RETURNING id, name, introduction, website_url
+	`
+	now := time.Now().Local()
+	viewer := GetViewer(ctx)
+	row := dbPool.QueryRow(ctx, cmd, u.Name, u.Introduction, u.WebsiteURL, now, viewer.DatabaseID)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Introduction, &user.WebsiteURL); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	//* 現在の活動エリアを取得
+	currentPrefectures, err := prefecture.GetPrefecturesByUserID(ctx, dbPool, viewer.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	//* 削除する都道府県をを取得
+	var removePrefectures []int
+	for _, currentPrefecture := range currentPrefectures {
+		found := false
+		for _, sentPrefecture := range u.PrefectureIDs {
+			if currentPrefecture.DatabaseID == sentPrefecture {
+				found = true
+			}
+		}
+		if !found {
+			removePrefectures = append(removePrefectures, currentPrefecture.DatabaseID)
+		}
+	}
+	//* 付与する都道府県を取得
+	var addPrefectures []int
+	for _, sentPrefecture := range u.PrefectureIDs {
+		found := false
+		for _, currentPrefecture := range currentPrefectures {
+			if sentPrefecture == currentPrefecture.DatabaseID {
+				found = true
+			}
+		}
+		if !found {
+			addPrefectures = append(addPrefectures, sentPrefecture)
+		}
+	}
+
+	//* 活動エリアのトランザクション開始
+	tx, err := dbPool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//* 活動エリアを付与
+	for _, addPrefecture := range addPrefectures {
+		if err := prefecture.AddUserActivityArea(ctx, tx, viewer.DatabaseID, addPrefecture); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* 活動エリアを削除
+	for _, removePrefecture := range removePrefectures {
+		if err := prefecture.RemoveUserActivieArea(ctx, tx, viewer.DatabaseID, removePrefecture); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* 活動エリアの付与、削除が成功したらコミットする
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	//* 現在のプレイスポーツを取得
+	currentSports, err := sport.GetSportsByUserID(ctx, dbPool, viewer.DatabaseID)
+	if err != nil {
+		return nil, err
+	}
+	//* 削除するスポーツを取得
+	var removeSports []int
+	for _, currentSport := range currentSports {
+		found := false
+		for _, sentSport := range u.SportIDs {
+			if currentSport.DatabaseID == sentSport {
+				found = true
+			}
+		}
+		if !found {
+			removeSports = append(removeSports, currentSport.DatabaseID)
+		}
+	}
+	//* 付与するスポーツを取得
+	var addSports []int
+	for _, sentSport := range u.SportIDs {
+		found := false
+		for _, currentSport := range currentSports {
+			if sentSport == currentSport.DatabaseID {
+				found = true
+			}
+		}
+		if !found {
+			addSports = append(addSports, sentSport)
+		}
+	}
+
+	//* スポーツのトランザクションを開始
+	tx, err = dbPool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	//* スポーツを付与
+	for _, addSport := range addSports {
+		if err := sport.AddUserPlaySport(ctx, tx, viewer.DatabaseID, addSport); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* スポーツを削除
+	for _, removeSport := range removeSports {
+		if err := sport.RemoveUserPlaySport(ctx, tx, viewer.DatabaseID, removeSport); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* スポーツの付与、削除に成功したらコミット
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	result := model.UpdateUserSuccess{
+		Viewer: &model.Viewer{
+			AccountUser: &user,
+		},
+	}
+	return result, nil
+}
