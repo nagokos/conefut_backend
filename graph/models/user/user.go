@@ -17,12 +17,15 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/jwt"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
+	"github.com/nagokos/connefut_backend/graph/models/sport"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
@@ -41,9 +44,13 @@ type contextKey struct {
 
 // todo 各inputに対応したstructに
 type User struct {
-	Name     string
-	Email    string
-	Password string
+	Name          string
+	Email         string
+	Password      string
+	Introduction  string
+	PrefectureIDs []int
+	SportIDs      []int
+	WebsiteURL    string
 }
 
 type ChangePasswordInput struct {
@@ -231,6 +238,24 @@ func (i ResetPasswordInput) ResetPasswordValidate() error {
 	)
 }
 
+func (u User) UpdateUserValidate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(
+			&u.Name,
+			validation.Required.Error("名前を入力してください"),
+			validation.RuneLength(1, 20).Error("名前は50文字以内で入力してください"),
+		),
+		validation.Field(
+			&u.Introduction,
+			validation.RuneLength(0, 160).Error("自己紹介は160文字以内で入力してください"),
+		),
+		validation.Field(
+			&u.WebsiteURL,
+			is.URL.Error("URLの形式が正しくありません"),
+		),
+	)
+}
+
 //* ログインユーザー取得
 func GetViewer(ctx context.Context) *model.User {
 	raw, _ := ctx.Value(UserCtxKey).(*model.User)
@@ -284,12 +309,16 @@ func SendingEmail(content string, to string) error {
 
 //* idからユーザーを取得
 func GetUser(ctx context.Context, dbPool *pgxpool.Pool, id int) (*model.User, error) {
-	cmd := "SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email FROM users WHERE id = $1"
+	cmd := `
+	  SELECT id, name, email, avatar, introduction, email_verification_status, unverified_email, website_url 
+		FROM users 
+		WHERE id = $1
+	`
 
 	var user model.User
 	row := dbPool.QueryRow(ctx, cmd, id)
 	err := row.Scan(&user.DatabaseID, &user.Name, &user.Email, &user.Avatar,
-		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail)
+		&user.Introduction, &user.EmailVerificationStatus, &user.UnverifiedEmail, &user.WebsiteURL)
 	if err != nil {
 		logger.NewLogger().Error(err.Error())
 		return nil, err
@@ -712,4 +741,151 @@ func (i *ResetPasswordInput) ResetPassword(ctx context.Context, dbPool *pgxpool.
 		}
 		return result, nil
 	}
+}
+
+//* ユーザー情報更新
+func (u *User) UpdateUser(ctx context.Context, dbPool *pgxpool.Pool) (model.UpdateUserResult, error) {
+	cmd := `
+	  UPDATE users
+		SET (name, introduction, website_url, updated_at) = ($1, $2, $3, $4)
+		WHERE id = $5
+		RETURNING id, name, introduction, website_url
+	`
+	now := time.Now().Local()
+	viewer := GetViewer(ctx)
+	row := dbPool.QueryRow(ctx, cmd, u.Name, u.Introduction, u.WebsiteURL, now, viewer.DatabaseID)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Name, &user.Introduction, &user.WebsiteURL); err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	//* 現在の活動エリアを取得
+	currentPrefectures, err := prefecture.GetPrefecturesByUserID(ctx, dbPool, viewer.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	//* 削除する都道府県をを取得
+	var removePrefectures []int
+	for _, currentPrefecture := range currentPrefectures {
+		found := false
+		for _, sentPrefecture := range u.PrefectureIDs {
+			if currentPrefecture.DatabaseID == sentPrefecture {
+				found = true
+			}
+		}
+		if !found {
+			removePrefectures = append(removePrefectures, currentPrefecture.DatabaseID)
+		}
+	}
+	//* 付与する都道府県を取得
+	var addPrefectures []int
+	for _, sentPrefecture := range u.PrefectureIDs {
+		found := false
+		for _, currentPrefecture := range currentPrefectures {
+			if sentPrefecture == currentPrefecture.DatabaseID {
+				found = true
+			}
+		}
+		if !found {
+			addPrefectures = append(addPrefectures, sentPrefecture)
+		}
+	}
+
+	//* 活動エリアのトランザクション開始
+	tx, err := dbPool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//* 活動エリアを付与
+	for _, addPrefecture := range addPrefectures {
+		if err := prefecture.AddUserActivityArea(ctx, tx, viewer.DatabaseID, addPrefecture); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* 活動エリアを削除
+	for _, removePrefecture := range removePrefectures {
+		if err := prefecture.RemoveUserActivieArea(ctx, tx, viewer.DatabaseID, removePrefecture); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* 活動エリアの付与、削除が成功したらコミットする
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	//* 現在のプレイスポーツを取得
+	currentSports, err := sport.GetSportsByUserID(ctx, dbPool, viewer.DatabaseID)
+	if err != nil {
+		return nil, err
+	}
+	//* 削除するスポーツを取得
+	var removeSports []int
+	for _, currentSport := range currentSports {
+		found := false
+		for _, sentSport := range u.SportIDs {
+			if currentSport.DatabaseID == sentSport {
+				found = true
+			}
+		}
+		if !found {
+			removeSports = append(removeSports, currentSport.DatabaseID)
+		}
+	}
+	//* 付与するスポーツを取得
+	var addSports []int
+	for _, sentSport := range u.SportIDs {
+		found := false
+		for _, currentSport := range currentSports {
+			if sentSport == currentSport.DatabaseID {
+				found = true
+			}
+		}
+		if !found {
+			addSports = append(addSports, sentSport)
+		}
+	}
+
+	//* スポーツのトランザクションを開始
+	tx, err = dbPool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	//* スポーツを付与
+	for _, addSport := range addSports {
+		if err := sport.AddUserPlaySport(ctx, tx, viewer.DatabaseID, addSport); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* スポーツを削除
+	for _, removeSport := range removeSports {
+		if err := sport.RemoveUserPlaySport(ctx, tx, viewer.DatabaseID, removeSport); err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+	//* スポーツの付与、削除に成功したらコミット
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	result := model.UpdateUserSuccess{
+		Viewer: &model.Viewer{
+			AccountUser: &user,
+		},
+	}
+	return result, nil
 }

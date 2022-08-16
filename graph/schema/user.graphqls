@@ -31,6 +31,9 @@ type User implements Node {
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
   feedbackFollow: FeedbackFollow!
+  playSports: [Sport!]!
+  websiteURL: String
+  activityAreas: [Prefecture!]!
 }
 
 # *** Mutation ***
@@ -53,6 +56,7 @@ extend type Mutation {
     token: String!
     input: ResetUserPasswordInput!
   ): ResetUserPasswordResult!
+  updateUser(input: UpdateUserInput!): UpdateUserResult! @hasLoggedIn
 }
 
 #* Register
@@ -268,4 +272,34 @@ type ResetUserPasswordInvalidTokenError {
 input ResetUserPasswordInput {
   newPassword: String!
   newPasswordConfirmation: String!
+}
+
+#* UpdateUser
+union UpdateUserResult = UpdateUserSuccess | UpdateUserInvalidInputErrors
+
+type UpdateUserSuccess {
+  viewer: Viewer!
+}
+
+type UpdateUserInvalidInputErrors {
+  invalidInputs: [UpdateUserInvalidInputError!]!
+}
+
+type UpdateUserInvalidInputError {
+  field: UpdateUserInvalidInputField!
+  message: String!
+}
+
+enum UpdateUserInvalidInputField {
+  NAME
+  INTRODUCTION
+  WEBSITE_URL
+}
+
+input UpdateUserInput {
+  name: String!
+  introduction: String!
+  sportIds: [ID!]!
+  prefectureIds: [ID!]!
+  websiteURL: String!
 }

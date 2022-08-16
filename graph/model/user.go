@@ -12,4 +12,5 @@ type User struct {
 	Introduction            *string                 `json:"introduction"`
 	Role                    Role                    `json:"role"`
 	EmailVerificationStatus EmailVerificationStatus `json:"emailVerificationStatus"`
+	WebsiteURL              *string                 `json:"websiteURL"`
 }

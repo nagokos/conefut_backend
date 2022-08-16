@@ -12,9 +12,11 @@ import (
 	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/generated"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
 	"github.com/nagokos/connefut_backend/graph/models/recruitment"
 	"github.com/nagokos/connefut_backend/graph/models/relationship"
 	"github.com/nagokos/connefut_backend/graph/models/search"
+	"github.com/nagokos/connefut_backend/graph/models/sport"
 	"github.com/nagokos/connefut_backend/graph/models/user"
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
@@ -31,6 +33,7 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	if err := u.CreateUserValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
+
 		var result model.RegisterUserInvalidInputErrors
 		for k, errMessage := range errs {
 			result.InvalidInputs = append(result.InvalidInputs, &model.RegisterUserInvalidInputError{
@@ -61,6 +64,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserI
 	if err := u.AuthenticateUserValidate(); err != nil {
 		logger.NewLogger().Error(err.Error())
 		errs := err.(validation.Errors)
+
 		var result model.LoginUserInvalidInputErrors
 		for k, errMessage := range errs {
 			result.InvalidInputs = append(result.InvalidInputs, &model.LoginUserInvalidInputError{
@@ -231,6 +235,39 @@ func (r *mutationResolver) ResetUserPassword(ctx context.Context, token string, 
 	return result, nil
 }
 
+// UpdateUser is the resolver for the updateUser field.
+func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUserInput) (model.UpdateUserResult, error) {
+	u := user.User{
+		Name:          input.Name,
+		Introduction:  input.Introduction,
+		PrefectureIDs: utils.DecodeUniqueIDs(input.PrefectureIds),
+		SportIDs:      utils.DecodeUniqueIDs(input.SportIds),
+		WebsiteURL:    input.WebsiteURL,
+	}
+
+	if err := u.UpdateUserValidate(); err != nil {
+		logger.NewLogger().Error(err.Error())
+		errs := err.(validation.Errors)
+
+		var result model.UpdateUserInvalidInputErrors
+		for field, message := range errs {
+			fmt.Println(strings.ToLower(field[:1]) + field[1:])
+			result.InvalidInputs = append(result.InvalidInputs, &model.UpdateUserInvalidInputError{
+				Field:   model.UpdateUserInvalidInputField(strings.ToLower(field[:1]) + field[1:]),
+				Message: message.Error(),
+			})
+		}
+		return result, nil
+	}
+
+	result, err := u.UpdateUser(ctx, r.dbPool)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return result, nil
+}
+
 // Viewer is the resolver for the viewer field.
 func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
 	user := user.GetViewer(ctx)
@@ -300,6 +337,26 @@ func (r *userResolver) FeedbackFollow(ctx context.Context, obj *model.User) (*mo
 		return nil, err
 	}
 	return feedback, nil
+}
+
+// PlaySports is the resolver for the playSports field.
+func (r *userResolver) PlaySports(ctx context.Context, obj *model.User) ([]*model.Sport, error) {
+	sports, err := sport.GetSportsByUserID(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return sports, nil
+}
+
+// ActivityAreas is the resolver for the activityAreas field.
+func (r *userResolver) ActivityAreas(ctx context.Context, obj *model.User) ([]*model.Prefecture, error) {
+	prefectures, err := prefecture.GetPrefecturesByUserID(ctx, r.dbPool, obj.DatabaseID)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return prefectures, nil
 }
 
 // User returns generated.UserResolver implementation.

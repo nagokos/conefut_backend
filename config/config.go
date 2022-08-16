@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -19,7 +18,7 @@ type ConfigList struct {
 var Config ConfigList
 
 func init() {
-	b, err := ioutil.ReadFile("config/config.yml")
+	b, err := os.ReadFile("config/config.yml")
 	if err != nil {
 		log.Printf("Failed to read file: %v", err)
 		os.Exit(1)
