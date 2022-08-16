@@ -238,6 +238,24 @@ func (i ResetPasswordInput) ResetPasswordValidate() error {
 	)
 }
 
+func (u User) UpdateUserValidate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(
+			&u.Name,
+			validation.Required.Error("名前を入力してください"),
+			validation.RuneLength(1, 20).Error("名前は50文字以内で入力してください"),
+		),
+		validation.Field(
+			&u.Introduction,
+			validation.RuneLength(0, 160).Error("自己紹介は160文字以内で入力してください"),
+		),
+		validation.Field(
+			&u.WebsiteURL,
+			is.URL.Error("URLの形式が正しくありません"),
+		),
+	)
+}
+
 //* ログインユーザー取得
 func GetViewer(ctx context.Context) *model.User {
 	raw, _ := ctx.Value(UserCtxKey).(*model.User)
