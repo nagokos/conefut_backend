@@ -402,6 +402,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		ActivityAreas           func(childComplexity int) int
 		Avatar                  func(childComplexity int) int
 		DatabaseID              func(childComplexity int) int
 		Email                   func(childComplexity int) int
@@ -411,9 +412,11 @@ type ComplexityRoot struct {
 		ID                      func(childComplexity int) int
 		Introduction            func(childComplexity int) int
 		Name                    func(childComplexity int) int
+		PlaySports              func(childComplexity int) int
 		Recruitments            func(childComplexity int, first *int, after *string) int
 		Role                    func(childComplexity int) int
 		UnverifiedEmail         func(childComplexity int) int
+		WebsiteURL              func(childComplexity int) int
 	}
 
 	VerifyUserEmailAuthenticationError struct {
@@ -528,6 +531,9 @@ type UserResolver interface {
 	Recruitments(ctx context.Context, obj *model.User, first *int, after *string) (*model.RecruitmentConnection, error)
 	Followings(ctx context.Context, obj *model.User, first *int, after *string) (*model.FollowConnection, error)
 	FeedbackFollow(ctx context.Context, obj *model.User) (*model.FeedbackFollow, error)
+	PlaySports(ctx context.Context, obj *model.User) ([]*model.Sport, error)
+
+	ActivityAreas(ctx context.Context, obj *model.User) ([]*model.Prefecture, error)
 }
 
 type executableSchema struct {
@@ -1789,6 +1795,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UpdateUserSuccess.Viewer(childComplexity), true
 
+	case "User.activityAreas":
+		if e.complexity.User.ActivityAreas == nil {
+			break
+		}
+
+		return e.complexity.User.ActivityAreas(childComplexity), true
+
 	case "User.avatar":
 		if e.complexity.User.Avatar == nil {
 			break
@@ -1857,6 +1870,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
+	case "User.playSports":
+		if e.complexity.User.PlaySports == nil {
+			break
+		}
+
+		return e.complexity.User.PlaySports(childComplexity), true
+
 	case "User.recruitments":
 		if e.complexity.User.Recruitments == nil {
 			break
@@ -1882,6 +1902,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.UnverifiedEmail(childComplexity), true
+
+	case "User.websiteURL":
+		if e.complexity.User.WebsiteURL == nil {
+			break
+		}
+
+		return e.complexity.User.WebsiteURL(childComplexity), true
 
 	case "VerifyUserEmailAuthenticationError.message":
 		if e.complexity.VerifyUserEmailAuthenticationError.Message == nil {
@@ -2436,6 +2463,9 @@ type User implements Node {
   recruitments(first: Int, after: String): RecruitmentConnection
   followings(first: Int, after: String): FollowConnection
   feedbackFollow: FeedbackFollow!
+  playSports: [Sport!]!
+  websiteURL: String
+  activityAreas: [Prefecture!]!
 }
 
 # *** Mutation ***
@@ -2695,11 +2725,15 @@ type UpdateUserInvalidInputError {
 enum UpdateUserInvalidInputField {
   NAME
   INTRODUCTION
+  WEBSITE_URL
 }
 
 input UpdateUserInput {
   name: String!
   introduction: String!
+  sportIds: [ID!]!
+  prefectureIds: [ID!]!
+  websiteURL: String!
 }
 `, BuiltIn: false},
 }
@@ -4804,6 +4838,12 @@ func (ec *executionContext) fieldContext_Entrie_user(ctx context.Context, field 
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -5330,6 +5370,12 @@ func (ec *executionContext) fieldContext_FollowEdge_node(ctx context.Context, fi
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -5868,6 +5914,12 @@ func (ec *executionContext) fieldContext_Message_user(ctx context.Context, field
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7833,6 +7885,12 @@ func (ec *executionContext) fieldContext_Query_getEntrieUser(ctx context.Context
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -8675,6 +8733,12 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9540,6 +9604,12 @@ func (ec *executionContext) fieldContext_Recruitment_user(ctx context.Context, f
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12242,6 +12312,151 @@ func (ec *executionContext) fieldContext_User_feedbackFollow(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _User_playSports(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_playSports(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().PlaySports(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Sport)
+	fc.Result = res
+	return ec.marshalNSport2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐSportᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_playSports(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Sport_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_Sport_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_Sport_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Sport", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_websiteURL(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_websiteURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.WebsiteURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_websiteURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_activityAreas(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_activityAreas(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().ActivityAreas(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Prefecture)
+	fc.Result = res
+	return ec.marshalNPrefecture2ᚕᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐPrefectureᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_activityAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Prefecture_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_Prefecture_databaseId(ctx, field)
+			case "name":
+				return ec.fieldContext_Prefecture_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Prefecture", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _VerifyUserEmailAuthenticationError_message(ctx context.Context, field graphql.CollectedField, obj *model.VerifyUserEmailAuthenticationError) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_VerifyUserEmailAuthenticationError_message(ctx, field)
 	if err != nil {
@@ -12526,6 +12741,12 @@ func (ec *executionContext) fieldContext_Viewer_accountUser(ctx context.Context,
 				return ec.fieldContext_User_followings(ctx, field)
 			case "feedbackFollow":
 				return ec.fieldContext_User_feedbackFollow(ctx, field)
+			case "playSports":
+				return ec.fieldContext_User_playSports(ctx, field)
+			case "websiteURL":
+				return ec.fieldContext_User_websiteURL(ctx, field)
+			case "activityAreas":
+				return ec.fieldContext_User_activityAreas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -14701,7 +14922,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "introduction"}
+	fieldsInOrder := [...]string{"name", "introduction", "sportIds", "prefectureIds", "websiteURL"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14721,6 +14942,30 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("introduction"))
 			it.Introduction, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sportIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sportIds"))
+			it.SportIds, err = ec.unmarshalNID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "prefectureIds":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefectureIds"))
+			it.PrefectureIds, err = ec.unmarshalNID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "websiteURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("websiteURL"))
+			it.WebsiteURL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -18441,6 +18686,50 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_feedbackFollow(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "playSports":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_playSports(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "websiteURL":
+
+			out.Values[i] = ec._User_websiteURL(ctx, field, obj)
+
+		case "activityAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_activityAreas(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -469,8 +469,11 @@ type UpdateRecruitmentSuccess struct {
 func (UpdateRecruitmentSuccess) IsUpdateRecruitmentResult() {}
 
 type UpdateUserInput struct {
-	Name         string `json:"name"`
-	Introduction string `json:"introduction"`
+	Name          string   `json:"name"`
+	Introduction  string   `json:"introduction"`
+	SportIds      []string `json:"sportIds"`
+	PrefectureIds []string `json:"prefectureIds"`
+	WebsiteURL    string   `json:"websiteURL"`
 }
 
 type UpdateUserInvalidInputError struct {
@@ -1088,16 +1091,18 @@ type UpdateUserInvalidInputField string
 const (
 	UpdateUserInvalidInputFieldName         UpdateUserInvalidInputField = "NAME"
 	UpdateUserInvalidInputFieldIntroduction UpdateUserInvalidInputField = "INTRODUCTION"
+	UpdateUserInvalidInputFieldWebsiteURL   UpdateUserInvalidInputField = "WEBSITE_URL"
 )
 
 var AllUpdateUserInvalidInputField = []UpdateUserInvalidInputField{
 	UpdateUserInvalidInputFieldName,
 	UpdateUserInvalidInputFieldIntroduction,
+	UpdateUserInvalidInputFieldWebsiteURL,
 }
 
 func (e UpdateUserInvalidInputField) IsValid() bool {
 	switch e {
-	case UpdateUserInvalidInputFieldName, UpdateUserInvalidInputFieldIntroduction:
+	case UpdateUserInvalidInputFieldName, UpdateUserInvalidInputFieldIntroduction, UpdateUserInvalidInputFieldWebsiteURL:
 		return true
 	}
 	return false
