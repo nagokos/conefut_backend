@@ -17,12 +17,15 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/jwt"
 	"github.com/nagokos/connefut_backend/graph/model"
+	"github.com/nagokos/connefut_backend/graph/models/prefecture"
+	"github.com/nagokos/connefut_backend/graph/models/sport"
 	"github.com/nagokos/connefut_backend/logger"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/encoding/japanese"
@@ -41,9 +44,13 @@ type contextKey struct {
 
 // todo 各inputに対応したstructに
 type User struct {
-	Name     string
-	Email    string
-	Password string
+	Name          string
+	Email         string
+	Password      string
+	Introduction  string
+	PrefectureIDs []int
+	SportIDs      []int
+	WebsiteURL    string
 }
 
 type ChangePasswordInput struct {
