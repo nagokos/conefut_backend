@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/nagokos/connefut_backend/db"
 	"github.com/nagokos/connefut_backend/graph/auth"
 	"github.com/nagokos/connefut_backend/graph/cookie"
+	"github.com/nagokos/connefut_backend/graph/gcp/gcs"
 	"github.com/nagokos/connefut_backend/graph/loader"
 	"github.com/nagokos/connefut_backend/graph/models/oauth"
 	"github.com/nagokos/connefut_backend/graph/models/user"
@@ -32,10 +34,15 @@ func init() {
 
 func main() {
 	var err error
+	ctx := context.Background()
 
 	port := config.Config.Port
 
 	dbPool := db.DatabaseConnection()
+	gcsClient, err := gcs.NewGcsClient(ctx)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+	}
 	defer dbPool.Close()
 
 	r := chi.NewRouter()
@@ -51,7 +58,7 @@ func main() {
 	r.Use(cookie.MiddleWare())
 
 	loaders := loader.NewLoaders(dbPool)
-	srv := handler.NewDefaultServer(resolvers.NewSchema(dbPool))
+	srv := handler.NewDefaultServer(resolvers.NewSchema(dbPool, gcsClient))
 
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", loader.Middleware(loaders, srv))
