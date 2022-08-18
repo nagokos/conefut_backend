@@ -26,9 +26,11 @@ services:
       - 8080:8080
     volumes:
       - .:/go/src/app
+      - ~/.config/gcloud/application_default_credentials.json:/var/application_default_credentials.json
     environment:
       TZ: 'Asia/Tokyo'
       GO_ENV: 'develop'
+      GOOGLE_APPLICATION_CREDENTIALS: '/var/application_default_credentials.json'
     tty: true
     links:
       - mailhog
