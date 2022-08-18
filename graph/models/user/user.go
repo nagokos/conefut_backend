@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -16,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
+	"github.com/99designs/gqlgen/graphql"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/jackc/pgx/v4"
@@ -32,8 +35,10 @@ import (
 	"golang.org/x/text/transform"
 )
 
-var (
-	host = "mailhog:1025"
+const (
+	host             = "mailhog:1025"
+	avatarBucket     = "connefut-user-upload"
+	avatarObjectPath = "avatar/"
 )
 
 var UserCtxKey = &contextKey{name: "secret"}
@@ -48,6 +53,7 @@ type User struct {
 	Email         string
 	Password      string
 	Introduction  string
+	Avatar        graphql.Upload
 	PrefectureIDs []int
 	SportIDs      []int
 	WebsiteURL    string
@@ -888,4 +894,48 @@ func (u *User) UpdateUser(ctx context.Context, dbPool *pgxpool.Pool) (model.Upda
 		},
 	}
 	return result, nil
+}
+
+//* ユーザーアバターアップロード
+func (u *User) UploadUserAvatar(ctx context.Context, dbPool *pgxpool.Pool, gcsClient *storage.Client) (model.UploadUserAvatarResult, error) {
+	viewer := GetViewer(ctx)
+	// todo 別パッケージにアップロード系は切り出す
+	encodeObject := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d:%s", viewer.DatabaseID, u.Avatar.Filename)))
+	extension := strings.Split(u.Avatar.Filename, ".")[5]
+	object := fmt.Sprintf("%s.%s", encodeObject, extension)
+
+	writer := gcsClient.Bucket(avatarBucket).Object(avatarObjectPath + object).NewWriter(ctx)
+	if _, err := io.Copy(writer, u.Avatar.File); err != nil {
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	cmd := `
+	UPDATE users
+	SET (avatar, updated_at) = ($1, $2)
+	WHERE id = $3
+	RETURNING id, avatar
+	`
+	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s%s/%s", avatarBucket, writer.Bucket, writer.Name)
+	now := time.Now().Local()
+	row := dbPool.QueryRow(ctx, cmd, publicURL, now, viewer.DatabaseID)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Avatar); err != nil {
+		return nil, err
+	}
+
+	if publicURL != viewer.Avatar {
+		deleteObject := viewer.Avatar[strings.Index(viewer.Avatar, avatarObjectPath):]
+		o := gcsClient.Bucket(avatarBucket).Object(deleteObject)
+		exists, _ := o.Attrs(ctx)
+		if exists != nil {
+			if err := o.Delete(ctx); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &model.UploadUserAvatarSuccess{Viewer: &model.Viewer{AccountUser: &user}}, nil
 }

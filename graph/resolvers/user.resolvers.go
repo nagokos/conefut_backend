@@ -268,6 +268,19 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUse
 	return result, nil
 }
 
+// UploadUserAvatar is the resolver for the uploadUserAvatar field.
+func (r *mutationResolver) UploadUserAvatar(ctx context.Context, input model.UploadUserAvatarInput) (model.UploadUserAvatarResult, error) {
+	u := user.User{
+		Avatar: input.File,
+	}
+	result, err := u.UploadUserAvatar(ctx, r.dbPool, r.gcsClient)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+	return result, nil
+}
+
 // Viewer is the resolver for the viewer field.
 func (r *queryResolver) Viewer(ctx context.Context) (*model.Viewer, error) {
 	user := user.GetViewer(ctx)
@@ -363,3 +376,11 @@ func (r *userResolver) ActivityAreas(ctx context.Context, obj *model.User) ([]*m
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type userResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+const ()
