@@ -5,9 +5,13 @@ package resolvers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"strings"
+	"time"
 
+	"cloud.google.com/go/storage"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/nagokos/connefut_backend/graph/cookie"
 	"github.com/nagokos/connefut_backend/graph/generated"
@@ -21,6 +25,8 @@ import (
 	"github.com/nagokos/connefut_backend/graph/utils"
 	"github.com/nagokos/connefut_backend/logger"
 )
+
+const ()
 
 // RegisterUser is the resolver for the registerUser field.
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterUserInput) (model.RegisterUserResult, error) {
@@ -266,6 +272,55 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUse
 		return nil, err
 	}
 	return result, nil
+}
+
+// UploadUserAvatar is the resolver for the uploadUserAvatar field.
+func (r *mutationResolver) UploadUserAvatar(ctx context.Context, input model.UploadUserAvatarInput) (*model.UploadUserAvatarSuccess, error) {
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		logger.NewLogger().Error(err.Error())
+		return nil, err
+	}
+
+	viewer := user.GetViewer(ctx)
+	bucketName := "connefut-user-upload"
+	objectPath := "avatar/"
+	objectName := fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d:%s", viewer.DatabaseID, input.File.Filename))), strings.Split(input.File.Filename, ".")[1])
+	writer := client.Bucket(bucketName).Object(objectPath + objectName).NewWriter(ctx)
+	if _, err := io.Copy(writer, input.File.File); err != nil {
+		panic(err)
+	}
+
+	cmd := `
+	  UPDATE users
+		SET (avatar, updated_at) = ($1, $2)
+		WHERE id = $3
+		RETURNING id, avatar
+	`
+	publicPath := fmt.Sprintf("https://storage.googleapis.com/%s%s/%s", bucketName, writer.Bucket, writer.Name)
+	now := time.Now().Local()
+	row := r.dbPool.QueryRow(ctx, cmd, publicPath, now, viewer.DatabaseID)
+	var user model.User
+	if err := row.Scan(&user.DatabaseID, &user.Avatar); err != nil {
+		return nil, err
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	if publicPath != viewer.Avatar {
+		o := client.Bucket(bucketName).Object(viewer.Avatar[strings.Index(viewer.Avatar, objectPath):])
+		exists, _ := o.Attrs(ctx)
+		if exists != nil {
+			if err := o.Delete(ctx); err != nil {
+				logger.NewLogger().Error(err.Error())
+				return nil, err
+			}
+		}
+	}
+
+	return &model.UploadUserAvatarSuccess{Viewer: &model.Viewer{AccountUser: &user}}, nil
 }
 
 // Viewer is the resolver for the viewer field.
