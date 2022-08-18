@@ -57,6 +57,7 @@ extend type Mutation {
     input: ResetUserPasswordInput!
   ): ResetUserPasswordResult!
   updateUser(input: UpdateUserInput!): UpdateUserResult! @hasLoggedIn
+  uploadUserAvatar(input: UploadUserAvatarInput!): UploadUserAvatarSuccess!
 }
 
 #* Register
@@ -302,4 +303,13 @@ input UpdateUserInput {
   sportIds: [ID!]!
   prefectureIds: [ID!]!
   websiteURL: String!
+}
+
+#* UploadAvatar
+type UploadUserAvatarSuccess {
+  viewer: Viewer!
+}
+
+input UploadUserAvatarInput {
+  file: Upload!
 }
