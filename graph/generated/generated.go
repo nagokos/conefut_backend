@@ -402,6 +402,11 @@ type ComplexityRoot struct {
 		Viewer func(childComplexity int) int
 	}
 
+	UploadUserAvatarInvalidInputError struct {
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
 	UploadUserAvatarSuccess struct {
 		Viewer func(childComplexity int) int
 	}
@@ -479,7 +484,7 @@ type MutationResolver interface {
 	SendResetPasswordEmailToUser(ctx context.Context, input model.SendResetPasswordEmailToUserInput) (model.SendResetPasswordEmailToUserResult, error)
 	ResetUserPassword(ctx context.Context, token string, input model.ResetUserPasswordInput) (model.ResetUserPasswordResult, error)
 	UpdateUser(ctx context.Context, input model.UpdateUserInput) (model.UpdateUserResult, error)
-	UploadUserAvatar(ctx context.Context, input model.UploadUserAvatarInput) (*model.UploadUserAvatarSuccess, error)
+	UploadUserAvatar(ctx context.Context, input model.UploadUserAvatarInput) (model.UploadUserAvatarResult, error)
 }
 type PrefectureResolver interface {
 	ID(ctx context.Context, obj *model.Prefecture) (string, error)
@@ -1813,6 +1818,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UpdateUserSuccess.Viewer(childComplexity), true
 
+	case "UploadUserAvatarInvalidInputError.field":
+		if e.complexity.UploadUserAvatarInvalidInputError.Field == nil {
+			break
+		}
+
+		return e.complexity.UploadUserAvatarInvalidInputError.Field(childComplexity), true
+
+	case "UploadUserAvatarInvalidInputError.message":
+		if e.complexity.UploadUserAvatarInvalidInputError.Message == nil {
+			break
+		}
+
+		return e.complexity.UploadUserAvatarInvalidInputError.Message(childComplexity), true
+
 	case "UploadUserAvatarSuccess.viewer":
 		if e.complexity.UploadUserAvatarSuccess.Viewer == nil {
 			break
@@ -2516,7 +2535,7 @@ extend type Mutation {
     input: ResetUserPasswordInput!
   ): ResetUserPasswordResult!
   updateUser(input: UpdateUserInput!): UpdateUserResult! @hasLoggedIn
-  uploadUserAvatar(input: UploadUserAvatarInput!): UploadUserAvatarSuccess!
+  uploadUserAvatar(input: UploadUserAvatarInput!): UploadUserAvatarResult!
 }
 
 #* Register
@@ -2765,8 +2784,21 @@ input UpdateUserInput {
 }
 
 #* UploadAvatar
+union UploadUserAvatarResult =
+    UploadUserAvatarSuccess
+  | UploadUserAvatarInvalidInputError
+
 type UploadUserAvatarSuccess {
   viewer: Viewer!
+}
+
+type UploadUserAvatarInvalidInputError {
+  field: UploadUserAvatarInvalidInputField!
+  message: String!
+}
+
+enum UploadUserAvatarInvalidInputField {
+  FILE
 }
 
 input UploadUserAvatarInput {
@@ -7496,9 +7528,9 @@ func (ec *executionContext) _Mutation_uploadUserAvatar(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.UploadUserAvatarSuccess)
+	res := resTmp.(model.UploadUserAvatarResult)
 	fc.Result = res
-	return ec.marshalNUploadUserAvatarSuccess2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx, field.Selections, res)
+	return ec.marshalNUploadUserAvatarResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarResult(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_uploadUserAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7508,11 +7540,7 @@ func (ec *executionContext) fieldContext_Mutation_uploadUserAvatar(ctx context.C
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "viewer":
-				return ec.fieldContext_UploadUserAvatarSuccess_viewer(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type UploadUserAvatarSuccess", field.Name)
+			return nil, errors.New("field of type UploadUserAvatarResult does not have child fields")
 		},
 	}
 	defer func() {
@@ -11865,6 +11893,94 @@ func (ec *executionContext) fieldContext_UpdateUserSuccess_viewer(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _UploadUserAvatarInvalidInputError_field(ctx context.Context, field graphql.CollectedField, obj *model.UploadUserAvatarInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UploadUserAvatarInvalidInputError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.UploadUserAvatarInvalidInputField)
+	fc.Result = res
+	return ec.marshalNUploadUserAvatarInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarInvalidInputField(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UploadUserAvatarInvalidInputError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadUserAvatarInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UploadUserAvatarInvalidInputField does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadUserAvatarInvalidInputError_message(ctx context.Context, field graphql.CollectedField, obj *model.UploadUserAvatarInvalidInputError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UploadUserAvatarInvalidInputError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UploadUserAvatarInvalidInputError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadUserAvatarInvalidInputError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _UploadUserAvatarSuccess_viewer(ctx context.Context, field graphql.CollectedField, obj *model.UploadUserAvatarSuccess) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_UploadUserAvatarSuccess_viewer(ctx, field)
 	if err != nil {
@@ -15777,6 +15893,29 @@ func (ec *executionContext) _UpdateUserResult(ctx context.Context, sel ast.Selec
 	}
 }
 
+func (ec *executionContext) _UploadUserAvatarResult(ctx context.Context, sel ast.SelectionSet, obj model.UploadUserAvatarResult) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.UploadUserAvatarSuccess:
+		return ec._UploadUserAvatarSuccess(ctx, sel, &obj)
+	case *model.UploadUserAvatarSuccess:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UploadUserAvatarSuccess(ctx, sel, obj)
+	case model.UploadUserAvatarInvalidInputError:
+		return ec._UploadUserAvatarInvalidInputError(ctx, sel, &obj)
+	case *model.UploadUserAvatarInvalidInputError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UploadUserAvatarInvalidInputError(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _VerifyUserEmailResult(ctx context.Context, sel ast.SelectionSet, obj model.VerifyUserEmailResult) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -18745,7 +18884,42 @@ func (ec *executionContext) _UpdateUserSuccess(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var uploadUserAvatarSuccessImplementors = []string{"UploadUserAvatarSuccess"}
+var uploadUserAvatarInvalidInputErrorImplementors = []string{"UploadUserAvatarInvalidInputError", "UploadUserAvatarResult"}
+
+func (ec *executionContext) _UploadUserAvatarInvalidInputError(ctx context.Context, sel ast.SelectionSet, obj *model.UploadUserAvatarInvalidInputError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uploadUserAvatarInvalidInputErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UploadUserAvatarInvalidInputError")
+		case "field":
+
+			out.Values[i] = ec._UploadUserAvatarInvalidInputError_field(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "message":
+
+			out.Values[i] = ec._UploadUserAvatarInvalidInputError_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var uploadUserAvatarSuccessImplementors = []string{"UploadUserAvatarSuccess", "UploadUserAvatarResult"}
 
 func (ec *executionContext) _UploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.UploadUserAvatarSuccess) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, uploadUserAvatarSuccessImplementors)
@@ -21011,18 +21185,24 @@ func (ec *executionContext) unmarshalNUploadUserAvatarInput2githubᚗcomᚋnagok
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUploadUserAvatarSuccess2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, v model.UploadUserAvatarSuccess) graphql.Marshaler {
-	return ec._UploadUserAvatarSuccess(ctx, sel, &v)
+func (ec *executionContext) unmarshalNUploadUserAvatarInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarInvalidInputField(ctx context.Context, v interface{}) (model.UploadUserAvatarInvalidInputField, error) {
+	var res model.UploadUserAvatarInvalidInputField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUploadUserAvatarSuccess2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, v *model.UploadUserAvatarSuccess) graphql.Marshaler {
+func (ec *executionContext) marshalNUploadUserAvatarInvalidInputField2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarInvalidInputField(ctx context.Context, sel ast.SelectionSet, v model.UploadUserAvatarInvalidInputField) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNUploadUserAvatarResult2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarResult(ctx context.Context, sel ast.SelectionSet, v model.UploadUserAvatarResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._UploadUserAvatarSuccess(ctx, sel, v)
+	return ec._UploadUserAvatarResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {

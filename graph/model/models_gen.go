@@ -71,6 +71,10 @@ type UpdateUserResult interface {
 	IsUpdateUserResult()
 }
 
+type UploadUserAvatarResult interface {
+	IsUploadUserAvatarResult()
+}
+
 type VerifyUserEmailResult interface {
 	IsVerifyUserEmailResult()
 }
@@ -499,9 +503,18 @@ type UploadUserAvatarInput struct {
 	File graphql.Upload `json:"file"`
 }
 
+type UploadUserAvatarInvalidInputError struct {
+	Field   UploadUserAvatarInvalidInputField `json:"field"`
+	Message string                            `json:"message"`
+}
+
+func (UploadUserAvatarInvalidInputError) IsUploadUserAvatarResult() {}
+
 type UploadUserAvatarSuccess struct {
 	Viewer *Viewer `json:"viewer"`
 }
+
+func (UploadUserAvatarSuccess) IsUploadUserAvatarResult() {}
 
 type VerifyUserEmailAuthenticationError struct {
 	Message string `json:"message"`
@@ -1136,6 +1149,45 @@ func (e *UpdateUserInvalidInputField) UnmarshalGQL(v interface{}) error {
 }
 
 func (e UpdateUserInvalidInputField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type UploadUserAvatarInvalidInputField string
+
+const (
+	UploadUserAvatarInvalidInputFieldFile UploadUserAvatarInvalidInputField = "FILE"
+)
+
+var AllUploadUserAvatarInvalidInputField = []UploadUserAvatarInvalidInputField{
+	UploadUserAvatarInvalidInputFieldFile,
+}
+
+func (e UploadUserAvatarInvalidInputField) IsValid() bool {
+	switch e {
+	case UploadUserAvatarInvalidInputFieldFile:
+		return true
+	}
+	return false
+}
+
+func (e UploadUserAvatarInvalidInputField) String() string {
+	return string(e)
+}
+
+func (e *UploadUserAvatarInvalidInputField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UploadUserAvatarInvalidInputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UploadUserAvatarInvalidInputField", str)
+	}
+	return nil
+}
+
+func (e UploadUserAvatarInvalidInputField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
