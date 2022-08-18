@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"cloud.google.com/go/storage"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nagokos/connefut_backend/graph/generated"
@@ -20,12 +21,13 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	dbPool *pgxpool.Pool
+	dbPool    *pgxpool.Pool
+	gcsClient *storage.Client
 }
 
-func NewSchema(dbPool *pgxpool.Pool) graphql.ExecutableSchema {
+func NewSchema(dbPool *pgxpool.Pool, gcsClient *storage.Client) graphql.ExecutableSchema {
 	return generated.NewExecutableSchema(generated.Config{
-		Resolvers: &Resolver{dbPool: dbPool},
+		Resolvers: &Resolver{dbPool: dbPool, gcsClient: gcsClient},
 		Directives: generated.DirectiveRoot{
 			HasLoggedIn: func(ctx context.Context, _ interface{}, next graphql.Resolver) (res interface{}, err error) {
 				viewer := user.GetViewer(ctx)
