@@ -229,6 +229,7 @@ type ComplexityRoot struct {
 		UnFollow                     func(childComplexity int, userID string) int
 		UpdateRecruitment            func(childComplexity int, id string, input model.RecruitmentInput) int
 		UpdateUser                   func(childComplexity int, input model.UpdateUserInput) int
+		UploadUserAvatar             func(childComplexity int, input model.UploadUserAvatarInput) int
 		VerifyUserEmail              func(childComplexity int, input model.VerifyUserEmailInput) int
 	}
 
@@ -401,6 +402,10 @@ type ComplexityRoot struct {
 		Viewer func(childComplexity int) int
 	}
 
+	UploadUserAvatarSuccess struct {
+		Viewer func(childComplexity int) int
+	}
+
 	User struct {
 		ActivityAreas           func(childComplexity int) int
 		Avatar                  func(childComplexity int) int
@@ -474,6 +479,7 @@ type MutationResolver interface {
 	SendResetPasswordEmailToUser(ctx context.Context, input model.SendResetPasswordEmailToUserInput) (model.SendResetPasswordEmailToUserResult, error)
 	ResetUserPassword(ctx context.Context, token string, input model.ResetUserPasswordInput) (model.ResetUserPasswordResult, error)
 	UpdateUser(ctx context.Context, input model.UpdateUserInput) (model.UpdateUserResult, error)
+	UploadUserAvatar(ctx context.Context, input model.UploadUserAvatarInput) (*model.UploadUserAvatarSuccess, error)
 }
 type PrefectureResolver interface {
 	ID(ctx context.Context, obj *model.Prefecture) (string, error)
@@ -1159,6 +1165,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateUser(childComplexity, args["input"].(model.UpdateUserInput)), true
 
+	case "Mutation.uploadUserAvatar":
+		if e.complexity.Mutation.UploadUserAvatar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadUserAvatar_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadUserAvatar(childComplexity, args["input"].(model.UploadUserAvatarInput)), true
+
 	case "Mutation.verifyUserEmail":
 		if e.complexity.Mutation.VerifyUserEmail == nil {
 			break
@@ -1795,6 +1813,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UpdateUserSuccess.Viewer(childComplexity), true
 
+	case "UploadUserAvatarSuccess.viewer":
+		if e.complexity.UploadUserAvatarSuccess.Viewer == nil {
+			break
+		}
+
+		return e.complexity.UploadUserAvatarSuccess.Viewer(childComplexity), true
+
 	case "User.activityAreas":
 		if e.complexity.User.ActivityAreas == nil {
 			break
@@ -1970,6 +1995,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputResetUserPasswordInput,
 		ec.unmarshalInputSendResetPasswordEmailToUserInput,
 		ec.unmarshalInputUpdateUserInput,
+		ec.unmarshalInputUploadUserAvatarInput,
 		ec.unmarshalInputVerifyUserEmailInput,
 		ec.unmarshalInputapplicantInput,
 		ec.unmarshalInputcreateMessageInput,
@@ -2267,6 +2293,7 @@ type UnFollowResult {
 }
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphqls", Input: `scalar DateTime
+scalar Upload
 
 directive @goField(
   forceResolver: Boolean
@@ -2489,6 +2516,7 @@ extend type Mutation {
     input: ResetUserPasswordInput!
   ): ResetUserPasswordResult!
   updateUser(input: UpdateUserInput!): UpdateUserResult! @hasLoggedIn
+  uploadUserAvatar(input: UploadUserAvatarInput!): UploadUserAvatarSuccess!
 }
 
 #* Register
@@ -2734,6 +2762,15 @@ input UpdateUserInput {
   sportIds: [ID!]!
   prefectureIds: [ID!]!
   websiteURL: String!
+}
+
+#* UploadAvatar
+type UploadUserAvatarSuccess {
+  viewer: Viewer!
+}
+
+input UploadUserAvatarInput {
+  file: Upload!
 }
 `, BuiltIn: false},
 }
@@ -3065,6 +3102,21 @@ func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_uploadUserAvatar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UploadUserAvatarInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUploadUserAvatarInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -7418,6 +7470,65 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_uploadUserAvatar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_uploadUserAvatar(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UploadUserAvatar(rctx, fc.Args["input"].(model.UploadUserAvatarInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UploadUserAvatarSuccess)
+	fc.Result = res
+	return ec.marshalNUploadUserAvatarSuccess2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_uploadUserAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "viewer":
+				return ec.fieldContext_UploadUserAvatarSuccess_viewer(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UploadUserAvatarSuccess", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_uploadUserAvatar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_startCursor(ctx, field)
 	if err != nil {
@@ -11754,6 +11865,54 @@ func (ec *executionContext) fieldContext_UpdateUserSuccess_viewer(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _UploadUserAvatarSuccess_viewer(ctx context.Context, field graphql.CollectedField, obj *model.UploadUserAvatarSuccess) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UploadUserAvatarSuccess_viewer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Viewer, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalNViewer2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UploadUserAvatarSuccess_viewer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadUserAvatarSuccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "accountUser":
+				return ec.fieldContext_Viewer_accountUser(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
@@ -14975,6 +15134,34 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUploadUserAvatarInput(ctx context.Context, obj interface{}) (model.UploadUserAvatarInput, error) {
+	var it model.UploadUserAvatarInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"file"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputVerifyUserEmailInput(ctx context.Context, obj interface{}) (model.VerifyUserEmailInput, error) {
 	var it model.VerifyUserEmailInput
 	asMap := map[string]interface{}{}
@@ -16932,6 +17119,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "uploadUserAvatar":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_uploadUserAvatar(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18534,6 +18730,34 @@ func (ec *executionContext) _UpdateUserSuccess(ctx context.Context, sel ast.Sele
 		case "viewer":
 
 			out.Values[i] = ec._UpdateUserSuccess_viewer(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var uploadUserAvatarSuccessImplementors = []string{"UploadUserAvatarSuccess"}
+
+func (ec *executionContext) _UploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.UploadUserAvatarSuccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uploadUserAvatarSuccessImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UploadUserAvatarSuccess")
+		case "viewer":
+
+			out.Values[i] = ec._UploadUserAvatarSuccess_viewer(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -20765,6 +20989,40 @@ func (ec *executionContext) marshalNUpdateUserResult2githubᚗcomᚋnagokosᚋco
 		return graphql.Null
 	}
 	return ec._UpdateUserResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUploadUserAvatarInput2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarInput(ctx context.Context, v interface{}) (model.UploadUserAvatarInput, error) {
+	res, err := ec.unmarshalInputUploadUserAvatarInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUploadUserAvatarSuccess2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, v model.UploadUserAvatarSuccess) graphql.Marshaler {
+	return ec._UploadUserAvatarSuccess(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUploadUserAvatarSuccess2ᚖgithubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUploadUserAvatarSuccess(ctx context.Context, sel ast.SelectionSet, v *model.UploadUserAvatarSuccess) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UploadUserAvatarSuccess(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋnagokosᚋconnefut_backendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {

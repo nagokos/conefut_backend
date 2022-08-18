@@ -7,6 +7,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type ApplyForRecruitmentError interface {
@@ -492,6 +494,14 @@ type UpdateUserSuccess struct {
 }
 
 func (UpdateUserSuccess) IsUpdateUserResult() {}
+
+type UploadUserAvatarInput struct {
+	File graphql.Upload `json:"file"`
+}
+
+type UploadUserAvatarSuccess struct {
+	Viewer *Viewer `json:"viewer"`
+}
 
 type VerifyUserEmailAuthenticationError struct {
 	Message string `json:"message"`
