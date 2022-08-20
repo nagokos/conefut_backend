@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | bigint | nextval('prefectures_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) |  |  |
+| id | bigint | nextval('prefectures_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) [public.user_activity_areas](public.user_activity_areas.md) |  |  |
 | name | varchar |  | false |  |  |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |

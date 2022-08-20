@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | bigint | nextval('competitions_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) |  |  |
+| id | bigint | nextval('competitions_id_seq'::regclass) | false | [public.recruitments](public.recruitments.md) [public.user_play_sports](public.user_play_sports.md) |  |  |
 | name | varchar |  | false |  |  |  |
 | created_at | timestamp with time zone |  | false |  |  |  |
 | updated_at | timestamp with time zone |  | false |  |  |  |
