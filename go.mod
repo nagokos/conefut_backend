@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/storage v1.22.1
-	github.com/99designs/gqlgen v0.17.13
+	github.com/99designs/gqlgen v0.17.15
 	github.com/brianvoe/gofakeit/v6 v6.18.0
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/go-chi/chi/v5 v5.0.7
@@ -16,7 +16,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-gimei v0.0.2
 	github.com/rs/xid v1.4.0
-	github.com/vektah/gqlparser/v2 v2.4.7
+	github.com/vektah/gqlparser/v2 v2.4.8
 	go.uber.org/zap v1.22.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
