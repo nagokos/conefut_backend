@@ -14,7 +14,7 @@ require (
 	github.com/graph-gophers/dataloader v5.0.0+incompatible
 	github.com/jackc/pgx/v4 v4.17.0
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-gimei v0.0.2
+	github.com/mattn/go-gimei v0.0.3
 	github.com/rs/xid v1.4.0
 	github.com/vektah/gqlparser/v2 v2.4.7
 	go.uber.org/zap v1.22.0
